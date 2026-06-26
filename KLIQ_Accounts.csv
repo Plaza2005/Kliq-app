@@ -1,0 +1,4 @@
+Role,Email,Password,Username,Notes
+Admin (ctrl_1),admin@kliq.app,Admin1234!,admin,Use for ctrl_1 control system login
+Test User 1,(register in app),(your choice),(your choice),Register via KLIQ app signup
+Test User 2,(register in app),(your choice),(your choice),Register via KLIQ app signup

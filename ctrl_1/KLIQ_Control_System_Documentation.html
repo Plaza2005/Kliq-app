@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KLIQ Control System — Documentation & Operations Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f0f14;
+    color: #e2e8f0;
+    line-height: 1.7;
+    padding: 0;
+  }
+  /* Cover */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0f0f14 0%, #1a0a2e 50%, #0f0f14 100%);
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+    top: -100px; left: -100px;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,45,120,0.06) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+  }
+  .cover-logo {
+    font-size: 72px; font-weight: 900;
+    background: linear-gradient(90deg, #00d4ff, #a855f7, #ff2d78);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px; letter-spacing: -2px;
+  }
+  .cover-subtitle { color: #64748b; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 60px; }
+  .cover-title { font-size: 38px; font-weight: 800; color: #fff; margin-bottom: 16px; line-height: 1.2; }
+  .cover-desc { color: #94a3b8; font-size: 16px; max-width: 560px; margin-bottom: 60px; }
+  .cover-meta { display: flex; gap: 40px; justify-content: center; }
+  .cover-meta-item { text-align: center; }
+  .cover-meta-item .label { color: #475569; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+  .cover-meta-item .val { color: #e2e8f0; font-size: 14px; font-weight: 600; margin-top: 4px; }
+  .page-break { page-break-before: always; }
+  /* Layout */
+  .doc { max-width: 960px; margin: 0 auto; padding: 60px 48px; }
+  /* TOC */
+  .toc { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 36px 40px; margin-bottom: 60px; }
+  .toc h2 { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 24px; }
+  .toc-section { margin-bottom: 20px; }
+  .toc-section-title { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #334155; }
+  .toc-item { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+  .toc-item a { color: #c7d2fe; text-decoration: none; font-size: 14px; }
+  .toc-item a:hover { color: #fff; }
+  .toc-item .pg { color: #475569; font-size: 12px; }
+  /* Headings */
+  h1.section { font-size: 30px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  h1.section span { background: linear-gradient(90deg, #00d4ff, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .section-meta { color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid #1e293b; }
+  h2.sub { font-size: 20px; font-weight: 700; color: #e2e8f0; margin: 36px 0 14px; padding-left: 14px; border-left: 3px solid #6366f1; }
+  h3.subsub { font-size: 15px; font-weight: 600; color: #c7d2fe; margin: 24px 0 10px; }
+  p { color: #94a3b8; font-size: 14px; margin-bottom: 12px; }
+  strong { color: #e2e8f0; }
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 20px 0; }
+  .card-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+  .card h4 { color: #e2e8f0; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 13px; }
+  .card-label { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 20px; margin-bottom: 8px; }
+  .label-blue { background: rgba(99,102,241,0.15); color: #818cf8; }
+  .label-green { background: rgba(16,185,129,0.15); color: #34d399; }
+  .label-yellow { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .label-red { background: rgba(239,68,68,0.15); color: #f87171; }
+  .label-purple { background: rgba(168,85,247,0.15); color: #c084fc; }
+  .label-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+  th { background: #1e293b; color: #94a3b8; font-weight: 600; text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #94a3b8; vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td strong { color: #e2e8f0; }
+  /* Code */
+  code { background: #0f172a; border: 1px solid #334155; color: #7dd3fc; padding: 1px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 12px; }
+  pre { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 20px 24px; overflow-x: auto; margin: 16px 0; }
+  pre code { background: none; border: none; color: #e2e8f0; font-size: 12px; line-height: 1.8; }
+  .code-comment { color: #475569; }
+  .code-key { color: #7dd3fc; }
+  .code-val { color: #86efac; }
+  .code-str { color: #fbbf24; }
+  /* Callout */
+  .callout { border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: flex; gap: 14px; align-items: flex-start; }
+  .callout-info { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); }
+  .callout-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+  .callout-danger { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+  .callout-success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-body h4 { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+  .callout-body p { margin: 0; font-size: 13px; }
+  /* List */
+  ul.doc-list, ol.doc-list { padding-left: 20px; margin: 12px 0; }
+  ul.doc-list li, ol.doc-list li { color: #94a3b8; font-size: 14px; margin-bottom: 6px; }
+  ul.doc-list li strong, ol.doc-list li strong { color: #e2e8f0; }
+  /* Spec row */
+  .spec-row { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #64748b; font-size: 13px; }
+  .spec-val { color: #e2e8f0; font-size: 13px; font-weight: 600; text-align: right; }
+  /* Divider */
+  .divider { border: none; border-top: 1px solid #1e293b; margin: 48px 0; }
+  /* Badge */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+  .badge-yellow { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+  .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+  /* Footer */
+  footer { text-align: center; padding: 40px; color: #334155; font-size: 12px; border-top: 1px solid #1e293b; margin-top: 60px; }
+  @media print {
+    body { background: #fff; color: #000; }
+    .cover { background: #fff; }
+    .cover-logo { -webkit-text-fill-color: #6366f1; }
+    .cover-title { color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ COVER ══ -->
+<div class="cover">
+  <div class="cover-logo">KLIQ</div>
+  <div class="cover-subtitle">Internal Documentation · Restricted</div>
+  <div class="cover-title">Control System<br/>Architecture & Operations Guide</div>
+  <div class="cover-desc">
+    A comprehensive reference covering the KLIQ Admin Control System design, all functional modules,
+    and full server operations planning for a 10,000-user production deployment.
+  </div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="label">Version</div><div class="val">1.0.0</div></div>
+    <div class="cover-meta-item"><div class="label">Date</div><div class="val">June 2026</div></div>
+    <div class="cover-meta-item"><div class="label">Classification</div><div class="val">Internal Only</div></div>
+    <div class="cover-meta-item"><div class="label">Status</div><div class="val">Active</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BODY ══ -->
+<div class="doc">
+
+<!-- ── TABLE OF CONTENTS ── -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <div class="toc-section">
+    <div class="toc-section-title">Part I — Control System Overview</div>
+    <div class="toc-item"><a href="#s1">1. What is the KLIQ Control System?</a></div>
+    <div class="toc-item"><a href="#s2">2. Technology Stack</a></div>
+    <div class="toc-item"><a href="#s3">3. System Architecture</a></div>
+    <div class="toc-item"><a href="#s4">4. Admin Modules — Detailed Breakdown</a></div>
+    <div class="toc-item"><a href="#s5">5. Analytics Engine</a></div>
+    <div class="toc-item"><a href="#s6">6. Security Model</a></div>
+  </div>
+  <div class="toc-section">
+    <div class="toc-section-title">Part II — Server Operations for 10,000 Users</div>
+    <div class="toc-item"><a href="#s7">7. Infrastructure Architecture</a></div>
+    <div class="toc-item"><a href="#s8">8. Database Design & Sizing</a></div>
+    <div class="toc-item"><a href="#s9">9. API & Backend Services</a></div>
+    <div class="toc-item"><a href="#s10">10. Media & CDN Strategy</a></div>
+    <div class="toc-item"><a href="#s11">11. Monitoring, Alerting & SLAs</a></div>
+    <div class="toc-item"><a href="#s12">12. Scaling Playbook</a></div>
+    <div class="toc-item"><a href="#s13">13. Cost Estimates (NAD / USD)</a></div>
+    <div class="toc-item"><a href="#s14">14. Security & Compliance</a></div>
+    <div class="toc-item"><a href="#s15">15. Disaster Recovery</a></div>
+    <div class="toc-item"><a href="#s16">16. Launch Checklist</a></div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ══════════════════════════════════════════════════════════════
+     PART I — CONTROL SYSTEM
+══════════════════════════════════════════════════════════════ -->
+<h1 class="section" id="s1"><span>Part I</span> — KLIQ Control System</h1>
+<div class="section-meta">Overview, modules, analytics, and admin capabilities</div>
+
+<h2 class="sub">1. What is the KLIQ Control System?</h2>
+<p>
+  The <strong>KLIQ Control System</strong> is the internal administrative dashboard for the KLIQ social media platform.
+  It is a standalone web application running separately from the consumer-facing KLIQ app (<code>prot_3</code>, port 5173),
+  accessible only to authorised administrators at <code>localhost:5174</code> in development, and behind a VPN-gated domain in production.
+</p>
+<p>
+  Its purpose is to give administrators full visibility and control over the platform — from user management and content moderation
+  to real-time analytics, community oversight, push notification management, system settings, and direct communication with users.
+  Every meaningful admin action is logged in the Activity Log for auditability.
+</p>
+
+<div class="callout callout-info">
+  <div class="callout-icon">ℹ️</div>
+  <div class="callout-body">
+    <h4>Design Philosophy</h4>
+    <p>The Control System is built to the same visual quality as the consumer app — dark slate palette with KLIQ cyan/purple/pink brand accents —
+    so that internal tooling feels first-class, not an afterthought. Every table, chart, and modal is purpose-built for the admin workflow.</p>
+  </div>
+</div>
+
+<h2 class="sub">2. Technology Stack</h2>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-label label-blue">Frontend Framework</div>
+    <h4>React 18 + TypeScript</h4>
+    <p>Component-based SPA. Strict TypeScript for type safety across all admin interfaces.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-cyan">Build Tool</div>
+    <h4>Vite 5</h4>
+    <p>Sub-second HMR in development. Optimised production bundles with code splitting.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-purple">Styling</div>
+    <h4>Tailwind CSS v4</h4>
+    <p>CSS-first configuration via <code>@import 'tailwindcss'</code>. No config file — sources auto-detected.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-green">Routing</div>
+    <h4>React Router v7</h4>
+    <p><code>createBrowserRouter</code> with nested Layout/Outlet pattern. 18 registered routes.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Charts</div>
+    <h4>Recharts 2.15</h4>
+    <p>LineChart, AreaChart, BarChart, PieChart. All charts are responsive via <code>ResponsiveContainer</code>.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-red">Icons</div>
+    <h4>Lucide React 0.487</h4>
+    <p>300+ consistent SVG icons. Shared icon library with the consumer app.</p>
+  </div>
+</div>
+
+<h2 class="sub">3. System Architecture</h2>
+<p>The Control System follows a single-page application architecture with client-side routing. All routes are nested under a persistent <strong>Layout</strong> shell that renders the Sidebar and Header — only the main content area swaps between routes via <code>&lt;Outlet /&gt;</code>.</p>
+
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                        Layout Shell                         │
+│  ┌─────────────┐  ┌────────────────────────────────────┐   │
+│  │   Sidebar   │  │            Header (z-40)           │   │
+│  │             │  ├────────────────────────────────────┤   │
+│  │  Nav links  │  │         &lt;Outlet /&gt; (main)          │   │
+│  │  (8 items)  │  │                                    │   │
+│  │             │  │  Page components render here:      │   │
+│  │  Open KLIQ  │  │  Dashboard, Users, Content,        │   │
+│  │  App link   │  │  Communities, Analytics,           │   │
+│  │             │  │  Messages, Notifications,          │   │
+│  └─────────────┘  │  AppSettings, AdminProfile,        │   │
+│                   │  Preferences, ActivityLog,         │   │
+│                   │  + 7 Analytics sub-pages           │   │
+│                   └────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+
+/login → AdminLogin (standalone, no Layout shell)
+</code></pre>
+
+<h3 class="subsub">Route Map</h3>
+<table>
+  <tr><th>Path</th><th>Component</th><th>Purpose</th></tr>
+  <tr><td><code>/</code></td><td>Dashboard</td><td>KPI overview, drill-down modals, quick actions</td></tr>
+  <tr><td><code>/users</code></td><td>Users</td><td>User table, search/filter, moderation actions</td></tr>
+  <tr><td><code>/content</code></td><td>Content</td><td>Content moderation queue and review</td></tr>
+  <tr><td><code>/communities</code></td><td>Communities</td><td>Community management and health overview</td></tr>
+  <tr><td><code>/analytics</code></td><td>Analytics</td><td>8-tab analytics dashboard</td></tr>
+  <tr><td><code>/analytics/user-behavior</code></td><td>AnalyticsUserBehavior</td><td>Retention, onboarding, session data</td></tr>
+  <tr><td><code>/analytics/engagement</code></td><td>AnalyticsEngagement</td><td>Likes, saves, CTR, scroll depth</td></tr>
+  <tr><td><code>/analytics/content-health</code></td><td>AnalyticsContentHealth</td><td>Reports, removals, viral coefficient</td></tr>
+  <tr><td><code>/analytics/technical</code></td><td>AnalyticsTechnical</td><td>API latency, errors, CDN, crashes</td></tr>
+  <tr><td><code>/analytics/growth</code></td><td>AnalyticsGrowth</td><td>Signups, acquisition, geo expansion</td></tr>
+  <tr><td><code>/analytics/monetization</code></td><td>AnalyticsMonetization</td><td>MRR, ARPU, payments, conversion</td></tr>
+  <tr><td><code>/analytics/trust-safety</code></td><td>AnalyticsTrustSafety</td><td>Fake accounts, moderation, bans</td></tr>
+  <tr><td><code>/messages</code></td><td>Messages</td><td>WhatsApp-style admin ↔ user chat</td></tr>
+  <tr><td><code>/notifications</code></td><td>Notifications</td><td>Push notification management</td></tr>
+  <tr><td><code>/settings</code></td><td>AppSettings</td><td>Platform configuration</td></tr>
+  <tr><td><code>/profile</code></td><td>AdminProfile</td><td>Admin account settings, 2FA</td></tr>
+  <tr><td><code>/preferences</code></td><td>AdminPreferences</td><td>Notification preferences, timezone</td></tr>
+  <tr><td><code>/activity-log</code></td><td>ActivityLog</td><td>Audit trail of admin actions</td></tr>
+  <tr><td><code>/login</code></td><td>AdminLogin</td><td>Authentication (standalone)</td></tr>
+</table>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s4">4. Admin Modules — Detailed Breakdown</h2>
+
+<h3 class="subsub">4.1 Dashboard</h3>
+<p>The Dashboard is the landing page. It displays six real-time KPI cards, each acting as a drill-down button. Clicking a card opens a modal with a more detailed breakdown, including a chart and key sub-metrics.</p>
+<ul class="doc-list">
+  <li><strong>KPI Cards:</strong> Total Users · Daily Active Users · Content Pieces Today · Revenue MTD · Moderation Queue · Platform Health Score</li>
+  <li><strong>Drill-down modals:</strong> Each card maps to a <code>DRILLDOWN</code> config object that specifies the modal title, subtitle, metrics array, and chart type (pie or bar)</li>
+  <li><strong>Quick action panel:</strong> Direct links to moderation queue, user management, and push notifications</li>
+</ul>
+
+<h3 class="subsub">4.2 User Management</h3>
+<p>The Users page provides a full table of all registered users with search, filter, and inline moderation actions.</p>
+<ul class="doc-list">
+  <li><strong>Table columns:</strong> Avatar, Username, Email, Tier (two-line badge: Tier N + label), Status, Posts, Followers, Joined date, Actions</li>
+  <li><strong>Filters:</strong> Full-text search (username, name, email) · Status filter (All / Active / Suspended / Banned / Pending)</li>
+  <li><strong>Actions per user:</strong> View Profile (opens prot_3), Verify, Suspend, Reinstate, Ban, Delete</li>
+  <li><strong>Confirmation modal:</strong> All destructive actions require a confirm step before execution</li>
+  <li><strong>Tier system:</strong> Tier 1 (Basic) · Tier 2 (Plus) · Tier 3 (Pro) — colour-coded with distinct badge styling</li>
+</ul>
+
+<h3 class="subsub">4.3 Content Moderation</h3>
+<p>The Content page surfaces flagged posts and queued reports for admin review, with accept/reject/escalate controls.</p>
+
+<h3 class="subsub">4.4 Communities</h3>
+<p>Overview of all KLIQ communities — member counts, activity scores, flagged communities, and admin tools to merge, archive, or feature communities.</p>
+
+<h3 class="subsub">4.5 Messages (Admin Chat)</h3>
+<p>A WhatsApp-style split-panel chat system allowing admins to communicate directly with users for support, warnings, or follow-up on reported content.</p>
+<ul class="doc-list">
+  <li><strong>Left panel:</strong> Conversation list with avatar, username, last message preview, unread badge, online indicator</li>
+  <li><strong>Right panel:</strong> Chat bubbles (admin = indigo right, user = slate left), auto-scroll, message timestamps</li>
+  <li><strong>Read receipts:</strong> Single tick (sent) → double tick (delivered) → filled double tick (seen)</li>
+  <li><strong>Per-conversation actions:</strong> View user profile in KLIQ app, Flag account, Ban user, additional options</li>
+  <li><strong>Seeded conversations:</strong> 8 real support scenarios (appeal reviews, ban queries, verification requests)</li>
+</ul>
+
+<h3 class="subsub">4.6 Notifications</h3>
+<p>Push notification management panel. Admins can compose and broadcast notifications to all users, specific tiers, or individual users. Includes delivery tracking.</p>
+
+<h3 class="subsub">4.7 App Settings</h3>
+<p>Platform-wide configuration: feature flags, content policies, rate limits, onboarding flow toggles, maintenance mode, and API key management.</p>
+
+<h3 class="subsub">4.8 Admin Profile</h3>
+<p>Personal admin account management: edit display name, email, and bio; toggle 2FA; change password; sign out with confirmation modal.</p>
+
+<h3 class="subsub">4.9 Preferences</h3>
+<p>Admin-specific settings: email notification toggles (5 categories), real-time alert toggles (4 types), timezone selector (defaults to UTC+2 Namibia), dashboard refresh interval.</p>
+
+<h3 class="subsub">4.10 Activity Log</h3>
+<p>Full audit trail of all admin actions, searchable and filterable by action type.</p>
+<ul class="doc-list">
+  <li><strong>Log entry fields:</strong> Timestamp · Action · Target · Type · IP Address · Result</li>
+  <li><strong>Action types:</strong> Moderation · User Management · Content · System · Notification</li>
+  <li><strong>15 seeded entries</strong> demonstrate realistic admin workflows</li>
+</ul>
+
+<h3 class="subsub">4.11 Header — Global Controls</h3>
+<ul class="doc-list">
+  <li><strong>Global search:</strong> Search bar for users, content, and communities</li>
+  <li><strong>Notification bell:</strong> Dropdown panel with 7 categorised admin alerts (flag, alert, user, growth, safety types), unread count badge, mark-all-read, dismiss individual</li>
+  <li><strong>Admin dropdown:</strong> Profile → /profile · Preferences → /preferences · Activity Log → /activity-log · Sign Out → /login</li>
+  <li><strong>View KLIQ App button:</strong> Opens <code>localhost:5173</code> in new tab with KLIQ brand gradient</li>
+</ul>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s5">5. Analytics Engine</h2>
+<p>The Analytics system is the most comprehensive module. It has two layers: a <strong>summary tab view</strong> at <code>/analytics</code> (8 tabs), and <strong>7 full-detail report pages</strong> accessible via "View Full Report →" on each tab.</p>
+
+<h3 class="subsub">Summary Tabs (at /analytics)</h3>
+<table>
+  <tr><th>Tab</th><th>Key Metrics Shown</th></tr>
+  <tr><td><strong>Overview</strong></td><td>Total users, active today, content today, revenue MTD, user+revenue growth area chart, content mix pie</td></tr>
+  <tr><td><strong>User Behavior</strong></td><td>Session duration, daily frequency, Day 30 retention, churn; retention curve, feature adoption bars, onboarding funnel, session frequency line</td></tr>
+  <tr><td><strong>Engagement</strong></td><td>Like rate, scroll depth, CTR, save rate; engagement by content type grouped bar, scroll depth bar, CTR area trend</td></tr>
+  <tr><td><strong>Content Health</strong></td><td>Removal rate, reports volume, viral coefficient, creator ratio; report categories horizontal bar, viral K-factor line, removal vs reported bar</td></tr>
+  <tr><td><strong>Technical</strong></td><td>p50/p99 latency, error rate, CDN hit rate; API latency by endpoint grouped bar, error rate area, crash rate by version</td></tr>
+  <tr><td><strong>Growth</strong></td><td>New today, new this month, referral rate, top region; daily signups area, acquisition source pie, geographic expansion table</td></tr>
+  <tr><td><strong>Monetization</strong></td><td>ARPU, conversion rate, tx success, avg transaction; ARPU line, payment methods pie, tier conversion funnel, tx status</td></tr>
+  <tr><td><strong>Trust & Safety</strong></td><td>Fake account rate, moderation response time, false positive rate, repeat offenders; moderation volume bar, fake signals, summary stat cards</td></tr>
+</table>
+
+<h3 class="subsub">Full Detail Report Pages</h3>
+<p>Each full report page adds: <strong>period selector</strong> (7D / 30D / 90D / 1Y), <strong>key insight banner</strong>, <strong>8 KPI cards</strong>, additional charts not in the summary view, and a detailed <strong>data table</strong>.</p>
+
+<div class="callout callout-info">
+  <div class="callout-icon">📊</div>
+  <div class="callout-body">
+    <h4>Data Source Note</h4>
+    <p>In the current prototype, all analytics data is seeded with realistic values representative of a Namibia-focused social platform at ~12,847 users.
+    In production, this layer connects to a time-series database (InfluxDB or TimescaleDB) via a <code>/admin/metrics</code> API endpoint.</p>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s6">6. Security Model</h2>
+<ul class="doc-list">
+  <li><strong>Authentication:</strong> Email + password login at <code>/login</code>. In production: JWT access tokens (15-min expiry) + HTTP-only refresh tokens (7-day).</li>
+  <li><strong>Route protection:</strong> All routes under the Layout shell require a valid session. Unauthenticated requests redirect to <code>/login</code>.</li>
+  <li><strong>2FA:</strong> TOTP-based two-factor authentication toggle in Admin Profile. Mandatory for all Production admins.</li>
+  <li><strong>Audit trail:</strong> Every write action (ban, delete, modify settings) is logged to the Activity Log with IP address and timestamp.</li>
+  <li><strong>Role separation:</strong> In production, extend to: Super Admin · Moderator · Read-Only Analyst. Currently single-role prototype.</li>
+  <li><strong>Network isolation:</strong> The Control System should be served on a separate subdomain (<code>admin.kliq.app</code>) behind a VPN or IP allowlist — never on the same origin as the consumer app.</li>
+</ul>
+
+<hr class="divider" />
+<hr class="divider" />
+
+<!-- ══════════════════════════════════════════════════════════════
+     PART II — SERVER OPERATIONS
+══════════════════════════════════════════════════════════════ -->
+<h1 class="section" id="s7"><span>Part II</span> — Server Operations for 10,000 Users</h1>
+<div class="section-meta">Infrastructure, architecture, scaling, costs, and launch checklist</div>
+
+<div class="callout callout-warn">
+  <div class="callout-icon">⚠️</div>
+  <div class="callout-body">
+    <h4>Scale Context</h4>
+    <p>This guide is calibrated for <strong>10,000 registered users</strong> with an assumed <strong>30–40% daily active rate</strong> (3,000–4,000 DAU),
+    peak concurrency of ~800 simultaneous users, and a Namibia-first audience using Android/mobile on MTN, TeleNamibia, and MTC networks.
+    Infrastructure is sized for current load with capacity to scale 3× without re-architecture.</p>
+  </div>
+</div>
+
+<h2 class="sub">7. Infrastructure Architecture</h2>
+
+<h3 class="subsub">7.1 Recommended Stack Overview</h3>
+<pre><code>                        ┌─────────────────────┐
+                        │   Cloudflare (DNS,   │
+                        │   DDoS, WAF, CDN)    │
+                        └──────────┬──────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │   Load Balancer      │
+                        │   (Nginx / Caddy)    │
+                        └───┬──────────────┬──┘
+                            │              │
+              ┌─────────────▼──┐    ┌──────▼──────────┐
+              │  API Server 1  │    │  API Server 2   │
+              │  (Node.js)     │    │  (Node.js)      │
+              └───────┬────────┘    └────────┬────────┘
+                      │                      │
+              ┌───────▼──────────────────────▼───────┐
+              │          PostgreSQL (Primary)         │
+              │          + Read Replica               │
+              └───────────────────┬──────────────────┘
+                                  │
+              ┌───────────────────▼──────────────────┐
+              │     Redis (Cache + Sessions +         │
+              │     Rate Limiting + Pub/Sub)          │
+              └──────────────────────────────────────┘
+              ┌──────────────────────────────────────┐
+              │   Object Storage (Backblaze B2 /     │
+              │   Cloudflare R2) — media, avatars    │
+              └──────────────────────────────────────┘
+              ┌──────────────────────────────────────┐
+              │   Push Notifications (FCM / APNs)    │
+              └──────────────────────────────────────┘
+</code></pre>
+
+<h3 class="subsub">7.2 Deployment Options — Recommended for Namibia</h3>
+<table>
+  <tr><th>Option</th><th>Provider</th><th>Region</th><th>Pros</th><th>Cons</th></tr>
+  <tr>
+    <td><strong>Option A (Recommended)</strong></td>
+    <td>DigitalOcean</td>
+    <td>Johannesburg (JNB)</td>
+    <td>Low latency to NAM, affordable, managed Postgres, App Platform</td>
+    <td>Smaller ecosystem than AWS</td>
+  </tr>
+  <tr>
+    <td>Option B</td>
+    <td>AWS</td>
+    <td>Cape Town (af-south-1)</td>
+    <td>Full AWS ecosystem, excellent Africa latency</td>
+    <td>More expensive, complex pricing</td>
+  </tr>
+  <tr>
+    <td>Option C</td>
+    <td>Hetzner</td>
+    <td>Frankfurt (EU) or JNB partner</td>
+    <td>Cheapest compute in class</td>
+    <td>Higher latency to Africa, fewer managed services</td>
+  </tr>
+  <tr>
+    <td>Option D</td>
+    <td>Render / Railway</td>
+    <td>Oregon (nearest)</td>
+    <td>Zero-config deployment, great DX</td>
+    <td>Higher latency to Africa (~250ms), limited regions</td>
+  </tr>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-icon">✅</div>
+  <div class="callout-body">
+    <h4>Recommendation: DigitalOcean Johannesburg</h4>
+    <p>For a Namibia-first app targeting Windhoek and Walvis Bay, DigitalOcean's Johannesburg datacenter provides ~15–40ms latency to Namibian users — vs 180ms+ to Europe or USA.
+    Managed PostgreSQL, Managed Redis, Spaces (S3-compatible object storage), and a CDN are all available in this region.</p>
+  </div>
+</div>
+
+<h3 class="subsub">7.3 Server Specifications at 10,000 Users</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-label label-blue">API Servers (×2)</div>
+    <h4>DigitalOcean Droplet — s-2vcpu-4gb</h4>
+    <div class="spec-row"><span class="spec-label">vCPUs</span><span class="spec-val">2 per server</span></div>
+    <div class="spec-row"><span class="spec-label">RAM</span><span class="spec-val">4 GB per server</span></div>
+    <div class="spec-row"><span class="spec-label">SSD</span><span class="spec-val">80 GB NVMe</span></div>
+    <div class="spec-row"><span class="spec-label">Bandwidth</span><span class="spec-val">4 TB / month</span></div>
+    <div class="spec-row"><span class="spec-label">Cost</span><span class="spec-val">~$24/mo × 2 = $48/mo</span></div>
+  </div>
+  <div class="card">
+    <div class="card-label label-green">PostgreSQL (Managed)</div>
+    <h4>DO Managed DB — db-s-2vcpu-4gb</h4>
+    <div class="spec-row"><span class="spec-label">vCPUs</span><span class="spec-val">2</span></div>
+    <div class="spec-row"><span class="spec-label">RAM</span><span class="spec-val">4 GB</span></div>
+    <div class="spec-row"><span class="spec-label">Storage</span><span class="spec-val">38 GB SSD</span></div>
+    <div class="spec-row"><span class="spec-label">Backups</span><span class="spec-val">Daily automated</span></div>
+    <div class="spec-row"><span class="spec-label">Cost</span><span class="spec-val">~$60/mo (incl. standby)</span></div>
+  </div>
+  <div class="card">
+    <div class="card-label label-purple">Redis (Managed)</div>
+    <h4>DO Managed Redis — db-s-1vcpu-1gb</h4>
+    <div class="spec-row"><span class="spec-label">RAM</span><span class="spec-val">1 GB</span></div>
+    <div class="spec-row"><span class="spec-label">Use</span><span class="spec-val">Sessions, cache, rate limits</span></div>
+    <div class="spec-row"><span class="spec-label">Eviction</span><span class="spec-val">allkeys-lru</span></div>
+    <div class="spec-row"><span class="spec-label">TTL defaults</span><span class="spec-val">Session: 7d, Cache: 5min</span></div>
+    <div class="spec-row"><span class="spec-label">Cost</span><span class="spec-val">~$15/mo</span></div>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Object Storage + CDN</div>
+    <h4>Cloudflare R2 + CDN</h4>
+    <div class="spec-row"><span class="spec-label">Storage</span><span class="spec-val">~50 GB at 10K users</span></div>
+    <div class="spec-row"><span class="spec-label">Egress</span><span class="spec-val">Free (R2 zero-egress)</span></div>
+    <div class="spec-row"><span class="spec-label">CDN PoPs</span><span class="spec-val">300+ worldwide</span></div>
+    <div class="spec-row"><span class="spec-label">WAF / DDoS</span><span class="spec-val">Included</span></div>
+    <div class="spec-row"><span class="spec-label">Cost</span><span class="spec-val">~$1.50/mo storage + bandwidth</span></div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s8">8. Database Design & Sizing</h2>
+
+<h3 class="subsub">8.1 Core Schema Tables</h3>
+<table>
+  <tr><th>Table</th><th>Est. Rows at 10K Users</th><th>Growth Rate</th><th>Key Indexes</th></tr>
+  <tr><td><strong>users</strong></td><td>10,000</td><td>+200–300/day</td><td>id, username, email, status, tier</td></tr>
+  <tr><td><strong>posts</strong></td><td>~400,000</td><td>+1,200/day</td><td>id, user_id, created_at, type, status</td></tr>
+  <tr><td><strong>likes</strong></td><td>~4,000,000</td><td>+40,000/day</td><td>post_id + user_id (composite unique)</td></tr>
+  <tr><td><strong>comments</strong></td><td>~800,000</td><td>+8,000/day</td><td>post_id, user_id, created_at</td></tr>
+  <tr><td><strong>follows</strong></td><td>~250,000</td><td>+2,000/day</td><td>follower_id, following_id (composite unique)</td></tr>
+  <tr><td><strong>notifications</strong></td><td>~2,000,000</td><td>+50,000/day</td><td>recipient_id, read, created_at — partition by month</td></tr>
+  <tr><td><strong>messages</strong></td><td>~500,000</td><td>+5,000/day</td><td>conversation_id, created_at</td></tr>
+  <tr><td><strong>transactions</strong></td><td>~30,000</td><td>+300/day</td><td>user_id, status, created_at, payment_method</td></tr>
+  <tr><td><strong>reports</strong></td><td>~12,000</td><td>+100/day</td><td>target_id, target_type, status</td></tr>
+  <tr><td><strong>media_files</strong></td><td>~600,000</td><td>+3,000/day</td><td>user_id, type, size, cdn_url</td></tr>
+</table>
+
+<h3 class="subsub">8.2 Estimated Total Storage at 10,000 Users</h3>
+<div class="card-grid-3">
+  <div class="card">
+    <div class="card-label label-blue">PostgreSQL Data</div>
+    <h4>~8 GB</h4>
+    <p>All tables, indexes, and WAL. Well within the 38 GB managed plan.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Media Storage (R2)</div>
+    <h4>~45–80 GB</h4>
+    <p>Avatars (~200KB avg), posts (~500KB), videos (~8MB compressed).</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-purple">Redis Footprint</div>
+    <h4>~200–400 MB</h4>
+    <p>Sessions (10K active), feed caches, rate limit counters. Fits 1GB plan.</p>
+  </div>
+</div>
+
+<h3 class="subsub">8.3 Connection Pooling</h3>
+<p>At 10,000 users and 2 API servers, use <strong>PgBouncer</strong> in transaction-pooling mode. Configure:</p>
+<pre><code><span class="code-key">max_client_conn</span> = <span class="code-val">200</span>          <span class="code-comment"># Max connections from app servers</span>
+<span class="code-key">default_pool_size</span> = <span class="code-val">20</span>         <span class="code-comment"># Connections per pool to PostgreSQL</span>
+<span class="code-key">pool_mode</span> = <span class="code-str">transaction</span>          <span class="code-comment"># Most efficient for web APIs</span>
+<span class="code-key">server_idle_timeout</span> = <span class="code-val">600</span>       <span class="code-comment"># Close idle server connections after 10min</span>
+</code></pre>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s9">9. API & Backend Services</h2>
+
+<h3 class="subsub">9.1 Recommended Runtime</h3>
+<p><strong>Node.js 20 LTS</strong> with <strong>Fastify</strong> (or Express) as the HTTP framework. Fastify handles ~70,000 req/sec on a 2-core server — massively above our 10K user needs.</p>
+
+<h3 class="subsub">9.2 Load Balancer Configuration (Nginx)</h3>
+<pre><code><span class="code-key">upstream</span> kliq_api {
+    <span class="code-key">least_conn</span>;
+    <span class="code-key">server</span> <span class="code-val">api-1.internal:3000</span> weight=1;
+    <span class="code-key">server</span> <span class="code-val">api-2.internal:3000</span> weight=1;
+    <span class="code-key">keepalive</span> <span class="code-val">32</span>;
+}
+
+<span class="code-key">server</span> {
+    <span class="code-key">listen</span> <span class="code-val">443 ssl http2</span>;
+    <span class="code-key">server_name</span> <span class="code-str">api.kliq.app</span>;
+
+    <span class="code-key">ssl_certificate</span>      <span class="code-str">/etc/ssl/kliq.crt</span>;
+    <span class="code-key">ssl_certificate_key</span>  <span class="code-str">/etc/ssl/kliq.key</span>;
+
+    <span class="code-key">location</span> / {
+        <span class="code-key">proxy_pass</span>         <span class="code-val">http://kliq_api</span>;
+        <span class="code-key">proxy_http_version</span> <span class="code-val">1.1</span>;
+        <span class="code-key">proxy_set_header</span>   <span class="code-val">Connection ""</span>;
+        <span class="code-key">proxy_read_timeout</span> <span class="code-val">30s</span>;
+    }
+}
+</code></pre>
+
+<h3 class="subsub">9.3 Rate Limiting (Redis-backed)</h3>
+<table>
+  <tr><th>Endpoint</th><th>Limit</th><th>Window</th><th>Strategy</th></tr>
+  <tr><td><code>POST /auth/login</code></td><td>5 attempts</td><td>15 minutes</td><td>Per IP — prevent brute force</td></tr>
+  <tr><td><code>POST /posts</code></td><td>30 posts</td><td>1 hour</td><td>Per user ID</td></tr>
+  <tr><td><code>GET /feed</code></td><td>120 requests</td><td>1 minute</td><td>Per user ID (token bucket)</td></tr>
+  <tr><td><code>POST /messages</code></td><td>60 messages</td><td>1 minute</td><td>Per user ID</td></tr>
+  <tr><td><code>POST /upload</code></td><td>10 uploads</td><td>1 hour</td><td>Per user ID — storage cost control</td></tr>
+  <tr><td>Admin API <code>/admin/*</code></td><td>1000 requests</td><td>1 minute</td><td>Per admin IP — internal only</td></tr>
+</table>
+
+<h3 class="subsub">9.4 Background Job Queue</h3>
+<p>Use <strong>BullMQ</strong> (Redis-backed) for async work. Jobs that must NOT block the request/response cycle:</p>
+<ul class="doc-list">
+  <li><strong>send-push-notification</strong> — FCM/APNs delivery, retry on failure</li>
+  <li><strong>process-media-upload</strong> — Thumbnail generation, video transcoding (ffmpeg), CDN upload</li>
+  <li><strong>send-email</strong> — Verification emails, password reset, admin alerts via SMTP</li>
+  <li><strong>compute-feed</strong> — Rebuild personalised feed cache for newly active users</li>
+  <li><strong>generate-analytics-snapshot</strong> — Hourly aggregation for the analytics dashboard</li>
+  <li><strong>run-fake-account-detection</strong> — Pattern analysis on new registrations</li>
+</ul>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s10">10. Media & CDN Strategy</h2>
+
+<h3 class="subsub">10.1 Upload Flow</h3>
+<pre><code><span class="code-comment">1. Client requests a pre-signed upload URL from API</span>
+   POST /api/upload/sign → returns { uploadUrl, fileKey }
+
+<span class="code-comment">2. Client uploads directly to Cloudflare R2 (bypasses API server)</span>
+   PUT {uploadUrl} with binary file
+
+<span class="code-comment">3. Client notifies API that upload is complete</span>
+   POST /api/upload/confirm { fileKey }
+
+<span class="code-comment">4. API queues background job: process-media-upload</span>
+   → Generate thumbnails (400×400, 800×800)
+   → Transcode video to HLS (720p, 480p, 360p)
+   → Store processed files in R2 under /processed/{fileKey}/
+   → Update media_files record: status = "ready", cdn_url = "..."
+</code></pre>
+
+<h3 class="subsub">10.2 CDN Cache Rules (Cloudflare)</h3>
+<table>
+  <tr><th>Asset Type</th><th>Cache Duration</th><th>Rule</th></tr>
+  <tr><td>User avatars</td><td>30 days</td><td>Cache on first request, stale-while-revalidate</td></tr>
+  <tr><td>Post images</td><td>365 days</td><td>Immutable — URL contains content hash</td></tr>
+  <tr><td>Video segments (HLS)</td><td>7 days</td><td>Cache at CDN PoP closest to user</td></tr>
+  <tr><td>API responses (/feed)</td><td>30 seconds</td><td>Shared cache with user-specific bypass headers</td></tr>
+  <tr><td>Admin dashboard (HTML/JS)</td><td>No-cache</td><td>Always fresh — security requirement</td></tr>
+</table>
+
+<h3 class="subsub">10.3 Media Size Limits & Compression</h3>
+<table>
+  <tr><th>Content Type</th><th>Max Upload Size</th><th>Stored Format</th><th>Avg Stored Size</th></tr>
+  <tr><td>Profile avatar</td><td>5 MB</td><td>WebP, max 800×800</td><td>~80 KB</td></tr>
+  <tr><td>Post image</td><td>20 MB</td><td>WebP, max 1200×1200</td><td>~280 KB</td></tr>
+  <tr><td>Reel / short video</td><td>100 MB</td><td>HLS (mp4→segments)</td><td>~12 MB</td></tr>
+  <tr><td>KliqTube video</td><td>2 GB</td><td>HLS multi-bitrate</td><td>~180 MB</td></tr>
+  <tr><td>Voice note</td><td>10 MB</td><td>mp3 64kbps</td><td>~0.5 MB</td></tr>
+</table>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s11">11. Monitoring, Alerting & SLAs</h2>
+
+<h3 class="subsub">11.1 Monitoring Stack</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-label label-green">Uptime Monitoring</div>
+    <h4>UptimeRobot (free tier)</h4>
+    <p>HTTP checks every 5 minutes on all public endpoints. SMS + email on downtime.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-blue">Metrics</div>
+    <h4>Grafana + Prometheus</h4>
+    <p>Node exporter for server metrics, custom app metrics (request rate, latency, error rate) via Prometheus client.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Error Tracking</div>
+    <h4>Sentry (free tier: 5K events/mo)</h4>
+    <p>Captures stack traces from both the API and the React frontend. Groups by fingerprint, alerts on new errors.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-purple">Logs</div>
+    <h4>Loki + Grafana</h4>
+    <p>Structured JSON logs from all API servers. Queryable via LogQL. Retain 30 days.</p>
+  </div>
+</div>
+
+<h3 class="subsub">11.2 Critical Alerts (PagerDuty or simple SMS webhook)</h3>
+<table>
+  <tr><th>Alert</th><th>Condition</th><th>Severity</th><th>Response SLA</th></tr>
+  <tr><td>API Down</td><td>Health check fails 3× in 5 min</td><td><span class="badge badge-red">P1 Critical</span></td><td>15 minutes</td></tr>
+  <tr><td>Database Down</td><td>Postgres connection fails</td><td><span class="badge badge-red">P1 Critical</span></td><td>15 minutes</td></tr>
+  <tr><td>Error Rate Spike</td><td>Error rate &gt; 2% for 5 minutes</td><td><span class="badge badge-red">P1 Critical</span></td><td>30 minutes</td></tr>
+  <tr><td>High Latency</td><td>p99 &gt; 2,000ms for 10 minutes</td><td><span class="badge badge-yellow">P2 High</span></td><td>1 hour</td></tr>
+  <tr><td>Disk Usage</td><td>Disk &gt; 80% on any server</td><td><span class="badge badge-yellow">P2 High</span></td><td>4 hours</td></tr>
+  <tr><td>Memory Pressure</td><td>RAM &gt; 85% sustained 15 min</td><td><span class="badge badge-yellow">P2 High</span></td><td>4 hours</td></tr>
+  <tr><td>Queue Backlog</td><td>BullMQ depth &gt; 1,000 jobs</td><td><span class="badge badge-yellow">P2 High</span></td><td>1 hour</td></tr>
+  <tr><td>Push Delivery Failure</td><td>FCM failure rate &gt; 5%</td><td><span class="badge badge-yellow">P2 High</span></td><td>2 hours</td></tr>
+</table>
+
+<h3 class="subsub">11.3 SLA Targets</h3>
+<div class="card-grid-3">
+  <div class="card">
+    <div class="card-label label-green">Uptime</div>
+    <h4>99.5%</h4>
+    <p>Max 3.65 hours downtime per month. Achievable with 2-server setup and managed DB failover.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-blue">API Latency</div>
+    <h4>p50 &lt; 100ms · p99 &lt; 800ms</h4>
+    <p>From a Namibian client to the Johannesburg datacenter.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Media Delivery</div>
+    <h4>&lt; 200ms TTFB</h4>
+    <p>From Cloudflare CDN PoP. Most African users hit a PoP in Johannesburg or Lagos.</p>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s12">12. Scaling Playbook</h2>
+
+<h3 class="subsub">12.1 Scaling Triggers</h3>
+<table>
+  <tr><th>Metric</th><th>Current Target</th><th>Scale Trigger</th><th>Action</th></tr>
+  <tr><td>Concurrent API requests</td><td>&lt; 200 / server</td><td>&gt; 180 sustained</td><td>Add API server (horizontal scale)</td></tr>
+  <tr><td>DB CPU</td><td>&lt; 60%</td><td>&gt; 75% sustained 30 min</td><td>Upgrade DB plan or add read replica</td></tr>
+  <tr><td>DB connections</td><td>&lt; 40 / node</td><td>&gt; 35</td><td>Increase PgBouncer pool or add replica</td></tr>
+  <tr><td>Redis memory</td><td>&lt; 70% of 1 GB</td><td>&gt; 75%</td><td>Upgrade to 2 GB Redis plan</td></tr>
+  <tr><td>API p99 latency</td><td>&lt; 800ms</td><td>&gt; 1,200ms sustained</td><td>Profile slow queries, add DB indexes, add server</td></tr>
+  <tr><td>Media storage</td><td>&lt; 50 GB</td><td>&gt; 40 GB</td><td>R2 scales automatically — no action needed</td></tr>
+</table>
+
+<h3 class="subsub">12.2 Growth Path: 10K → 50K → 100K Users</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-label label-green">10K Users (Now)</div>
+    <h4>Current Setup</h4>
+    <p>2 API servers (2vCPU/4GB each) · Managed Postgres (2vCPU/4GB) · Managed Redis (1GB) · Cloudflare R2 + CDN</p>
+    <p><strong>Monthly cost: ~$130–160 USD</strong></p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">50K Users</div>
+    <h4>First Scale-Up</h4>
+    <p>4 API servers (4vCPU/8GB) · Postgres (4vCPU/8GB + read replica) · Redis (2GB) · Add dedicated BullMQ worker server</p>
+    <p><strong>Monthly cost: ~$500–700 USD</strong></p>
+  </div>
+  <div class="card">
+    <div class="card-label label-red">100K Users</div>
+    <h4>Full Production</h4>
+    <p>Auto-scaling API fleet (min 4, max 12) · Postgres primary + 2 read replicas · Redis cluster · Kubernetes or DO App Platform</p>
+    <p><strong>Monthly cost: ~$1,500–2,500 USD</strong></p>
+  </div>
+  <div class="card">
+    <div class="card-label label-purple">500K+ Users</div>
+    <h4>Regional Architecture</h4>
+    <p>Multi-region: JHB (primary) + EUR (replica) · Microservices split by domain · TimescaleDB for analytics · Dedicated media processing cluster</p>
+    <p><strong>Monthly cost: ~$8,000–15,000 USD</strong></p>
+  </div>
+</div>
+
+<h3 class="subsub">12.3 Database Query Optimisation (Key Rules)</h3>
+<ul class="doc-list">
+  <li><strong>Never paginate with OFFSET</strong> on large tables — use cursor-based pagination (<code>WHERE id &lt; :cursor</code>)</li>
+  <li><strong>Index every foreign key</strong> and every column used in WHERE clauses or ORDER BY</li>
+  <li><strong>Cache the user feed</strong> in Redis with a 5-minute TTL — the feed query is the most expensive single operation</li>
+  <li><strong>Use EXPLAIN ANALYZE</strong> on any query over 100ms in staging before deploying</li>
+  <li><strong>Partition the notifications table</strong> by month to keep queries fast as row count grows</li>
+  <li><strong>Archive old data</strong> — posts &gt;2 years, soft-deleted content, and expired sessions should move to cold storage monthly</li>
+</ul>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s13">13. Cost Estimates (USD / NAD)</h2>
+
+<h3 class="subsub">13.1 Monthly Infrastructure Cost at 10,000 Users</h3>
+<table>
+  <tr><th>Service</th><th>Provider</th><th>USD/mo</th><th>NAD/mo (approx)</th></tr>
+  <tr><td>API Server × 2</td><td>DigitalOcean</td><td>$48</td><td>~N$900</td></tr>
+  <tr><td>Load Balancer</td><td>DigitalOcean</td><td>$12</td><td>~N$225</td></tr>
+  <tr><td>Managed PostgreSQL</td><td>DigitalOcean</td><td>$60</td><td>~N$1,125</td></tr>
+  <tr><td>Managed Redis</td><td>DigitalOcean</td><td>$15</td><td>~N$280</td></tr>
+  <tr><td>Object Storage (R2)</td><td>Cloudflare</td><td>~$2</td><td>~N$37</td></tr>
+  <tr><td>DNS + WAF + CDN</td><td>Cloudflare</td><td>$0 (free plan)</td><td>N$0</td></tr>
+  <tr><td>Push Notifications</td><td>FCM (Google)</td><td>$0 (free tier)</td><td>N$0</td></tr>
+  <tr><td>Email (SMTP)</td><td>Resend / Mailgun</td><td>~$5</td><td>~N$94</td></tr>
+  <tr><td>Error Tracking</td><td>Sentry</td><td>$0 (free tier)</td><td>N$0</td></tr>
+  <tr><td>Uptime Monitoring</td><td>UptimeRobot</td><td>$0 (free tier)</td><td>N$0</td></tr>
+  <tr><td>SSL Certificates</td><td>Let's Encrypt</td><td>$0</td><td>N$0</td></tr>
+  <tr><td><strong>Total</strong></td><td></td><td><strong>~$142/mo</strong></td><td><strong>~N$2,660/mo</strong></td></tr>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-icon">💰</div>
+  <div class="callout-body">
+    <h4>Revenue vs Infrastructure Cost</h4>
+    <p>At 10,000 users with a 14.2% conversion rate (1,420 paid users) and ARPU of $3.84/month,
+    platform revenue would be approximately <strong>$5,453/month</strong> — covering infrastructure 38× over.
+    Even at a conservative 5% conversion (500 paid users), revenue (~$1,920/mo) covers infra 13× over.</p>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s14">14. Security & Compliance</h2>
+
+<h3 class="subsub">14.1 Application Security</h3>
+<ul class="doc-list">
+  <li><strong>Authentication:</strong> Bcrypt password hashing (cost factor 12) · JWT RS256 signed tokens · HTTP-only refresh token cookies</li>
+  <li><strong>SQL Injection:</strong> Use parameterised queries exclusively (never string interpolation). Use an ORM (Prisma/Drizzle) that enforces this.</li>
+  <li><strong>XSS:</strong> Sanitise all user-generated content with DOMPurify before rendering. Content Security Policy headers on all responses.</li>
+  <li><strong>CORS:</strong> Allowlist only <code>kliq.app</code> and <code>admin.kliq.app</code> origins. Never <code>*</code>.</li>
+  <li><strong>Rate limiting:</strong> As per Section 9.3 — prevents brute force and abuse.</li>
+  <li><strong>File uploads:</strong> Validate MIME type server-side (not just file extension). Use magic bytes check. Never execute uploaded files.</li>
+  <li><strong>Secrets management:</strong> All secrets in environment variables. Never hardcoded. Use DigitalOcean Secrets or HashiCorp Vault.</li>
+</ul>
+
+<h3 class="subsub">14.2 Network Security</h3>
+<ul class="doc-list">
+  <li><strong>Admin panel (<code>admin.kliq.app</code>):</strong> Restricted to VPN-only access via IP allowlist in Cloudflare. Not publicly reachable.</li>
+  <li><strong>Database:</strong> PostgreSQL and Redis are on a private VPC network — no public IP. Only API servers can connect.</li>
+  <li><strong>TLS everywhere:</strong> TLS 1.2+ on all connections (client ↔ Cloudflare, Cloudflare ↔ origin, internal services).</li>
+  <li><strong>SSH keys only:</strong> No password-based SSH. Ed25519 keys. Disable root login. Non-standard SSH port optional.</li>
+  <li><strong>Firewall rules:</strong> Only ports 80, 443 open publicly. All other ports blocked. Internal communication on private VPC.</li>
+</ul>
+
+<h3 class="subsub">14.3 Data Privacy & Namibian Compliance</h3>
+<ul class="doc-list">
+  <li>Comply with the <strong>Namibia Communications Act</strong> (Act 8 of 2009) on data handling and user consent.</li>
+  <li>User data should be stored <strong>in-region</strong> (Johannesburg is acceptable; EU servers may trigger GDPR-like obligations if EU users join).</li>
+  <li>Provide users a <strong>data export</strong> mechanism (GDPR-equivalent best practice).</li>
+  <li>Retain logs for <strong>90 days</strong> for fraud investigation; purge after unless legally required to retain longer.</li>
+  <li>Privacy Policy and Terms of Service must be displayed and accepted at registration.</li>
+</ul>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s15">15. Disaster Recovery</h2>
+
+<h3 class="subsub">15.1 Backup Strategy</h3>
+<table>
+  <tr><th>Asset</th><th>Backup Frequency</th><th>Retention</th><th>Method</th></tr>
+  <tr><td>PostgreSQL data</td><td>Daily automated</td><td>30 days</td><td>DigitalOcean Managed DB — point-in-time recovery</td></tr>
+  <tr><td>PostgreSQL WAL</td><td>Continuous</td><td>7 days</td><td>Streaming replication to standby node</td></tr>
+  <tr><td>User media files</td><td>Continuous</td><td>Permanent</td><td>Cloudflare R2 (3× redundancy built-in)</td></tr>
+  <tr><td>Application config</td><td>On every change</td><td>Permanent</td><td>Git repository (private)</td></tr>
+  <tr><td>Redis data</td><td>RDB snapshot every 1hr</td><td>72 hours</td><td>DigitalOcean Managed Redis</td></tr>
+</table>
+
+<h3 class="subsub">15.2 Recovery Time Objectives</h3>
+<div class="card-grid-3">
+  <div class="card">
+    <div class="card-label label-green">API Server Failure</div>
+    <h4>RTO: &lt; 2 min</h4>
+    <p>Load balancer automatically routes traffic to remaining server. New server can be provisioned in ~5 minutes from snapshot.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-yellow">Database Failure</div>
+    <h4>RTO: &lt; 30 min</h4>
+    <p>Managed DB standby promotes automatically. Point-in-time recovery possible within 30 minutes to any point in the last 7 days.</p>
+  </div>
+  <div class="card">
+    <div class="card-label label-red">Full Datacenter Outage</h4>
+    <h4>RTO: &lt; 4 hours</h4>
+    <p>Restore from daily DB backup to secondary datacenter. DNS failover via Cloudflare. RPO (data loss): max 24 hours.</p>
+  </div>
+</div>
+
+<h3 class="subsub">15.3 Incident Response Steps</h3>
+<ol class="doc-list">
+  <li>PagerDuty / UptimeRobot alert fires → on-call admin notified via SMS within 1 minute.</li>
+  <li>Check Grafana dashboard for the failing service. Identify: API, DB, Redis, or CDN?</li>
+  <li>If API server: SSH in, check <code>journalctl -u kliq-api --since "10 min ago"</code>. Restart service or redirect load balancer.</li>
+  <li>If database: Check DigitalOcean console for failover status. Trigger standby promotion if not automatic.</li>
+  <li>If external service (FCM, Cloudflare): Post status update. Queue jobs will retry automatically on recovery.</li>
+  <li>Post-incident: Write a blameless post-mortem within 48 hours. Update runbook with new learnings.</li>
+</ol>
+
+<hr class="divider" />
+
+<h2 class="sub" id="s16">16. Launch Checklist</h2>
+<p>Complete all items before going live with 10,000 users.</p>
+
+<h3 class="subsub">Infrastructure</h3>
+<ul class="doc-list">
+  <li>☐ Provision 2× API servers in Johannesburg. Install Node.js 20, PM2, Nginx.</li>
+  <li>☐ Provision Managed PostgreSQL in same region. Run schema migrations.</li>
+  <li>☐ Provision Managed Redis. Configure PgBouncer on API servers.</li>
+  <li>☐ Configure private VPC. Verify DB/Redis have no public IPs.</li>
+  <li>☐ Set up Cloudflare: DNS, WAF rules, page rules for CDN caching, IP allowlist for /admin.</li>
+  <li>☐ Set up Cloudflare R2 bucket. Configure pre-signed URL upload flow.</li>
+  <li>☐ Set up load balancer. Test failover by stopping one API server.</li>
+  <li>☐ Install UptimeRobot monitors on all public endpoints. Test SMS alerts.</li>
+  <li>☐ Install Sentry SDK in API and frontend. Trigger a test error.</li>
+</ul>
+
+<h3 class="subsub">Application</h3>
+<ul class="doc-list">
+  <li>☐ Set all environment variables. Remove all hardcoded secrets.</li>
+  <li>☐ Enable HTTPS. Test <code>SSL Labs Grade A</code> on api.kliq.app.</li>
+  <li>☐ Verify CORS allowlist is restrictive (not <code>*</code>).</li>
+  <li>☐ Verify rate limiting is active on auth and upload endpoints.</li>
+  <li>☐ Enable 2FA for all admin accounts in the Control System.</li>
+  <li>☐ Test push notifications end-to-end (FCM on Android + APNs on iOS).</li>
+  <li>☐ Test payment flow with MoMo sandbox and a real MoMo number.</li>
+  <li>☐ Run a load test (k6 or Locust): simulate 800 concurrent users for 15 minutes.</li>
+  <li>☐ Verify all admin analytics endpoints return correct data from the live DB.</li>
+</ul>
+
+<h3 class="subsub">Legal & Compliance</h3>
+<ul class="doc-list">
+  <li>☐ Privacy Policy and Terms of Service published and linked at registration.</li>
+  <li>☐ Cookie consent banner active (if web app).</li>
+  <li>☐ Age verification at signup (minimum age 13 per COPPA best practices).</li>
+  <li>☐ Content reporting mechanism live and tested.</li>
+  <li>☐ DMCA / takedown contact email published in Terms.</li>
+  <li>☐ Data retention and deletion policy implemented (users can delete their account + data).</li>
+</ul>
+
+<h3 class="subsub">Day-of Launch</h3>
+<ul class="doc-list">
+  <li>☐ Take a full DB backup immediately before launch.</li>
+  <li>☐ Have all on-call admin contacts ready with phone numbers.</li>
+  <li>☐ Open Grafana dashboard in a second monitor for live metrics.</li>
+  <li>☐ Set DB connection pool alert threshold lower (be proactive at launch spike).</li>
+  <li>☐ Prepare a maintenance mode page to serve from Cloudflare if needed.</li>
+  <li>☐ Announce on social channels — monitor the signup rate in the Control System dashboard in real time.</li>
+</ul>
+
+<hr class="divider" />
+
+<div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px 40px;margin:40px 0;text-align:center;">
+  <div style="font-size:28px;font-weight:900;background:linear-gradient(90deg,#00d4ff,#a855f7,#ff2d78);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">KLIQ Control System</div>
+  <p style="color:#64748b;font-size:13px;margin:0;">Internal Documentation · Version 1.0.0 · June 2026 · Restricted</p>
+  <p style="color:#334155;font-size:12px;margin-top:16px;">This document contains confidential infrastructure and business information. Do not share outside the KLIQ organisation.</p>
+</div>
+
+</div><!-- /doc -->
+
+<footer>
+  KLIQ Platform · Control System Documentation v1.0.0 · June 2026 · Internal Use Only
+</footer>
+
+</body>
+</html>

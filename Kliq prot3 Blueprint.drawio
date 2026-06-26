@@ -1,0 +1,1003 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="2000" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+<mxCell id="10" value="A — AUTH &amp; ONBOARDING" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="11" value="LOGIN SCREEN
+─────────────────────────
+[BTN: Continue with Google] → OAuth 2.0 popup
+[BTN: Connect Crypto Wallet] → WalletConnect QR
+[INPUT: Email] validate on blur
+[INPUT: Password] eye-toggle visibility
+[BTN: Log In] → POST /auth/login → JWT stored
+  Wrong password → error toast
+  5 fails → 30-min lockout
+[LINK: Forgot password?] → OTP reset flow
+[LINK: Sign Up] → node signup
+[LINK: Sign in as Business] → node bizAuth
+Swipe up → dismiss keyboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="40" y="90" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="12" value="SIGN UP FLOW  (5-step progress bar)
+─────────────────────────
+Step 1: Email + Password  (strength meter)
+  [BTN: Next] → sends OTP to email
+Step 2: Verify OTP  (6-digit, auto-advance)
+  [LINK: Resend] 60s cooldown
+Step 3: @username  (live availability check)
+Step 4: Select Interests ≥3 tags  (drives feed)
+  [LINK: Skip]
+Step 5: Profile Photo
+  [BTN: Take Photo] / [BTN: Gallery]
+  [LINK: Skip] → default avatar
+  [BTN: Save &amp; Finish] → Home" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="420" y="90" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="14" value="B — MAIN NAVIGATION" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="320" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="15" value="LAYOUT  (/  — Layout.tsx wraps all routes via Outlet)
+MOBILE BOTTOM NAV (md:hidden, fixed, z-50):
+  [🏠 Home] → /  |  [👥 Friends] → /friends  |  [+ Create] → /create (gradient button)
+  [💬 Inbox] → /inbox  |  [👤 Profile] → /profile
+DESKTOP SIDEBAR (hidden md:flex, w-60): sections Social / Platforms / Creator / Account
+  Social: Home · Friends · Discover(/search) · Inbox · Community
+  Platforms: KliqTube · KliqStream · Marketplace
+  Creator: Kliq Studio · Amplify
+  Account: Wallet · Profile · Settings
+  Footer: Tier badge (Tier X — Basic/Plus/Pro) + Upgrade button (if tier &lt; 3) → /settings
+HEADER (all sizes): KLIQ logo  |  [🔔 Bell] → /inbox (red dot)  |  [Avatar] → opens Action Panel
+  Dev-only tier switcher [T1][T2][T3] (lg:flex, sets UserContext tier)
+ACTION PANEL (right-side drawer, z-50, opened by avatar click):
+  Header: avatar + Sarah Jenkins / @sarah_vlogs + [✕ close]
+  Items: Wallet · Analytics · Offline Videos · Kliq Stream · KliqTube
+         Kliq Business · Kliq Studio · Amplify · Settings &amp; Privacy
+  Footer: [Switch Account] → /settings  |  [Sign Out] → /login
+SCROLL: flex-1 overflow-y-auto overscroll-contain pb-16 md:pb-0 (Outlet container)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="40" y="360" width="760" height="120" as="geometry" /></mxCell>
+<mxCell id="18" value="C — HOME FEED" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="500" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="19" value="HOME FEED  (TikTok vertical pager)
+─────────────────────────
+TABS: [Following] [For You] [Live]
+  Swipe left/right → switch tabs
+  Tap tab → jump to tab
+FEED ITEM (full screen):
+  Swipe up → next post
+  Swipe down → previous post
+  Double-tap → Like (heart burst animation)
+  Long-press → More options sheet
+RIGHT SIDEBAR:
+  [Avatar + follow ring] → UserProfile
+    [Follow/Unfollow] → POST /follows
+  [❤ Like] tap → like/unlike → POST /likes
+  [💬 Comments] → CommentSheet slide up
+  [↗ Share] → ShareSheet slide up
+  [⋯ More] → MoreMenuSheet (Save/Report/Not interested)
+BOTTOM:
+  [♪ Sound name] → sound detail
+  [Caption text] expandable
+LIVE tab: grid of live previews
+  Tap card → /stream/watch/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="40" y="540" width="360" height="280" as="geometry" /></mxCell>
+<mxCell id="20" value="COMMENT SHEET  (slide-up)
+─────────────────────────
+[INPUT: Add a comment…] + [Send BTN]
+  → POST /comments
+Comment rows: avatar + @handle + text + time
+  [❤ like comment] inline
+  Long-press comment → [Reply][Copy][Report][Delete]
+[@mention] autocomplete from followers
+[#hashtag] highlighted + tappable
+[Close] → dismiss sheet
+Swipe down → dismiss" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#4f46e5;fontColor=#a5b4fc;fontSize=9;align=left;verticalAlign=top;spacingTop=3;spacingLeft=5;" vertex="1" parent="1"><mxGeometry x="420" y="540" width="360" height="180" as="geometry" /></mxCell>
+<mxCell id="21" value="SHARE SHEET  (slide-up)
+─────────────────────────
+[Copy link] · [Share to Friends feed]
+[Send as DM] → search @user → /chat/:id
+[Share to Community] → community picker
+[Share via] OS share API (WhatsApp / Twitter…)
+[Duet] → camera + original side-by-side
+[Stitch] → use 1–5s clip as intro
+Swipe down → dismiss" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#4f46e5;fontColor=#a5b4fc;fontSize=9;align=left;verticalAlign=top;spacingTop=3;spacingLeft=5;" vertex="1" parent="1"><mxGeometry x="420" y="740" width="360" height="120" as="geometry" /></mxCell>
+<mxCell id="24" value="D — SEARCH" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="840" y="40" width="400" height="32" as="geometry" /></mxCell>
+<mxCell id="25" value="SEARCH  (/search)
+─────────────────────────
+[INPUT: Search bar] → Elasticsearch full-text
+  Autocomplete: N-gram suggestions (real-time)
+  Spell correction / fuzzy match
+RESULTS TABS: [Top][Users][Posts][Sounds][Tags]
+  [Top] → mixed ranked results
+  [Users] → avatar + @handle + followers + [Follow]
+  [Posts] → 3-col grid
+  [Sounds] → title + use count + [▶ Preview][Use]
+  [Tags] → #hashtag + post count + [Follow tag]
+TRENDING SECTION (empty state):
+  Trending hashtags list (hourly aggregated)
+  Suggested accounts grid
+  Category pills: Music / Fashion / Gaming…
+Swipe back / [← Back] → previous screen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="840" y="90" width="400" height="200" as="geometry" /></mxCell>
+<mxCell id="26" value="E — CREATE &amp; CAMERA" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="840" y="320" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="27" value="CREATE BOTTOM SHEET  (+ button)
+─────────────────────────
+[📷 Camera] → camera screen
+[🎬 Video Editor/Templates] → editor
+[🔴 Go Live] → live setup (/stream)
+[📖 Story] → story camera (15s clips)
+[Aa Text post] → plain text composer
+[✕ Cancel] → dismiss sheet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#4f46e5;fontColor=#a5b4fc;fontSize=9;align=left;verticalAlign=top;spacingTop=3;spacingLeft=5;" vertex="1" parent="1"><mxGeometry x="840" y="360" width="360" height="140" as="geometry" /></mxCell>
+<mxCell id="28" value="CAMERA SCREEN
+─────────────────────────
+TOP: [✕ Close] [♪ Add Sound] [⚡ Flash] [⏱ Timer 3s/10s]
+     [⊞ Layout single/2x/3x] [⬜ Ratio 9:16/1:1/16:9]
+     [✨ Beautify 0–100 slider]
+FILTER STRIP: swipe left/right → live filter preview
+VIEWFINDER: full-screen camera
+[★ Effects bottom-left] → AR/green screen
+[⏺ Record centre]
+  Tap+hold → record while held, release = pause
+  Quick tap → start/stop segments
+  Progress arc = max duration
+  Timeline blocks show segments
+[🔄 Flip camera] [Gallery thumb]
+POST-RECORDING:
+  [✕ Discard] → confirm dialog
+  [Next →] → Upload Type (reel/photo/movie)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="840" y="520" width="360" height="280" as="geometry" /></mxCell>
+<mxCell id="29" value="STORY VIEWER  (/story/:username)
+─────────────────────────
+Auto-progress bar (5s per story segment)
+Tap left edge → previous segment
+Tap right edge → next segment
+Swipe down → close
+Swipe up → Reply to story input
+[❤ React] quick emoji reactions
+[↗ Share story] → share sheet
+[⋯ More] → Report / Save to camera roll
+Long press → pause story
+After last segment → next user's stories" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1220" y="360" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="32" value="SHORT VIDEO UPLOAD FORM
+─────────────────────────
+[Cover thumbnail selector] 6 auto-frames
+[INPUT: Caption] 2200 chars + #hashtag autocomplete
+[INPUT: Tag people] @mention + video overlay
+[BTN: Add location] map search + geotag
+[SELECT: Who can view?] Everyone/Friends/Only me
+[SELECT: Who can comment?] Everyone/Friends/Off
+[SELECT: Who can Duet/Stitch?]
+[TOGGLE: Allow download]
+[TOGGLE: A/B test captions] 2 versions, winner after 24h
+[TOGGLE: Schedule post] date/time picker ≤10d
+[BTN: Post] → chunked upload → AI scan → Posted!
+[BTN: Save Draft]
+[← Back] → confirm discard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="840" y="820" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="34" value="F — KLIXTUBE" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1640" y="40" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="35" value="KLIXTUBE  (/klixtube)
+─────────────────────────
+TOP: [🔍 Search] [🔔 Notifications]
+SECTIONS:
+  Continue Watching (horizontal scroll)
+  Subscriptions (following channels)
+  Trending Now grid
+  Recommended For You grid
+[TABS: Home | Shorts | Subscriptions | Library]
+Each card: thumbnail + title + channel + views + time
+Tap card → /klixtube/watch/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1640" y="90" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="36" value="KLIXTUBE WATCH  (/klixtube/watch/:id)
+─────────────────────────
+Video player (horizontal or vertical)
+[▶/⏸] [⏪10s] [⏩10s] [🔊] [⛶ Fullscreen]
+[⚙ Quality] [CC Subtitles] [▶ Speed]
+Below player:
+  Title + views + date
+  [❤ Like] [👎 Dislike] [↗ Share] [✚ Save] [⋯ More]
+  [SUBSCRIBE BTN] / [SUBSCRIBED ✓]
+  Channel avatar + name + subscriber count → /channel/:id
+COMMENTS section (scroll):
+  [INPUT: Add comment…]
+  Sort: [Top][Newest]
+  Comment rows: like · reply · timestamp
+RELATED VIDEOS sidebar/below" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1640" y="270" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="37" value="KLIXTUBE CHANNEL  (/klixtube/channel/:username)
+─────────────────────────
+Banner + avatar + channel name + subscriber count
+[SUBSCRIBE BTN] [🔔 Bell] [↗ Share]
+TABS: [Videos][Playlists][About]
+Videos: grid of uploads sorted by newest/popular
+About: description + links + stats + join date
+Tap video → /klixtube/watch/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1640" y="490" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="40" value="G — KLIQ STREAM  (Netflix style)" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1640" y="700" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="41" value="TIER GATE  (Tier 1 → full-screen lock)
+─────────────────────────
+Lock icon + 'KliqStream' heading
+'Movies, series, sports — Tier 2 Plus and above'
+[BTN: Upgrade to Tier 2] → /settings
+[BTN: Go Back] → navigate(-1)
+Tier 2+ → renders full stream content" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f1435;strokeColor=#a855f7;fontColor=#e9d5ff;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1640" y="740" width="340" height="120" as="geometry" /></mxCell>
+<mxCell id="42" value="STREAM HOME  (/stream)
+─────────────────────────
+Profile selector (Netflix-style)
+  Up to 5 profiles (Tier 3) or 1 (Tier 2)
+  [+ Add profile] · [Edit profiles]
+  [Kids profile toggle] per profile
+Continue Watching row
+New Releases row
+My Watchlist row
+[🔍 Search] → Stream Search
+[👤 My Profile] → /stream/mylist
+[⚙ Settings] → Stream Settings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1640" y="860" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="43" value="STREAM WATCH  (/stream/watch/:id)
+─────────────────────────
+Full-screen video player
+[▶/⏸] [⏪15s] [⏩15s] [🔊] [⛶]
+[⚙ Quality SD/HD/4K] [CC] [▶ Speed]
+[✚ Add to Watchlist] [👍/👎]
+[↓ Download] → Tier 3 only → quality picker
+Subtitles: .srt/.vtt multi-language
+Next episode auto-play countdown (10s)
+[Skip Intro] button (first 90s)
+DRM signed URLs (expire 4h)
+Swipe right → back / close" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2020" y="740" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="44" value="STREAM MY PROFILE  (/stream/mylist)
+─────────────────────────
+[↑ Upload] → movie upload form
+[↓ Downloads] → offline DRM player (Tier 3)
+[📋 Watchlist] → saved titles + [Remove]
+[▶ Continue Watching] + % bar + [Remove]
+[📅 Recently Watched] + [Clear history]
+Storage bar: e.g. '4.2 GB of 25 GB'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2020" y="960" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="48" value="H — MARKETPLACE" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="1060" width="1200" height="32" as="geometry" /></mxCell>
+<mxCell id="49" value="MARKETPLACE  (/marketplace)
+─────────────────────────
+HEADER:
+  [🔍 Search bar] → Elasticsearch geo+full-text
+  [⊞ Filters] → sort/price/category sheet
+  [🛍 Sell BTN] → Sell modal (ALL tiers T1–T3)
+CATEGORY CHIPS (scroll): All/Digital/Physical/Services
+TOP STORES row (scroll):
+  Store card: avatar + name + category
+  Tap → /store/:id
+FEATURED COLLECTIONS row (scroll):
+  Collection card: image + name + item count + floor price
+ITEMS GRID (2-col):
+  Card: image + category badge + ❤ count
+       title + @creator + verified badge
+       price (+ USD equiv if crypto)
+       [Buy Now] → wallet payment flow
+       [Offer] → offer form → seller notified
+  Tap image → full product view
+  Tap @creator → /store/:id
+
+SELL MODAL (sheet, all tiers):
+  STOREFRONT CARD:
+    T3 Pro: [Open My Storefront] → /customize-shop
+    T1/T2: locked card + T3 badge + [Upgrade →]
+  QUICK LIST — Available to all sellers:
+    [SELECT: Type] Digital/Physical/Service
+    [INPUT: Title]
+    [TEXTAREA: Description]
+    [INPUT: Price] + [SELECT: Currency]
+    [BTN: Upload Images]
+    [BTN: Create Listing] → success screen
+  SUCCESS SCREEN: green check + &quot;Listing Created!&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="40" y="1100" width="380" height="340" as="geometry" /></mxCell>
+<mxCell id="50" value="CUSTOMIZE SHOP  (/customize-shop)
+─────────────────────────
+[BTN: Upload Banner] 1500×500px
+[BTN: Upload Logo] 400×400px square
+[INPUT: Shop Name *]
+[INPUT: Description] textarea
+[SELECT: Category] 9 options
+RETURN POLICY:
+  [No returns]
+  [Returns within 7 days]
+  [Returns within 30 days]
+  [Custom policy] → shows textarea for custom text
+    ↳ Input: full policy text (conditions/timeframes/process)
+[BTN: Save Changes] → toast: Saved!
+[BTN: Pay &amp; Start Amplify]
+  → requires shop name
+  → navigates to /payment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="440" y="1100" width="380" height="260" as="geometry" /></mxCell>
+<mxCell id="51" value="STORE PROFILE  (/store/:id)
+─────────────────────────
+Banner + logo overlay
+Store name + tagline + category badge
+[Follow BTN] [Subscribe BTN] [💬 Message] [↗ Share] [⋯ More]
+SOCIAL PROOF:
+  ⭐ Rating + review count
+  Sales count · Response time · Verified badge
+FEATURED PRODUCT (hero card)
+PRODUCT TABS: [Digital][Physical][Services]
+  Grid of product cards per tab
+  Each: image + title + price + [Buy Now][Offer]
+REVIEWS SECTION:
+  Star breakdown bar chart
+  Review rows: avatar + stars + text + date
+  [Reply] (seller) · [Report] (buyer)
+ABOUT SECTION:
+  Bio · social links · refund policy · created date
+Swipe back → marketplace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="840" y="1100" width="380" height="280" as="geometry" /></mxCell>
+<mxCell id="52" value="PAYMENT  (/payment)
+─────────────────────────
+Amplify campaign setup
+[SELECT: Budget] $5 / $10 / $25 / $50 / Custom
+[SELECT: Duration] 1d / 3d / 7d / 14d
+[SELECT: Target audience] By interest / By location / All
+[SELECT: Goal] Views / Profile visits / Followers
+Preview: estimated reach
+[BTN: Pay &amp; Launch] → Stripe / Flutterwave / MoMo
+[BTN: Cancel] → back" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="440" y="1380" width="380" height="160" as="geometry" /></mxCell>
+<mxCell id="56" value="I — WALLET" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="1620" width="1200" height="32" as="geometry" /></mxCell>
+<mxCell id="57" value="WALLET  (/wallet)
+─────────────────────────
+BALANCE CARD (gradient):
+  Total Balance  → $X,XXX.XX  (font-black, live state)
+  Tokens counter (live) · Diamonds counter
+  [+ Top Up BTN] → opens TopUp modal
+  [↑ Withdraw BTN] → opens Withdraw modal
+QUICK ACTIONS (3-col):
+  [Buy Tokens → TopUp modal]
+  [Add Card → TopUp modal]
+  [Transfer → Transfer modal]
+RECENT ACTIVITY list:
+  Row: icon (income green/expense red) + title + date + amount (bold)
+  Tap row → transaction detail
+  [View All BTN]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="40" y="1660" width="380" height="320" as="geometry" /></mxCell>
+<mxCell id="58" value="TOP UP MODAL  (slide-up sheet)
+─────────────────────────
+METHOD SELECTOR:
+  [💳 Fiat (Card/Bank)] ← default
+  [🪙 Crypto (ETH/BTC)]
+FIAT PATH:
+  Quick amounts: [$5][$10][$25][$50]
+    → selected state: purple highlight (live state)
+  [INPUT: Custom amount]  free text
+  Token conversion table:
+    $5 = 550 tokens · $10 = 1,150 (+50 bonus)
+    $25 = 3,000 (+250) · $50 = 6,000 (+1,000)
+  [BTN: Proceed to Payment]
+    → parseAmount → setBalance += amount
+    → setTokens += tokens+bonus
+    → dismiss modal → success toast
+    → balance display updates live (bold)
+CRYPTO PATH:
+  ETH wallet address (copy-able)
+  Rate: 1 ETH ≈ $3,200
+  [BTN: I've Sent Payment] → toast" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="440" y="1660" width="380" height="280" as="geometry" /></mxCell>
+<mxCell id="59" value="WITHDRAW MODAL  (slide-up sheet)
+─────────────────────────
+Available Diamonds: 💎 4,500
+METHOD: [Bank Transfer] [Crypto Wallet]
+[INPUT: Diamonds to withdraw] number
+BANK: [INPUT: Bank account number]
+CRYPTO: [INPUT: Wallet address] mono font
+Rate: 100 💎 = $0.50 · Min: 500 💎
+[BTN: Request Withdrawal]
+  → success toast: 'Funds in 2-3 business days'
+Fraud detection: flags 3× typical amount,
+  rapid deposit-withdraw cycles, VPN use" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="840" y="1660" width="360" height="240" as="geometry" /></mxCell>
+<mxCell id="60" value="TRANSFER MODAL  (slide-up sheet)
+─────────────────────────
+TYPE: [🪙 Tokens] [💎 Diamonds]
+[🔍 Search @username] input
+[INPUT: Amount]
+Available: live from state (tokens/diamonds count)
+[BTN: Send Tokens/Diamonds]
+  → POST /transfers
+  → success toast: 'X tokens sent to @user'
+Swipe down → dismiss" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="440" y="1960" width="380" height="200" as="geometry" /></mxCell>
+<mxCell id="64" value="J — ANALYTICS" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1280" y="1060" width="960" height="32" as="geometry" /></mxCell>
+<mxCell id="65" value="ANALYTICS  (/analytics)
+─────────────────────────
+HEADER:
+  TIME RANGE: [24h][7d][30d][90d] → all stats update
+  [Advanced Analytics BTN] → VISIBLE only for Tier 3
+    → toggles advanced panel below
+    Hidden entirely for Tier 1 &amp; 2
+STANDARD STATS (2×2 grid):
+  Total Views · Likes · Comments · Shares
+  Each: value + % change vs prior period
+FOLLOWER GROWTH bar chart (7 bars M–Sun)
+TOP PERFORMING POSTS list:
+  Rank # · thumbnail · title · views · engagement%
+AUDIENCE DEMOGRAPHICS:
+  Age 18-24 / 25-34 / 35+ progress bars
+PEAK ACTIVITY:
+  Best posting time · Most active day · Avg watch time
+TIER 1/2: locked placeholder card
+  Lock icon + 'Upgrade to Tier 3 Pro' (dimmed CTA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1280" y="1100" width="420" height="300" as="geometry" /></mxCell>
+<mxCell id="66" value="ADVANCED ANALYTICS PANEL  (Tier 3 only)
+─────────────────────────
+Shown/hidden via showAdvanced toggle
+REVENUE STATS (2×2):
+  Total Revenue · Avg Order Value
+  Conversion Rate · Repeat Customers
+  Each: value + % change (green)
+REVENUE OVER TIME bar chart (7 bars)
+  vs-prior-period badge
+TRAFFIC SOURCES progress bars:
+  Social Feed 42% · Direct Search 28%
+  Referrals 18% · Ads/Amplify 12%
+  Each: colour-coded gradient bar
+TOP EARNING PRODUCTS list:
+  Rank # + title + units sold + revenue (green)
+CUSTOMER INSIGHTS table:
+  Customer LTV · Sessions before purchase
+  Repeat purchase rate · Churn rate (30d)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1720" y="1100" width="460" height="360" as="geometry" /></mxCell>
+<mxCell id="68" value="K — PROFILE &amp; SETTINGS" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1280" y="1500" width="960" height="32" as="geometry" /></mxCell>
+<mxCell id="69" value="MY PROFILE  (/profile)
+─────────────────────────
+Cover image · Avatar · Display name · @handle
+Tier stars (★★★) + Tier X Basic/Plus/Pro label
+[✏ Edit Profile] → /edit-profile  [↗ Share]
+STATS ROW: Posts · Followers · Following · Likes
+  Tap Followers → slide-up list modal
+    Avatar + @user + bio + [Follow/Following] BTN
+    [👁/👁‍🗨 Eye icon] toggle list visibility (hides from others)
+    Tap @user → /user/:username
+  Tap Following → same pattern
+  EyeOff icon on stat label when list is hidden
+CONTENT TABS (only non-Hidden tabs shown; Settings controls visibility):
+  Tab visibility badge: 👥 (Friends only) indicator on tab
+  [Posts]       3-col portrait grid (aspect-3/4)
+  [Reels]       3-col portrait grid (aspect-9/16) + play icon
+  [KliqTube]    video cards → /klixtube/watch/:id
+  [KliqStream]  Tier 2+ only; lock screen + Upgrade BTN if Tier 1
+  [Marketplace] Tier 3+ only; lock screen + Upgrade BTN if Tier 1/2
+  [Community]   community cards → /community/:id
+Swipe left/right → switch tabs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1280" y="1540" width="420" height="320" as="geometry" /></mxCell>
+<mxCell id="70" value="EDIT PROFILE  (/edit-profile)
+─────────────────────────
+[BTN: Change Avatar] → camera or gallery
+[BTN: Change Cover] → camera or gallery
+[INPUT: Display name]
+[INPUT: @username]  live availability check
+[INPUT: Bio] 150 chars
+[INPUT: Website link]
+[INPUT: Location]
+[BTN: Save] → PATCH /users/me → toast: Saved!
+[← Back] → 'Discard changes?' confirm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1720" y="1540" width="420" height="200" as="geometry" /></mxCell>
+<mxCell id="71" value="SETTINGS  (/settings)
+─────────────────────────
+Toast notification overlay (top-center, 2.5s auto-dismiss)
+Current Plan card: Tier X — Name | [Upgrade] (tier&lt;3) → Upgrade sheet
+SECTIONS — all open in-app slide-up Sheet modals:
+
+ACCOUNT:
+  Edit Profile → /edit-profile
+  Subscription &amp; Billing → Billing modal (see below)
+  Language &amp; Region → searchable language list; tap to apply
+
+PRIVACY &amp; SECURITY:
+  Privacy → toggles: Private Account · Show Follow Lists
+             Toggles: Data Sharing for Ads
+             Sub-screens: Who can comment/Duet/message/follow (Everyone/Friends/No one)
+  Blocked Accounts → list + [Unblock] per user
+  Two-Factor Auth → 3-step flow: choose method (SMS/Email/Authenticator App)
+                    → enter phone/email → enter 6-digit code → ✓ done screen
+
+NOTIFICATIONS:
+  Push → toggles: Likes · Comments · Follows · Mentions · Live · DMs · Collabs
+  Email → toggles: Weekly Digest · Promos · Security Alerts · Creator Tips
+
+CREATOR:
+  Content Preferences → tap-to-toggle 15 category chips + Save BTN
+  Download Quality → radio: Auto / 1080p / 720p / 480p / 360p
+
+PROFILE:
+  Profile Tabs → per-tab visibility: Everyone / Friends / Hidden
+    Tabs: Posts · Reels · KliqTube · KliqStream · Marketplace · Community
+    Live: hidden tabs disappear from /profile immediately
+
+MARKETPLACE:
+  Marketplace Analytics
+    Tier 3 → opens analytics sheet (stats + top products + store health)
+    Tier 1/2 → locked (🔒 + dimmed) → opens Upgrade sheet
+
+SUPPORT:
+  Help Center → accordion FAQ (6 items) + Contact Support BTN
+  Report a Problem → category dropdown + textarea + Send → success screen
+
+UPGRADE PLAN SHEET:
+  Tier 1 Basic (Free): Feed/Reels/Stories · Inbox &amp; Community · Basic KliqTube
+                       Marketplace browsing · Amplify boosts (free)
+  Tier 2 Plus ($9.99/mo): + KliqStream · Advanced analytics · Priority support
+                            Upload to KliqTube
+  Tier 3 Pro ($29.99/mo): + Marketplace storefront · Marketplace analytics
+                            Partner program · Custom branding · Kliq Business tools
+  [Upgrade to X] BTN → calls setTier(n), shows toast, closes sheet
+
+BILLING MODAL:
+  Current plan card: name + price + next billing date + payment method
+  Recent Invoices list: date · amount · Paid badge
+  Google Play note
+  [View Upgrade Options] (tier &lt; 3) → Upgrade sheet
+  [Cancel Subscription] (tier &gt; 1) → inline cancel flow:
+    Warning: features lost + end-of-cycle date
+    Reason dropdown (5 options)
+    [Keep Plan] · [Confirm Cancel] → setTier(1) + toast + confirmation row
+  [Close]
+
+DANGER ZONE:
+  [Sign Out] → /login
+  [Delete Account] → reason dropdown + type &quot;DELETE&quot; to confirm → /login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1280" y="1840" width="420" height="560" as="geometry" /></mxCell>
+<mxCell id="72" value="MARKETPLACE ANALYTICS MODAL  (Tier 3 only)
+─────────────────────────
+From Settings → Marketplace Analytics row
+REVENUE STATS (2×2):
+  Gross Merchandise Value · Total Orders
+  Conversion Rate · Repeat Buyers
+REVENUE CHART (bar graph)
+TOP SELLING PRODUCTS:
+  Rank # + title + units + revenue
+STORE HEALTH table:
+  Avg fulfilment time · Dispute rate
+  Review score · Active listings
+[✕ Close] → dismiss modal
+Swipe down → dismiss" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1720" y="1760" width="420" height="300" as="geometry" /></mxCell>
+<mxCell id="73" value="LANGUAGE &amp; REGION  (/settings/language)
+─────────────────────────
+[SELECT: Language] 100+ languages list
+[SELECT: Region / Country]
+[SELECT: Date format] DD/MM vs MM/DD
+[SELECT: Currency display]
+[BTN: Save] → applies globally" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="1720" y="2080" width="420" height="120" as="geometry" /></mxCell>
+<mxCell id="77" value="L — KLIQ STUDIO" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="2280" y="1060" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="78" value="STUDIO TIER GATES  (no gate screen — studio open to all)
+─────────────────────────
+[Analytics BTN] Tier 2+: → /analytics
+  Tier 1: locked (T2 badge, → /settings on click)
+Revenue Trend chart: Tier 3 only
+  Tier 1/2: blur overlay + Upgrade to Tier 3 button
+Stats: Views/Followers/Engagement (all tiers)
+       Est. Revenue stat: Tier 2+ only" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f1435;strokeColor=#a855f7;fontColor=#e9d5ff;fontSize=9;" vertex="1" parent="1"><mxGeometry x="2280" y="1100" width="340" height="100" as="geometry" /></mxCell>
+<mxCell id="79" value="STUDIO DASHBOARD  (/studio)
+─────────────────────────
+HEADER: [Analytics BTN] (tier-gated, see above)  [↑ Upload Content BTN]
+STATS (2×4 grid): Total Views · Followers · Engagement · Est. Revenue
+  Each locked if tier &lt; tierReq (blur overlay)
+CHARTS:
+  Views Overview bar chart (Mon–Sun)
+  Revenue Trend line chart (Tier 3 only, else locked)
+CONTENT TRACKER section:
+  Filter tabs: All / Social / KliqTube / Stream / Marketplace
+  Per item: thumbnail + title + date + views + platform badge + status badge
+  Status: ✓ Published · ⚠ Pending Manual Approval · 🕐 Processing · ✗ Rejected
+UPLOAD MODAL (setShowUpload):
+  Platform picker: [Social][KliqTube][Stream][Marketplace]
+    Stream: Tier 2+ only — Tier 1 sees disabled + T2 badge
+  Stream selected: warning '24-72h manual review required'
+  [Drop zone] → click to select file
+  [Submit for Review] (Stream) / [Upload &amp; Process] (others)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2280" y="1220" width="360" height="280" as="geometry" /></mxCell>
+<mxCell id="80" value="CONTENT TRACKER  (within Studio, no separate route)
+─────────────────────────
+Filter: All / Social / KliqTube / Stream / Marketplace
+Statuses reflected in badge chips:
+  ✓ Published (green) — live, shows view count
+  ⚠ Pending Manual Approval (amber) — human review queue
+  🕐 Processing (blue) — transcoding / AI scan
+  ✗ Rejected (red) — see upload modal for resubmit
+Platform icons: Globe(Social) · Youtube(KliqTube) · Tv(Stream) · Store(Marketplace)
+Each row: thumbnail · title · date · view count · platform badge · status badge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2280" y="1520" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="83" value="M — COMMUNITY" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="2280" y="1740" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="84" value="COMMUNITY  (/community)
+─────────────────────────
+[+ Discover communities] → browse by category/search
+[+ Create community] → name/desc/avatar/privacy
+COMMUNITY LIST:
+  Each: avatar + name + member count + [Join/Leave]
+  Tap row → community feed (/community/:id)
+COMMUNITY FEED:
+  Community name + member count + [💬 Chat] [⋯ options]
+  [Join/Leave BTN]
+  Posts from members (newest or top)
+  [+ New Post BTN] → text/photo/video/poll modal
+  Each post: like · comment · share" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2280" y="1780" width="360" height="200" as="geometry" /></mxCell>
+<mxCell id="85" value="COMMUNITY CHAT  (/community/:id/chat)
+─────────────────────────
+TOP: community name + avatar + [⋯ More]
+  [⋯ More]: View members modal · Mute/Unmute · Report · Leave
+MESSAGES (scroll to bottom):
+  Bubbles: own right (purple) / others left (dark)
+  Sender name above each received bubble
+  WHATSAPP-LEVEL FEATURES:
+    Long-press (mobile 500ms) → context menu sheet
+    Right-click (desktop) → same context menu
+    Context menu: quick emoji reactions (❤😂😮😢👍🔥)
+      [+] → full 30-emoji grid picker
+      Actions: Reply · Copy · Star ⭐ · Forward · Delete · Report
+    Swipe right → reply preview banner (snap-back animation)
+      dx&gt;55px, |dy|&lt;40px triggers; translateX CSS animation
+    Reply banner: &quot;↩ Reply to @user&quot; + preview + [✕ cancel]
+    Emoji reactions: pill badges under bubble (toggle own)
+    Deleted messages: &quot;🚫 This message was deleted&quot;
+    Starred messages: ⭐ icon inline in bubble
+  Toast feedback for copy/star/forward/block/mute
+BOTTOM INPUT:
+  [😊 Emoji] → 30-emoji grid panel toggle
+  [🖼 Gallery] → image picker
+  [INPUT: Message…]
+  [↗ Send BTN] → appends message to thread
+  Typing indicator when others type" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2660" y="1780" width="360" height="360" as="geometry" /></mxCell>
+<mxCell id="86" value="COMMUNITY POST  (/community/post/:id)
+─────────────────────────
+Full post view: content + all comments
+[❤ Like] [💬 Comment reply thread]
+[↗ Share] [⋯ More (Report/Save)]
+[INPUT: Add comment]
+Admin: [📌 Pin post][🗑 Delete post]
+Long-press post → [Edit][Delete][Report]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2280" y="2000" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="87" value="CREATE COMMUNITY  (/create-community)
+─────────────────────────
+[BTN: Upload Avatar]
+[INPUT: Community name]
+[INPUT: Description] textarea
+[SELECT: Privacy] Public / Private / Invite-only
+[SELECT: Category] Music/Gaming/Art…
+Admin tools:
+  [Members list] + role badges + [Remove]
+  [Pending requests] approve/reject
+[BTN: Create Community] → POST /communities" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="2660" y="1780" width="360" height="160" as="geometry" /></mxCell>
+<mxCell id="91" value="N — INBOX &amp; CHAT" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="3080" y="1060" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="92" value="INBOX  (/inbox)
+─────────────────────────
+TABS: [All][Notifications][Messages]
+NOTIFICATIONS:
+  ❤ liked your video → opens post
+  👤 followed you → profile + [Follow back] inline
+  💬 commented '…' → post with comment highlighted
+  📣 mentioned you · ↗ shared your video
+  💰 Earned $X → Wallet
+  📋 Video approved → Content Tracker
+  [BTN: Follow back] inline on follow notification
+MESSAGES LIST:
+  Row: avatar + name + last msg preview + time + unread badge
+  Tap → /chat/:id
+  Swipe left → [Delete thread][Mute][Block]
+  Long-press → same options
+HEADER RIGHT:
+  [✏ Compose] → user search → new DM
+  [⚙ Settings] → notification settings
+COMMUNITY SECTION:
+  New post rows from joined communities" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="3080" y="1100" width="360" height="280" as="geometry" /></mxCell>
+<mxCell id="93" value="CHAT CONVERSATION  (/chat/:id)
+─────────────────────────
+TOP: avatar + @handle + [📞 Call] [🎥 Video] [⋯ More]
+  [⋯ More]: View Profile · Mute · Block · Report · Clear chat
+  Call overlay: avatar + name + [End] [Mute] [Speaker]
+MESSAGES (scroll to bottom):
+  Bubbles: sent right (purple) / received left (dark)
+  WHATSAPP-LEVEL FEATURES:
+    Long-press (mobile 500ms) → context menu sheet
+    Right-click (desktop) → same context menu
+    Context menu: quick emoji reactions (❤😂😮😢👍🔥)
+      [+] → full 30-emoji grid picker
+      Actions: Reply · Copy · Star ⭐ · Forward · Delete · Report
+    Swipe right → reply preview banner (snap-back animation)
+      dx&gt;55px, |dy|&lt;40px triggers; translateX CSS animation
+    Reply banner: quoted message preview + [✕ cancel]
+    Emoji reactions: pill badges under bubble (toggle own)
+    Deleted messages: &quot;🚫 This message was deleted&quot;
+    Starred messages: ⭐ icon inline in bubble
+  Toast feedback: copy/star/forward/block/mute
+  Link previews auto-generated
+  Image attachments (tap → full screen)
+BOTTOM INPUT:
+  [😊 Emoji] → 30-emoji grid panel toggle
+  [🖼 Gallery] → image picker
+  [INPUT: Message…]
+  [↗ Send BTN] → appends to thread
+  Typing indicator (…) when other user types" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="3080" y="1400" width="360" height="380" as="geometry" /></mxCell>
+<mxCell id="95" value="O — AMPLIFY" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="3080" y="1700" width="760" height="32" as="geometry" /></mxCell>
+<mxCell id="96" value="AMPLIFY  (/amplify)  [Post-boost flow, 4 steps]
+─────────────────────────
+STEP 1 — Select a post:
+  3-post grid (aspect 3:4), click to select
+  Selected: purple border + scale + glow + check dot
+  View counter badge per post
+  [View all] → no-op button
+STEP 2 — Goal (radio cards):
+  [📈 More video views] — get more people to watch
+  [👥 More followers] — grow audience on Kliq
+  [🔗 More website visits] — drive traffic to link in bio
+STEP 3 — Audience:
+  Single option: Automatic (Kliq chooses)  [ChevronRight]
+STEP 4 — Budget &amp; Duration:
+  Budget slider: 100–5000 Tokens (step 100)
+  Estimated reach = budget × 15 to budget × 25
+  Display: '{budget} Tokens'
+[BTN: Pay &amp; Start Amplify] → payment / token deduction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;strokeColor=#7c3aed;fontColor=#e2e8f0;fontSize=10;align=left;verticalAlign=top;spacingTop=4;spacingLeft=6;" vertex="1" parent="1"><mxGeometry x="3080" y="1740" width="360" height="240" as="geometry" /></mxCell>
+<mxCell id="97" value="P — BACKEND SERVICES" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2260" width="2400" height="32" as="geometry" /></mxCell>
+<mxCell id="98" value="API GATEWAY
+─────────────────────────
+Single entry for all client requests
+Rate limiting: 100 req/s per user (burst 500)
+JWT validation: rejects expired tokens
+Request routing: paths → microservices
+Load balancing: round-robin across replicas
+CDN edge caching: static assets + thumbnails
+CORS headers: whitelisted origins only
+SSL termination: TLS 1.3
+Audit logging: all requests logged" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2310" width="340" height="160" as="geometry" /></mxCell>
+<mxCell id="99" value="AUTH SERVICE
+─────────────────────────
+Login / logout / refresh tokens
+OTP generation + verification (10min TTL Redis)
+Google OAuth 2.0 flow
+Apple Sign In
+WalletConnect / MetaMask nonce signing
+Password hashing: bcrypt
+JWT signing (RS256)
+Lockout: 5 fails → 30-min cooldown" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="400" y="2310" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="100" value="USER SERVICE
+─────────────────────────
+Profile CRUD: GET/PATCH /users/:id
+Follow / unfollow: fan-out on write
+Block / mute management
+Search users (Elasticsearch)
+Referral tracking
+Tier management
+KYC status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="720" y="2310" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="101" value="FEED SERVICE
+─────────────────────────
+For You: ML ranking → Recommendation Engine
+Following: fan-out on write → Redis feed cache
+Friends: filtered following (mutuals only)
+Community: per-community event log (Cassandra)
+Pagination: cursor-based
+Feed expiry: &gt;7 days dropped from cache
+A/B test traffic splitting at feed layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1040" y="2310" width="320" height="160" as="geometry" /></mxCell>
+<mxCell id="102" value="MEDIA SERVICE
+─────────────────────────
+Chunked video upload (5MB chunks, resumable)
+HLS transcoding: AWS Elemental MediaConvert
+  Outputs: 360p/480p/720p/1080p/4K (Tier 3)
+Image processing: resize+compress+WebP
+Thumbnail generation: 6 frames per video
+S3 raw storage + transcoded HLS segments
+CDN distribution: CloudFront edge nodes
+DRM wrapping: Widevine + FairPlay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1380" y="2310" width="320" height="160" as="geometry" /></mxCell>
+<mxCell id="103" value="PAYMENT SERVICE
+─────────────────────────
+Stripe: cards global (170+ countries)
+  Stripe Connect: seller payouts
+  Stripe Radar: fraud scoring
+Flutterwave: Africa (cards+bank+USSD)
+MTN MoMo / Airtel / M-Pesa: mobile money
+Coinbase Commerce: crypto checkout
+Escrow engine: holds funds until delivery
+In-app token ledger (not fiat-convertible)
+Subscription billing (Tier 2/3 recurring)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1720" y="2310" width="340" height="160" as="geometry" /></mxCell>
+<mxCell id="104" value="NOTIFICATION SERVICE
+─────────────────────────
+FCM (Android + web PWA push)
+APNs (iOS: certificate p8 key)
+  VoIP pushes for incoming calls
+OneSignal: unified API + segmentation
+  Delivery analytics (open rate, A/B test copy)
+In-app: stored PostgreSQL, fetched on open
+  Read/unread state per notification
+Email: SendGrid (account changes, payouts)
+SMS: Twilio (2FA, fraud alerts — critical only)
+Batching: groups '5 new likes' etc." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="2080" y="2310" width="340" height="160" as="geometry" /></mxCell>
+<mxCell id="105" value="CONTENT MODERATION  (AI Pipeline)
+─────────────────────────
+Step 1 — Intake &amp; Length Analysis:
+  Detect duration, resolution, bitrate, format
+  HLS transcode → 6 thumbnail candidates
+  Audio waveform extraction (fingerprint)
+  Routing: &lt;60s reel / 60s-10m video / &gt;10m long
+  &gt;4GB auto-reject · unsupported codec auto-reject
+Step 2 — AI Scan:
+  Copyright: audio fingerprint (Audible Magic)
+  Nudity/violence: AWS Rekognition
+  Hate speech: NLP classifier
+Step 3 — Human Review Queue (if AI uncertain):
+  Approve · Reject · Age-restrict · Escalate
+  Appeals process (48h, different moderator)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2500" width="340" height="180" as="geometry" /></mxCell>
+<mxCell id="106" value="RECOMMENDATION ENGINE  (ML)
+─────────────────────────
+For You feed ranking model
+Signals: watch time %, skip, like, share, follow,
+  replay, sound, hashtag, location, search history
+Content-based: similar to liked content
+Collaborative: users with similar taste
+Real-time reranking every 3 posts
+A/B testing: 2 ranking algorithms tested
+Cold-start: new users → interest-seeded feed
+Diversity: max 3 posts per creator per 20
+Retrained weekly on fresh engagement data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="400" y="2500" width="320" height="160" as="geometry" /></mxCell>
+<mxCell id="107" value="SEARCH SERVICE  (Elasticsearch)
+─────────────────────────
+Full-text index: users, posts, sounds, hashtags
+Real-time updates on post publish
+Autocomplete: N-gram tokenisation
+Trending topics: hourly hashtag aggregation
+Personalised results: follow-graph proximity
+Geo-search: marketplace location results
+Spell correction: fuzzy matching
+Multi-language: 70+ language tokenisers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="740" y="2500" width="320" height="160" as="geometry" /></mxCell>
+<mxCell id="108" value="LIVE STREAMING SERVICE
+─────────────────────────
+Agora.io: WebRTC SDK (mobile hosts)
+  Low-latency &lt;500ms interactive
+  Co-host multi-party rooms
+RTMP ingest: for OBS/external software (Tier 3)
+  URL + stream key provided in host dashboard
+Gift engine: token deduction → diamond credit
+  Diamond conversion: 1 token = 0.5 diamonds
+Chat: Redis pub/sub → WebSocket broadcast
+Moderation: keyword filter, timeout, ban
+Post-stream: VOD saved (if record toggle on)
+  Stream summary: peak viewers, gifts, diamonds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1080" y="2500" width="340" height="160" as="geometry" /></mxCell>
+<mxCell id="109" value="COMPLIANCE &amp; FRAUD  (backend)
+─────────────────────────
+Reserve floor: company ≥20% of user balances
+  Below → withdrawals queued with user message
+Fraud ML flags:
+  3× typical amount · new device + large TX
+  Rapid deposit-withdraw cycle · VPN
+  → Auto-hold 24h for review
+AML: &gt;$1,000/24h logged
+  &gt;$5,000 single TX: manual AML review
+  Structuring detection
+SAR auto-filed: $10,000+ in 30d, sanctions match
+User limits dashboard: progress bars + [Upgrade KYC]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c1a1a;strokeColor=#14b8a6;fontColor=#5eead4;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1440" y="2500" width="360" height="180" as="geometry" /></mxCell>
+<mxCell id="118" value="Q — DATABASES &amp; STORAGE" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2730" width="2400" height="32" as="geometry" /></mxCell>
+<mxCell id="119" value="PostgreSQL  (primary relational)
+─────────────────────────
+Users, profiles, tiers, follows, blocks
+Posts, comments, likes, shares
+Marketplace orders, products, storefronts
+Transactions, wallet balances, payouts
+Subscriptions, tier billing records
+Notifications (read/unread state)
+KYC documents, compliance logs" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2780" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="120" value="Redis  (cache + sessions + realtime)
+─────────────────────────
+Session tokens: refresh → user_id mapping
+Rate limiting counters: per IP + per user
+Feed cache: pre-computed For You per user
+Hot content: trending posts + viral videos
+Live viewer counts: HyperLogLog per stream
+Leaderboards: top gifters, referrers (sorted sets)
+Pub/Sub: live chat message distribution
+Distributed locks: prevent double-spend
+OTP cache: 10min TTL
+Autocomplete: top search suggestions" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="360" y="2780" width="320" height="160" as="geometry" /></mxCell>
+<mxCell id="121" value="MongoDB / DynamoDB  (document store)
+─────────────────────────
+Analytics events (time-series)
+Notification logs
+A/B test results
+Activity Centre records (watch history, etc.)
+Community event logs
+Content moderation decision logs" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="700" y="2780" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="122" value="Elasticsearch  (search + trending)
+─────────────────────────
+Post / user / sound / hashtag search index
+Autocomplete (N-gram)
+Trending topics aggregation (hourly)
+Geo-search (marketplace products)
+Multi-language tokenisers (70+)
+Real-time index on new publish" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1020" y="2780" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="123" value="AWS S3  (blob storage)
+─────────────────────────
+Raw uploaded video files
+Transcoded HLS segments (multi-quality)
+Images: avatars, banners, product photos
+Movie/series content (DRM-wrapped)
+Subtitle files (.srt/.vtt)
+User-exported data ZIPs (GDPR)
+Signed URLs for DRM (expire 4h)" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1340" y="2780" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="124" value="Cassandra  (wide-column, time-series)
+─────────────────────────
+Community feed event logs
+Live stream chat history
+Long-term analytics retention
+High-write, time-ordered feeds
+Horizontal scaling for scale" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#6ee7b7;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1660" y="2780" width="300" height="140" as="geometry" /></mxCell>
+<mxCell id="131" value="R — EXTERNAL APIS &amp; INTEGRATIONS" style="text;html=1;strokeColor=none;fillColor=#7c3aed;fontColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="2980" width="2400" height="32" as="geometry" /></mxCell>
+<mxCell id="132" value="AUTH APIs
+─────────────────────────
+Google OAuth 2.0
+Apple Sign In
+WalletConnect (Web3)
+MetaMask / Phantom (Ethereum wallet)
+Twilio Verify (SMS OTP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="40" y="3030" width="300" height="120" as="geometry" /></mxCell>
+<mxCell id="133" value="PAYMENT APIs
+─────────────────────────
+Stripe: cards, Connect payouts, Radar fraud
+Flutterwave: Africa (card/bank/USSD/QR)
+MTN MoMo API: request-to-pay + disbursements
+Airtel Money / M-Pesa: same pattern
+Binance API: crypto price feeds + spot trading
+Coinbase Commerce: crypto checkout widget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="360" y="3030" width="320" height="140" as="geometry" /></mxCell>
+<mxCell id="134" value="PUSH NOTIFICATION APIs
+─────────────────────────
+Firebase FCM (Android + web PWA)
+APNs (iOS, p8 certificate auth)
+OneSignal: cross-platform wrapper
+  Audience segmentation + A/B testing
+  Delivered/opened analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="700" y="3030" width="300" height="120" as="geometry" /></mxCell>
+<mxCell id="135" value="MEDIA &amp; VIDEO APIs
+─────────────────────────
+AWS Elemental MediaConvert: HLS transcoding
+  Outputs: 360p/480p/720p/1080p/4K
+  Thumbnail sprites
+Mux.com: video hosting + analytics (fallback)
+FFmpeg (self-hosted): audio fingerprint,
+  clip creation, format conversion
+Agora.io: WebRTC live SDK (&lt;500ms latency)
+  Co-host multi-party room" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1020" y="3030" width="320" height="140" as="geometry" /></mxCell>
+<mxCell id="136" value="COMMUNICATION APIs
+─────────────────────────
+Twilio: SMS OTP + voice + critical alerts
+SendGrid: transactional email
+  Account changes, payouts, reports, KYC
+Vonage: video calls (future)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1360" y="3030" width="300" height="120" as="geometry" /></mxCell>
+<mxCell id="137" value="AI / CONTENT APIs
+─────────────────────────
+AWS Rekognition: nudity/violence detection
+Audible Magic: copyright fingerprinting
+Custom NLP classifier: hate speech
+Kliq ML Platform: recommendation engine
+  For You feed ranking, A/B testing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1680" y="3030" width="300" height="120" as="geometry" /></mxCell>
+<mxCell id="138" value="CDN &amp; INFRA
+─────────────────────────
+AWS CloudFront: HLS video (200+ PoPs)
+  Adaptive bitrate per connection speed
+  Signed URLs for DRM (expire 4h)
+  Cache-Control headers per content type
+Cloudflare: DDoS protection, Magic Transit
+  Edge caching images/thumbnails (24h TTL)
+  Geo-blocking for region-specific content" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e3a5f;strokeColor=#3b82f6;fontColor=#93c5fd;fontSize=10;" vertex="1" parent="1"><mxGeometry x="2000" y="3030" width="400" height="120" as="geometry" /></mxCell>
+<mxCell id="13" value="Sign Up link" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="login" target="signup" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="16" value="auth success" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="login" target="nav" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="17" value="account created" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="signup" target="nav" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="22" value="tap 💬" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="home" target="commentSheet" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="23" value="tap ↗" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="home" target="shareSheet" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="30" value="Camera" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="createSheet" target="camera" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="31" value="Story" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="createSheet" target="storyViewer" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="33" value="Next →" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="camera" target="uploadForm" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="38" value="tap card" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="klixtube" target="klixtubWatch" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="39" value="tap channel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="klixtubWatch" target="kliqtubeChannel" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="45" value="Tier 2 or 3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="streamTierGate" target="streamHome" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="46" value="tap title" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="streamHome" target="streamWatch" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="47" value="My Profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="streamHome" target="streamMyList" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="53" value="Sell modal → T3 Storefront" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="marketplace" target="customizeShop" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="54" value="tap store card" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="marketplace" target="storeProfile" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="55" value="Pay &amp; Start Amplify" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="customizeShop" target="payment" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="61" value="Top Up" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="wallet" target="topupModal" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="62" value="Withdraw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="wallet" target="withdrawModal" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="63" value="Transfer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="wallet" target="transferModal" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="67" value="Tier 3 toggle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="analytics" target="advancedAnalytics" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="74" value="Edit Profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="profile" target="editProfile" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="75" value="Tier 3 tap" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="settings" target="mktAnalyticsModal" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="76" value="Language &amp; Region" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="settings" target="langRegion" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="81" value="context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="studioTierInfo" target="studio" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="82" value="Content section" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="studio" target="contentTracker" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="88" value="tap post" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="community" target="communityPost" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="89" value="+ Create" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="community" target="createCommunity" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="90" value="💬 Chat icon" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="community" target="communityChat" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="94" value="tap thread" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="inbox" target="chat" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="110" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="authService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="111" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="userService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="112" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="feedService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="113" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="mediaService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="114" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="paymentService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="115" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="apiGateway" target="notifService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="116" value="ML ranking" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="feedService" target="recoEngine" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="117" value="post upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="mediaService" target="moderationService" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="125" value="CRUD" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="userService" target="postgres" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="126" value="feed cache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="feedService" target="redis" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="127" value="community feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="feedService" target="cassandra" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="128" value="store files" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="mediaService" target="s3" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="129" value="index" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="searchService" target="elasticsearch" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="130" value="logs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=8;fontColor=#94a3b8;strokeColor=#475569;" edge="1" source="notifService" target="mongodb" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="139" value="Home tab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="home" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="140" value="Search icon" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="search" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="141" value="KliqTube tab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="klixtube" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="142" value="Inbox tab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="inbox" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="143" value="Profile tab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="profile" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="144" value="+ Create" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="createSheet" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="145" value="Action Panel → Wallet" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="wallet" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="146" value="Action Panel → Analytics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="analytics" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="147" value="Action Panel → Studio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="studio" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="148" value="Action Panel → Amplify" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="amplify" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="149" value="Community" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="community" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="150" value="Marketplace" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="marketplace" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="151" value="Kliq Stream" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="streamHome" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+<mxCell id="152" value="Settings" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=8;fontColor=#a78bfa;strokeColor=#7c3aed;" edge="1" source="nav" target="settings" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+  </root>
+</mxGraphModel>

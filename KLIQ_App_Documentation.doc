@@ -1,0 +1,483 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset='UTF-8'>
+<title>KLIQ App — Full Documentation</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1a1a1a; margin: 2cm 2.5cm; line-height: 1.6; }
+  h1 { font-size: 26pt; color: #7c3aed; border-bottom: 3px solid #7c3aed; padding-bottom: 8px; margin-top: 32px; }
+  h2 { font-size: 16pt; color: #6d28d9; border-bottom: 1px solid #ddd6fe; padding-bottom: 4px; margin-top: 24px; }
+  h3 { font-size: 12pt; color: #4c1d95; margin-top: 18px; }
+  h4 { font-size: 11pt; color: #5b21b6; margin-top: 12px; }
+  p { margin: 6px 0 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+  th { background: #7c3aed; color: white; padding: 8px 12px; text-align: left; font-size: 10pt; }
+  td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; font-size: 10pt; }
+  tr:nth-child(even) td { background: #f5f3ff; }
+  .badge { display: inline-block; background: #ede9fe; color: #6d28d9; border-radius: 4px; padding: 2px 8px; font-size: 9pt; font-weight: bold; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-orange { background: #ffedd5; color: #9a3412; }
+  ul { margin: 6px 0 12px 20px; }
+  li { margin-bottom: 4px; }
+  .cover { text-align: center; padding: 60px 0 40px; border-bottom: 2px solid #7c3aed; margin-bottom: 40px; }
+  .cover h1 { font-size: 42pt; border: none; color: #7c3aed; }
+  .cover p { font-size: 14pt; color: #666; }
+  .cover .sub { font-size: 11pt; color: #999; margin-top: 20px; }
+  .toc li { margin-bottom: 6px; color: #6d28d9; }
+  .page-row td:first-child { font-weight: bold; color: #4c1d95; }
+  .highlight { background: #faf5ff; border-left: 4px solid #7c3aed; padding: 12px 16px; margin: 14px 0; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>KLIQ</h1>
+  <p>Creator Social Platform — Full Application Documentation</p>
+  <p class="sub">Prototype 3 &nbsp;|&nbsp; Built with Vite · React · TypeScript · Tailwind CSS<br>
+  Prepared: June 2026 &nbsp;|&nbsp; Version 1.0</p>
+</div>
+
+<h2>Table of Contents</h2>
+<ol class="toc">
+  <li>Executive Summary</li>
+  <li>Technology Stack</li>
+  <li>Application Architecture</li>
+  <li>User Tier System</li>
+  <li>Sign-Up &amp; Onboarding Flow</li>
+  <li>Page Inventory &amp; Feature Descriptions</li>
+  <li>Navigation Structure</li>
+  <li>Design System</li>
+  <li>Context Providers &amp; State Management</li>
+  <li>Control System App Overview</li>
+</ol>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>1. Executive Summary</h1>
+<p>KLIQ is a multi-platform social media and content creator ecosystem designed as a unified home for creators across short-form video, long-form content, live streaming, premium series, community discussion, and e-commerce. The platform combines the best elements of Instagram, TikTok, YouTube, Twitch, Netflix, Etsy, and Discord into a single cohesive product.</p>
+
+<p>The prototype (prot_3) is a fully functional front-end demonstration built in React and TypeScript, demonstrating the complete user experience across all major product areas. All navigation, modals, forms, and interactive states are implemented. No backend is connected; all data is static/seeded.</p>
+
+<div class="highlight">
+  <strong>Key Product Promise:</strong> One platform for creators to post, stream, publish, sell, and connect — with a token-based economy rewarding content and engagement.
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>2. Technology Stack</h1>
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>Build Tool</td><td>Vite</td><td>6.3.5</td><td>Fast dev server &amp; production bundler</td></tr>
+  <tr><td>UI Framework</td><td>React</td><td>18.3.1</td><td>Component-based UI rendering</td></tr>
+  <tr><td>Language</td><td>TypeScript</td><td>~5.8</td><td>Type-safe development</td></tr>
+  <tr><td>Styling</td><td>Tailwind CSS</td><td>4.1.12</td><td>Utility-first CSS framework</td></tr>
+  <tr><td>Routing</td><td>React Router</td><td>7.13.0</td><td>Client-side page navigation</td></tr>
+  <tr><td>Charts</td><td>Recharts</td><td>2.15.2</td><td>Analytics charts &amp; graphs</td></tr>
+  <tr><td>Icons</td><td>Lucide React</td><td>0.487.0</td><td>Consistent icon library</td></tr>
+  <tr><td>Avatars</td><td>DiceBear API</td><td>7.x</td><td>Generated user avatars</td></tr>
+  <tr><td>Images</td><td>Unsplash API</td><td>—</td><td>Placeholder content images</td></tr>
+  <tr><td>Animations</td><td>tw-animate-css</td><td>1.3.8</td><td>CSS animation utilities</td></tr>
+  <tr><td>UI Primitives</td><td>Radix UI</td><td>Various</td><td>Accessible headless components</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>3. Application Architecture</h1>
+
+<h2>3.1 File Structure</h2>
+<pre style="font-family: Consolas, monospace; background: #f8f8f8; padding: 16px; border: 1px solid #e5e7eb; font-size: 10pt;">
+src/
+├── app/
+│   ├── App.tsx              ← Root app with context providers
+│   ├── routes.tsx           ← All React Router routes
+│   ├── components/
+│   │   ├── Layout.tsx       ← Persistent nav wrapper (sidebar + mobile bar)
+│   │   ├── CommentSheet.tsx ← Reusable comment drawer
+│   │   ├── ShareSheet.tsx   ← Reusable share bottom sheet
+│   │   ├── MoreMenuSheet.tsx← Post action menu
+│   │   └── ActionPanel.tsx  ← Post action buttons
+│   ├── context/
+│   │   ├── UserContext.tsx  ← Tier, tab visibility state
+│   │   ├── SocialContext.tsx← Follow/unfollow, My List state
+│   │   └── NotificationContext.tsx ← Notifications + unread count
+│   └── pages/
+│       └── [30+ page files]
+└── styles/
+    ├── tailwind.css
+    ├── fonts.css
+    └── theme.css
+</pre>
+
+<h2>3.2 Routing</h2>
+<p>React Router v7 with a nested layout structure. The root <code>/</code> path renders the <code>Layout</code> component, which wraps all main pages with the persistent navigation bar. Special pages (Login, Onboarding, StoryViewer, KliqStreamWatch) render outside the layout without the nav bar.</p>
+
+<h2>3.3 Context Providers</h2>
+<table>
+  <tr><th>Context</th><th>State</th><th>Purpose</th></tr>
+  <tr><td>UserContext</td><td>tier (1|2|3), tabVisibility</td><td>Controls which features are unlocked based on subscription tier</td></tr>
+  <tr><td>SocialContext</td><td>followed: Set&lt;string&gt;, myList: Set&lt;string&gt;</td><td>Tracks who the user follows and their KliqStream watchlist</td></tr>
+  <tr><td>NotificationContext</td><td>notifications[], unreadCount</td><td>Global notification feed and unread badge count</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>4. User Tier System</h1>
+<p>KLIQ uses a tiered subscription model that unlocks progressively more powerful creator tools:</p>
+<table>
+  <tr><th>Tier</th><th>Name</th><th>Price</th><th>Unlocks</th></tr>
+  <tr>
+    <td><span class="badge">★☆☆ Tier 1</span></td>
+    <td>Basic</td>
+    <td>Free</td>
+    <td>Home feed, Stories, Reels, Posts, KliqTube viewing, Community, Inbox, Search, Wallet (basic), Profile</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">★★☆ Tier 2</span></td>
+    <td>Plus</td>
+    <td>$9.99/mo</td>
+    <td>All Tier 1 + KliqStream browsing, Advanced analytics, Revenue earnings visibility, KliqStream tab on profile</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">★★★ Tier 3</span></td>
+    <td>Pro</td>
+    <td>$29.99/mo</td>
+    <td>All Tier 2 + Marketplace storefront, Studio dashboard, Partner Program, Priority amplification</td>
+  </tr>
+</table>
+<p>The tier is set via the Settings page and persists in the UserContext. Tab visibility can be customised per-tab from Settings (Everyone / Friends Only / Hidden).</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>5. Sign-Up &amp; Onboarding Flow</h1>
+
+<h2>5.1 Login Page</h2>
+<p>Dual-mode page (Login / Register). Login mode shows email + password fields with a "Forgot password?" flow. Register mode is a 2-step form:</p>
+<ul>
+  <li><strong>Step 1 — Credentials:</strong> Email, Password (with live strength meter: weak/fair/strong), Confirm Password (with real-time match indicator). Also offers Google OAuth shortcut.</li>
+  <li><strong>Step 2 — Personal Details:</strong> Full Name (required), Phone Number (optional, US-formatted), Date of Birth (required, age-gated at 13+), Gender (optional dropdown: Male / Female / Non-binary / Prefer not to say), Terms of Service + Privacy Policy + Community Guidelines checkbox.</li>
+</ul>
+
+<h2>5.2 Forgot Password Flow</h2>
+<p>Clicking "Forgot password?" shows an email input screen. On submit, the UI transitions to a confirmation screen showing the email address a reset link was "sent" to, with a "Back to Sign In" button.</p>
+
+<h2>5.3 Onboarding (4 steps)</h2>
+<table>
+  <tr><th>Step</th><th>Screen</th><th>Description</th></tr>
+  <tr><td>1</td><td>Interests</td><td>Grid of 12 interest categories (Music, Travel, Gaming, Art, Fitness, Food, Tech, Fashion, Sports, Movies, Comedy, Nature). User picks at least 1 to continue.</td></tr>
+  <tr><td>2</td><td>Suggested Creators</td><td>List of 6 creators with follow/unfollow buttons powered by SocialContext. Can skip.</td></tr>
+  <tr><td>3</td><td>Profile Setup</td><td>Avatar picker (8 presets + camera upload placeholder), Display Name, @Username (3–20 chars, validated, live availability check). Live profile preview card updates in real time.</td></tr>
+  <tr><td>4</td><td>Done</td><td>"You're all set!" screen with Sparkles animation, shows @username. "Start Exploring" navigates to Home.</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>6. Page Inventory &amp; Feature Descriptions</h1>
+
+<h2>6.1 Core Social Pages</h2>
+
+<h3>Home</h3>
+<p>TikTok-style full-screen vertical feed with three tabs: <strong>Following</strong>, <strong>For You</strong>, and <strong>Live</strong>.</p>
+<ul>
+  <li>Double-tap to like (floating heart animation)</li>
+  <li>Comment sheet (slide-up drawer with replies)</li>
+  <li>Share sheet (bottom sheet with copy link, DM, etc.)</li>
+  <li>More menu (report, save, not interested)</li>
+  <li>Follow button on post, links to user profile</li>
+  <li>Live tab shows active streams with viewer counts and live badges</li>
+</ul>
+
+<h3>Friends</h3>
+<p>Stories row at the top (circular avatars) with "+" add story button. Story viewer is a full-screen multi-story experience.</p>
+<ul>
+  <li>Story tap navigation: tap right = next slide, tap left = previous, swipe down = dismiss</li>
+  <li>Multi-user story progression across 6 story users</li>
+  <li>Story upload modal (for own story)</li>
+  <li>People You May Know section with follow buttons</li>
+  <li>Activity feed (likes, comments, follows from friends)</li>
+</ul>
+
+<h3>Search</h3>
+<ul>
+  <li>Full-text search filtering across accounts, tags, and videos simultaneously</li>
+  <li>Trending hashtags row</li>
+  <li>Instagram-style explore grid (masonry layout with spanning cells)</li>
+  <li>Account results with follow buttons; Video results with view counts</li>
+</ul>
+
+<h3>Create</h3>
+<p>Full camera UI with three modes:</p>
+<ul>
+  <li><strong>Photo:</strong> Shutter button with filter selector row</li>
+  <li><strong>Video:</strong> Toggle record button (REC badge while recording) → caption screen → post success</li>
+  <li><strong>Live:</strong> Title + category setup → Go Live → active live screen with viewer count, chat bubbles, End Stream</li>
+</ul>
+
+<h3>Inbox</h3>
+<p>Two-tab interface: Notifications and Chats.</p>
+<ul>
+  <li>Notifications: Real-time notification feed from NotificationContext (like, follow, comment, mention, earn). Follow notifications show Follow Back button.</li>
+  <li>Chats: List of DM conversations with unread counts, streak indicators, and last message preview. Navigates to ChatConversation.</li>
+  <li>Bell badge in Layout header shows live unread count from NotificationContext.</li>
+</ul>
+
+<h2>6.2 Content Platforms</h2>
+
+<h3>KliqTube</h3>
+<p>YouTube-style long-form video platform. Features:</p>
+<ul>
+  <li>Subscriptions row (avatar circles linking to channels)</li>
+  <li>Category filter bar (All, Gaming, Music, Tech, Education, etc.)</li>
+  <li>Featured video hero banner</li>
+  <li>Video grid with thumbnails, duration badges, channel avatars</li>
+  <li>Search bar (real-time filter by title or channel)</li>
+  <li>Upload modal with title, category, and success confirmation screen</li>
+  <li>Channel page: banner, subscriber count, Videos / Playlists / About tabs</li>
+  <li>Watch page: full player with controls, like/dislike, comments, related videos</li>
+</ul>
+
+<h3>KliqStream</h3>
+<p>Netflix-style premium content browser. Features:</p>
+<ul>
+  <li>Tier 2+ gated (prompts upgrade for Tier 1)</li>
+  <li>Hero banner with featured title</li>
+  <li>Horizontal content rows: New Releases, Drama, Action, etc.</li>
+  <li>Add to My List (SocialContext) with toggle</li>
+  <li>Watch page: full-screen player with progress scrubber, skip ±10s, mute, like</li>
+  <li>My List page: saved titles grid</li>
+</ul>
+
+<h3>Community</h3>
+<p>Reddit/Discord-style forum platform. Features:</p>
+<ul>
+  <li>My Feed tab: post cards with upvote toggle, reply count, pinned badge</li>
+  <li>Discover tab: community directory with Join/Joined toggle</li>
+  <li>Long-press on admin community → settings sheet (Edit, Manage Members, Rules, etc.)</li>
+  <li>Community Chat: group WhatsApp-style chat with reactions, swipe-to-reply, emoji panel, members modal</li>
+  <li>Post Detail: full post with comment thread</li>
+  <li>Create Community: 3-step wizard (details → invite members → launch) with in-page success screen</li>
+</ul>
+
+<h2>6.3 Creator Monetisation</h2>
+
+<h3>Marketplace</h3>
+<ul>
+  <li>Product grid with images, prices, seller info</li>
+  <li>Tier 3 storefront banner (upgrade prompt for lower tiers)</li>
+  <li>Sell modal: product name, price, description, category — with in-page success confirmation</li>
+  <li>Store Profile page for individual seller pages</li>
+  <li>Customize Shop page for Tier 3 creators</li>
+</ul>
+
+<h3>Amplify</h3>
+<p>Paid content promotion tool. 4-step setup:</p>
+<ol>
+  <li>Select a post (portrait grid with view count badges)</li>
+  <li>Choose goal: More Views / More Followers / More Website Visits</li>
+  <li>Audience: Automatic (AI-selected)</li>
+  <li>Budget slider (100–5,000 tokens) + Duration slider (1–30 days), quick-pick buttons, daily spend display, estimated reach calculation (updates live based on both sliders)</li>
+</ol>
+<p>Clicking "Pay & Start Amplify" shows a campaign success screen with all campaign details and links to Analytics.</p>
+
+<h3>Wallet</h3>
+<ul>
+  <li>Balance display (USD + Token + Diamond counts)</li>
+  <li>Top Up modal: fiat (quick picks + custom amount, token bonus preview) or crypto</li>
+  <li>Withdraw modal</li>
+  <li>Transfer modal: send tokens or diamonds to another user</li>
+  <li>Transaction history list</li>
+  <li>Success toast notifications on all actions</li>
+</ul>
+
+<h3>Analytics</h3>
+<ul>
+  <li>Overview cards: Reach, Engagement Rate, Followers Gained, Est. Revenue</li>
+  <li>Interactive bar chart (Views by day) and line chart (Follower growth)</li>
+  <li>Top content table with performance metrics</li>
+  <li>Tier-gated deep analytics (Tier 2+). "Upgrade to Pro" button links to Settings.</li>
+</ul>
+
+<h2>6.4 Profile &amp; Account</h2>
+
+<h3>Profile (Own)</h3>
+<ul>
+  <li>Cover photo + avatar with tier badge stars</li>
+  <li>Stats: Posts, Followers (clickable list), Following (clickable list), Likes</li>
+  <li>Followers/Following lists show avatars with follow-back buttons</li>
+  <li>Privacy toggle (show/hide each list with lock icon)</li>
+  <li>Scrollable tabs: Posts · Reels · KliqTube · KliqStream · Marketplace · Community</li>
+  <li>Edit Profile button → Edit Profile page (display name, username, bio, website, privacy toggle)</li>
+  <li>Share button → ShareSheet</li>
+</ul>
+
+<h3>UserProfile (Others)</h3>
+<ul>
+  <li>Same tab layout as own profile but with Follow / Message / Gift buttons</li>
+  <li>Stats and bio are deterministically varied per username (hash-based)</li>
+  <li>Each tab shows relevant content with navigation links into KliqTube watch, Stream watch, etc.</li>
+</ul>
+
+<h3>Settings</h3>
+<p>Comprehensive settings page with multiple expandable sections:</p>
+<ul>
+  <li>Account: change username, linked accounts, phone, 2FA</li>
+  <li>Notifications: per-type toggle (Likes, Comments, Follows, DMs, etc.)</li>
+  <li>Privacy: who can follow, DM, comment; restricted words</li>
+  <li>Appearance: font size, reduce motion, content density</li>
+  <li>Language &amp; Region: full language list (15 languages)</li>
+  <li>Tier Upgrade: shows current tier, upgrade path, pricing</li>
+  <li>Tab Visibility: per-tab control (Everyone / Friends / Hidden)</li>
+  <li>Marketplace Analytics: GMV, orders, conversion rate charts (Tier 3)</li>
+  <li>Blocked Users: list with unblock button</li>
+  <li>FAQ: expandable Q&amp;A</li>
+  <li>Report a Problem: category selector + text field</li>
+  <li>Log Out / Delete Account</li>
+</ul>
+
+<h3>Studio</h3>
+<p>Content management dashboard for all platform uploads. Features:</p>
+<ul>
+  <li>Summary stats: Total Views, Followers, Engagement, Revenue (tier-gated)</li>
+  <li>Interactive charts (bar + line)</li>
+  <li>Platform filter: All / Social / KliqTube / Stream / Marketplace</li>
+  <li>Content list with thumbnail, status badges (Published / Pending / Processing / Rejected)</li>
+  <li>Per-platform colour coding</li>
+</ul>
+
+<h2>6.5 Communication</h2>
+
+<h3>ChatConversation</h3>
+<ul>
+  <li>WhatsApp-style DM thread</li>
+  <li>Long-press message → reaction menu or reply</li>
+  <li>Swipe-to-reply gesture</li>
+  <li>Emoji panel</li>
+  <li>Media gallery picker</li>
+  <li>Chat customisation: accent colour themes</li>
+  <li>Audio / Video call overlay</li>
+  <li>Clear chat, block, report options</li>
+</ul>
+
+<h3>Payment</h3>
+<ul>
+  <li>Order summary card</li>
+  <li>Credit card mode: name, card number (auto-formatted XXXX XXXX XXXX XXXX), expiry, CVV</li>
+  <li>Crypto mode: ETH wallet address, amount in ETH, network info</li>
+  <li>Inline validation error (no alert dialogs)</li>
+  <li>Success screen with transaction receipt</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>7. Navigation Structure</h1>
+<table>
+  <tr><th>Route</th><th>Component</th><th>In Nav?</th><th>Auth Required</th></tr>
+  <tr class="page-row"><td>/login</td><td>Login</td><td>No</td><td>No</td></tr>
+  <tr class="page-row"><td>/onboarding</td><td>Onboarding</td><td>No</td><td>No</td></tr>
+  <tr class="page-row"><td>/story/:username</td><td>StoryViewer</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/stream/watch/:id</td><td>KliqStreamWatch</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/ (index)</td><td>Home</td><td>Bottom Nav</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/friends</td><td>Friends</td><td>Bottom Nav</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/create</td><td>Create</td><td>Bottom Nav</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/inbox</td><td>Inbox</td><td>Bottom Nav (badge)</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/profile</td><td>Profile</td><td>Bottom Nav</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/search</td><td>Search</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/klixtube</td><td>KliqTube</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/klixtube/watch/:id</td><td>KliqTubeWatch</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/klixtube/channel/:username</td><td>KliqTubeChannel</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/stream</td><td>Stream</td><td>Sidebar</td><td>Yes (Tier 2+)</td></tr>
+  <tr class="page-row"><td>/stream/mylist</td><td>KliqStreamMyList</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/marketplace</td><td>Marketplace</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/amplify</td><td>Amplify</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/community</td><td>Community</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/community/:id</td><td>CommunityChat</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/community/post/:id</td><td>CommunityPost</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/create-community</td><td>CreateCommunity</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/studio</td><td>Studio</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/wallet</td><td>Wallet</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/analytics</td><td>Analytics</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/settings</td><td>Settings</td><td>Sidebar</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/settings/language</td><td>LanguageRegion</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/user/:username</td><td>UserProfile</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/store/:id</td><td>StoreProfile</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/customize-shop</td><td>CustomizeShop</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/payment</td><td>Payment</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/chat/:id</td><td>ChatConversation</td><td>No</td><td>Yes</td></tr>
+  <tr class="page-row"><td>/edit-profile</td><td>EditProfile</td><td>No</td><td>Yes</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>8. Design System</h1>
+
+<h2>8.1 Colour Palette</h2>
+<table>
+  <tr><th>Role</th><th>Colour</th><th>Tailwind Class</th><th>Usage</th></tr>
+  <tr><td>Background</td><td>#000000</td><td>bg-black</td><td>All page backgrounds</td></tr>
+  <tr><td>Surface</td><td>#111827</td><td>bg-gray-900</td><td>Cards, inputs, modals</td></tr>
+  <tr><td>Surface 2</td><td>#0a0a0f</td><td>bg-gray-950</td><td>Bottom sheets, deep cards</td></tr>
+  <tr><td>Border</td><td>#374151</td><td>border-gray-700</td><td>Input borders, dividers</td></tr>
+  <tr><td>Primary</td><td>#9333ea → #ec4899</td><td>from-purple-600 to-pink-600</td><td>CTA buttons, badges, gradients</td></tr>
+  <tr><td>Accent Purple</td><td>#a855f7</td><td>text-purple-400</td><td>Links, active states, icons</td></tr>
+  <tr><td>Text Primary</td><td>#ffffff</td><td>text-white</td><td>Headlines, important labels</td></tr>
+  <tr><td>Text Secondary</td><td>#9ca3af</td><td>text-gray-400</td><td>Descriptions, metadata</td></tr>
+  <tr><td>Text Muted</td><td>#4b5563</td><td>text-gray-600</td><td>Placeholder text, timestamps</td></tr>
+  <tr><td>Success</td><td>#4ade80</td><td>text-green-400</td><td>Success states, active badges</td></tr>
+  <tr><td>Error</td><td>#f87171</td><td>text-red-400</td><td>Error messages, warnings</td></tr>
+</table>
+
+<h2>8.2 Typography</h2>
+<ul>
+  <li><strong>Font Family:</strong> System font stack (Calibri / Arial / sans-serif via Tailwind default)</li>
+  <li><strong>Page Titles:</strong> 2xl–4xl, font-black or font-bold, text-white</li>
+  <li><strong>Section Headers:</strong> xl–2xl, font-bold</li>
+  <li><strong>Body Text:</strong> sm (14px), text-gray-300/400</li>
+  <li><strong>Metadata:</strong> xs (12px), text-gray-500/600</li>
+</ul>
+
+<h2>8.3 Component Patterns</h2>
+<ul>
+  <li><strong>Rounded corners:</strong> rounded-xl (12px) for cards, rounded-full for avatars/pills</li>
+  <li><strong>CTA buttons:</strong> bg-gradient-to-r from-purple-600 to-pink-600, rounded-xl, font-bold</li>
+  <li><strong>Input fields:</strong> bg-gray-900, border-gray-800, focus:border-purple-600, rounded-xl</li>
+  <li><strong>Bottom sheets:</strong> Fixed bottom drawer, bg-gray-950, rounded-t-3xl, backdrop-blur</li>
+  <li><strong>Sticky headers:</strong> bg-black/95, backdrop-blur-md, border-b border-gray-900</li>
+  <li><strong>Cards:</strong> bg-gray-900/50, border border-gray-800, rounded-xl/2xl</li>
+  <li><strong>Badges:</strong> Coloured pill spans with category-specific colours</li>
+  <li><strong>Toasts:</strong> Fixed top-center, bg-gray-900, border-gray-700, rounded-2xl, 2.5s auto-dismiss</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>9. Context Providers &amp; State Management</h1>
+
+<h2>9.1 UserContext</h2>
+<p>Manages subscription tier and tab visibility. All child components can read <code>tier</code> (1, 2, or 3) to conditionally render tier-gated features. <code>tabVisibility</code> is a record mapping each <code>TabKey</code> to "Everyone" | "Friends" | "Hidden", controlling which profile tabs are visible to others.</p>
+
+<h2>9.2 SocialContext</h2>
+<p>Tracks the set of followed user IDs and the KliqStream "My List". Both are <code>Set&lt;string&gt;</code> values. <code>toggleFollow(userId)</code> and <code>toggleMyList(contentId)</code> are exposed to all components. KliqTube subscriptions use a <code>kt:</code> prefix on the user ID to avoid collision with social follows.</p>
+
+<h2>9.3 NotificationContext</h2>
+<p>Stores a list of notification objects (id, type, user, message, timestamp, avatar). <code>addNotification()</code> adds new items, <code>markRead()</code> clears the unread count. The Layout component reads <code>unreadCount</code> to show the live badge on both the desktop bell icon and the mobile Inbox nav button.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h1>10. Control System App Overview</h1>
+<p>The KLIQ Control System (ctrl_1) is a separate web application running on port 5174, designed for platform administrators. It provides an operational view of the KLIQ platform with tools to manage users, moderate content, monitor analytics, send push notifications, and configure platform settings.</p>
+
+<h2>10.1 Control Panel Pages</h2>
+<table>
+  <tr><th>Page</th><th>URL</th><th>Purpose</th></tr>
+  <tr><td>Dashboard</td><td>/</td><td>KPI overview, recent activity, system status, quick links to proto_3</td></tr>
+  <tr><td>User Management</td><td>/users</td><td>Searchable user table with verify/suspend/ban actions</td></tr>
+  <tr><td>Content Moderation</td><td>/content</td><td>Flagged content review with approve/reject workflows</td></tr>
+  <tr><td>Communities</td><td>/communities</td><td>Community directory with feature/suspend controls</td></tr>
+  <tr><td>Analytics</td><td>/analytics</td><td>Platform-wide charts for user growth, content, revenue</td></tr>
+  <tr><td>Notifications</td><td>/notifications</td><td>Push notification composer with audience targeting</td></tr>
+  <tr><td>App Settings</td><td>/settings</td><td>Feature flag toggles, platform configuration</td></tr>
+</table>
+
+<h2>10.2 Linking to proto_3</h2>
+<p>The control panel links to the KLIQ app (proto_3, running on port 5173) in the following ways:</p>
+<ul>
+  <li><strong>"View App" button</strong> in the header opens proto_3 in a new tab</li>
+  <li><strong>"View Profile" in Users table</strong> opens <code>localhost:5173/user/:username</code></li>
+  <li><strong>"View Community" in Communities</strong> opens <code>localhost:5173/community/:id</code></li>
+  <li><strong>"View Content" in Moderation</strong> links to the relevant watch/post page in proto_3</li>
+</ul>
+
+<p style="color: #999; font-size: 9pt; margin-top: 40px; border-top: 1px solid #eee; padding-top: 12px;">
+  KLIQ App Documentation · Prototype 3 · Prepared June 2026 · Confidential
+</p>
+
+</body>
+</html>
