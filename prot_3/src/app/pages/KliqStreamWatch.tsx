@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize2, SkipForward, SkipBack, ThumbsUp } from "lucide-react";
 import { api, resolveMediaUrl } from "../api/client";
+import { MediaVideo } from "../components/media/MediaVideo";
 
 interface StreamPost {
   id: string;
@@ -65,6 +66,17 @@ export function KliqStreamWatch() {
     setMuted(v.muted);
   };
 
+  const handleLike = async () => {
+    if (!id) return;
+    const wasLiked = liked;
+    setLiked(l => !l);
+    try {
+      await (wasLiked ? api.delete(`/posts/${id}/like`) : api.post(`/posts/${id}/like`, {}));
+    } catch {
+      setLiked(wasLiked);
+    }
+  };
+
   const fmtTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
@@ -82,11 +94,12 @@ export function KliqStreamWatch() {
       {/* Video area */}
       <div className="flex-1 relative cursor-pointer" onClick={togglePlay}>
         {post.mediaUrl ? (
-          <video
+          <MediaVideo
             ref={videoRef}
             src={resolveMediaUrl(post.mediaUrl) ?? ""}
             className="w-full h-full object-contain"
             playsInline
+            context={`KliqStreamWatch/post:${post.id}`}
             onTimeUpdate={e => {
               const v = e.currentTarget;
               if (v.duration) setProgress((v.currentTime / v.duration) * 100);
@@ -161,7 +174,7 @@ export function KliqStreamWatch() {
               {muted ? <VolumeX size={22} /> : <Volume2 size={22} />}
             </button>
             <button
-              onClick={e => { e.stopPropagation(); setLiked(p => !p); }}
+              onClick={e => { e.stopPropagation(); handleLike(); }}
               className={`p-2 rounded-full transition ${liked ? "text-pink-400" : "text-white hover:bg-white/10"}`}>
               <ThumbsUp size={22} className={liked ? "fill-pink-400" : ""} />
             </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Grid, Play, Tv, Store, Users, Share2, MessageCircle, ShoppingBag, Loader2, Heart, X, MoreHorizontal } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useSocial } from "../context/SocialContext";
 import { ShareSheet } from "../components/ShareSheet";
 
@@ -40,6 +40,8 @@ interface UserProfileData {
   postCount: number;
   isFollowing: boolean;
   isOwnProfile: boolean;
+  subPrice: number | null;
+  isSubscribed: boolean;
 }
 
 interface PostItem {
@@ -80,6 +82,9 @@ export function UserProfile() {
   const [purchaseToast, setPurchaseToast] = useState(false);
   const showPurchaseToast = () => { setPurchaseToast(true); setTimeout(() => setPurchaseToast(false), 2500); };
 
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [reportUserModal, setReportUserModal] = useState(false);
   const [reportUserReason, setReportUserReason] = useState("");
@@ -94,6 +99,7 @@ export function UserProfile() {
     api.get<UserProfileData>(`/users/${username}`).then(data => {
       setProfile(data);
       seedFollowing(data.username, data.isFollowing);
+      setSubscribed(data.isSubscribed);
     }).catch(() => {}).finally(() => setLoadingProfile(false));
 
     api.get<PostItem[]>(`/users/${username}/posts`).then(setPosts).catch(() => {});
@@ -117,6 +123,19 @@ export function UserProfile() {
       } : p);
     } catch { /* silent */ } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!profile || subscribing) return;
+    setSubscribing(true);
+    try {
+      await api.post(`/subscriptions/creator/${profile.username}`, {});
+      setSubscribed(true);
+    } catch (e: unknown) {
+      alert((e as Error).message ?? "Failed to subscribe");
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -177,7 +196,7 @@ export function UserProfile() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-4">
             <div className="w-28 h-28 rounded-full border-4 border-black overflow-hidden bg-gray-800 z-10 relative shadow-xl">
-              <img src={resolveMediaUrl(profile.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`} alt={username} className="w-full h-full object-cover bg-gray-800" />
+              <img src={resolveAvatarUrl(profile.avatarUrl)} alt={username} className="w-full h-full object-cover bg-gray-800" />
             </div>
             <div className="text-center md:text-left z-10">
               <h1 className="text-2xl font-bold text-white">
@@ -224,6 +243,15 @@ export function UserProfile() {
                 className="flex items-center gap-1.5 border border-yellow-500/50 text-yellow-400 bg-yellow-500/10 px-4 py-2 rounded-full text-sm font-semibold hover:bg-yellow-500/20 transition">
                 🪙 Tip
               </button>
+              {profile.subPrice && (
+                <button
+                  onClick={handleSubscribe}
+                  disabled={subscribing || subscribed}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition disabled:opacity-60 ${subscribed ? "border border-purple-500/50 text-purple-300 bg-purple-500/10" : "bg-purple-600 hover:bg-purple-500 text-white"}`}
+                >
+                  {subscribing ? <Loader2 size={14} className="animate-spin" /> : subscribed ? "✓ Subscribed" : `Subscribe · 🪙${profile.subPrice}/mo`}
+                </button>
+              )}
             </div>
           )}
         </div>

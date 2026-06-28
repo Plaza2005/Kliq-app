@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Heart, Send, ChevronDown, ChevronUp, Loader2, AlertCircle, Smile, Gift, Search } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useRealtime } from "../context/RealtimeContext";
 
@@ -266,7 +266,7 @@ export function CommentSheet({ isOpen, onClose, count = "0", postId }: Props) {
           {comments.map(c => (
             <div key={c.id}>
               <div className="flex gap-3">
-                <img src={resolveMediaUrl(c.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author.username}`} alt={c.author.username} className="w-9 h-9 rounded-full bg-gray-800 flex-shrink-0 object-cover" />
+                <img src={resolveAvatarUrl(c.author.avatarUrl)} alt={c.author.username} className="w-9 h-9 rounded-full bg-gray-800 flex-shrink-0 object-cover" />
                 <div className="flex-1">
                   <div className="bg-gray-900 rounded-2xl rounded-tl-none px-4 py-3">
                     <p className="text-white font-semibold text-sm mb-1">@{c.author.username}</p>
@@ -291,7 +291,7 @@ export function CommentSheet({ isOpen, onClose, count = "0", postId }: Props) {
                         <div className="space-y-3 border-l-2 border-gray-800 pl-3">
                           {c.replies.map(r => (
                             <div key={r.id} className="flex gap-2">
-                              <img src={resolveMediaUrl(r.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.author.username}`} alt={r.author.username} className="w-7 h-7 rounded-full bg-gray-800 flex-shrink-0 object-cover" />
+                              <img src={resolveAvatarUrl(r.author.avatarUrl)} alt={r.author.username} className="w-7 h-7 rounded-full bg-gray-800 flex-shrink-0 object-cover" />
                               <div className="flex-1">
                                 <div className="bg-gray-900/70 rounded-2xl rounded-tl-none px-3 py-2">
                                   <p className="text-white font-semibold text-xs mb-0.5">@{r.author.username}</p>
@@ -399,7 +399,7 @@ export function CommentSheet({ isOpen, onClose, count = "0", postId }: Props) {
           )}
           <div className="p-4 flex items-center gap-2">
             <img
-              src={resolveMediaUrl(user?.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? "user"}`}
+              src={resolveAvatarUrl(user?.avatarUrl)}
               alt="me"
               className="w-9 h-9 rounded-full bg-gray-800 flex-shrink-0 object-cover"
             />

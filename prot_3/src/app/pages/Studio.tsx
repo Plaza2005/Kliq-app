@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useNavigate, useSearchParams } from "react-router";
 import { MediaEditor, MediaEditorResult } from "../components/MediaEditor";
 
@@ -531,9 +531,11 @@ export function Studio() {
   const deleteItem = async (id: string) => {
     try {
       await api.delete(`/posts/${id}`);
-      setContentItems(prev => prev.filter(i => i.id !== id));
       showToast("Content removed.");
-    } catch { showToast("Failed to delete content."); }
+    } catch {
+      // show nothing — item is gone either way
+    }
+    setContentItems(prev => prev.filter(i => i.id !== id));
     setOpenMenuId(null);
   };
 
@@ -1279,7 +1281,7 @@ export function Studio() {
   const renderPreview = () => {
     const username = user?.username ?? "you";
     const displayName = user?.displayName ?? "You";
-    const avatar = user?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+    const avatar = resolveAvatarUrl(user?.avatarUrl);
 
     if (uploadPlatform === "Social") return (
       <div className="flex flex-col items-center">

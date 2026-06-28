@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search as SearchIcon, TrendingUp, Hash, Check, Clock, X, Loader2, Heart } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useSocial } from "../context/SocialContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface SearchUser {
   id: string;
@@ -157,7 +157,7 @@ export function Search() {
                         className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-900/50 transition cursor-pointer"
                         onClick={() => navigate(`/user/${r.username}`)}
                       >
-                        <img src={resolveMediaUrl(r.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.username}`} alt={r.username} className="w-12 h-12 rounded-full bg-gray-800 flex-shrink-0" />
+                        <img src={resolveAvatarUrl(r.avatarUrl)} alt={r.username} className="w-12 h-12 rounded-full bg-gray-800 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-semibold text-sm">
                             {r.displayName}

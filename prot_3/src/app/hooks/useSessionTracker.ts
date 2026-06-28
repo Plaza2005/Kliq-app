@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
-import { api } from "../api/client";
+import { api, BASE } from "../api/client";
+
+function getToken() {
+  return localStorage.getItem("kliq_token");
+}
 
 export function useSessionTracker(isLoggedIn: boolean) {
   const sessionIdRef = useRef<string | null>(null);
@@ -24,14 +28,17 @@ export function useSessionTracker(isLoggedIn: boolean) {
 
     const endSession = () => {
       if (sessionIdRef.current) {
-        const payload = JSON.stringify({ sessionId: sessionIdRef.current });
-        // Use sendBeacon for reliability on page close
-        if (navigator.sendBeacon) {
-          const blob = new Blob([payload], { type: "application/json" });
-          navigator.sendBeacon("/api/sessions/end", blob);
-        } else {
-          api.post("/sessions/end", { sessionId: sessionIdRef.current }).catch(() => {});
-        }
+        const token = getToken();
+        // keepalive: true allows the request to outlive the page
+        fetch(`${BASE}/sessions/end`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ sessionId: sessionIdRef.current }),
+          keepalive: true,
+        }).catch(() => {});
         sessionIdRef.current = null;
       }
     };

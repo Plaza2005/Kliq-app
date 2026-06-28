@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, Upload, Loader2 } from "l
 import { useNavigate } from "react-router";
 import { useSocial } from "../context/SocialContext";
 import { useAuth } from "../context/AuthContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { ShareSheet } from "../components/ShareSheet";
 import { CommentSheet } from "../components/CommentSheet";
 
@@ -124,7 +124,7 @@ export function Friends() {
               <div className="w-14 h-14 rounded-full bg-black p-[2px]">
                 <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center relative overflow-hidden">
                   <img
-                    src={resolveMediaUrl(user?.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
+                    src={resolveAvatarUrl(user?.avatarUrl)}
                     alt=""
                     className="w-full h-full object-cover opacity-50"
                   />
@@ -151,7 +151,7 @@ export function Friends() {
           ) : suggested.map((u) => (
             <div key={u.id} className="flex-shrink-0 bg-gray-900 border border-gray-800 rounded-xl p-3 w-32 text-center">
               <img
-                src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+                src={resolveAvatarUrl(u.avatarUrl)}
                 alt={u.username}
                 className="w-12 h-12 rounded-full bg-gray-800 mx-auto mb-2 cursor-pointer"
                 onClick={() => navigate(`/user/${u.username}`)}
@@ -189,7 +189,7 @@ export function Friends() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <button onClick={() => navigate(`/user/${post.author.username}`)}>
-                    <img src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} alt={post.author.username} className="w-10 h-10 rounded-full bg-gray-800" />
+                    <img src={resolveAvatarUrl(post.author.avatarUrl)} alt={post.author.username} className="w-10 h-10 rounded-full bg-gray-800" />
                   </button>
                   <div>
                     <button

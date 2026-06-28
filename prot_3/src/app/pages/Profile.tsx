@@ -5,7 +5,7 @@ import { useUser } from "../context/UserContext";
 import type { TabKey } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
 import { useSocial } from "../context/SocialContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { ShareSheet } from "../components/ShareSheet";
 
 const FALLBACK_IMGS = [
@@ -187,7 +187,7 @@ export function Profile() {
                 ) : listData.map(u => (
                   <div key={u.id} className="flex items-center gap-3 p-3 hover:bg-gray-900/50 rounded-xl transition">
                     <button onClick={() => { setListModal(null); navigate(`/user/${u.username}`); }}>
-                      <img src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} className="w-11 h-11 rounded-full bg-gray-800 object-cover" />
+                      <img src={resolveAvatarUrl(u.avatarUrl)} alt={u.username} className="w-11 h-11 rounded-full bg-gray-800 object-cover" />
                     </button>
                     <div className="flex-1 min-w-0">
                       <button onClick={() => { setListModal(null); navigate(`/user/${u.username}`); }} className="text-white font-semibold text-sm hover:text-purple-300 transition text-left block">
@@ -282,9 +282,9 @@ export function Profile() {
           <div className="flex items-center justify-center gap-4 mb-4 text-sm">
             {walletVisible ? (
               <>
-                <span className="text-gray-300">💎 {walletData.diamonds.toLocaleString()} Diamonds</span>
+                <span className="text-gray-300">💎 {(walletData.diamonds ?? 0).toLocaleString()} Diamonds</span>
                 <span className="text-gray-500">·</span>
-                <span className="text-gray-300">🪙 {walletData.tokens.toLocaleString()} Tokens</span>
+                <span className="text-gray-300">🪙 {(walletData.tokens ?? 0).toLocaleString()} Tokens</span>
                 <button onClick={() => toggleWalletVisibility(false)} className="text-gray-600 text-xs hover:text-gray-400 transition">Hide</button>
               </>
             ) : (

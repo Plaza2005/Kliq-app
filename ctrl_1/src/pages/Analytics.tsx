@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell,
@@ -8,7 +8,7 @@ import {
   Eye, Heart, MessageCircle, Globe, Youtube, Tv, Store,
   Clock, Zap,
 } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 const TOOLTIP_STYLE = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#fff", fontSize: 12 };
 const TICK_STYLE    = { fill: "#64748b", fontSize: 11 };
@@ -152,7 +152,7 @@ export function Analytics() {
         ))}
       </div>
 
-      {/* ── OVERVIEW ────────────────────────────────────────────── */}
+      {/* -- OVERVIEW ---------------------------------------------- */}
       {tab === "Overview" && (
         loading ? (
           <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
@@ -202,7 +202,7 @@ export function Analytics() {
             )}
 
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-white font-semibold mb-1">New User Signups — Last 7 Days</h3>
+              <h3 className="text-white font-semibold mb-1">New User Signups � Last 7 Days</h3>
               <p className="text-gray-500 text-xs mb-4">Daily new registrations</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chart}>
@@ -243,7 +243,7 @@ export function Analytics() {
         )
       )}
 
-      {/* ── ENGAGEMENT ────────────────────────────────────────────── */}
+      {/* -- ENGAGEMENT ---------------------------------------------- */}
       {tab === "Engagement" && (
         loading ? (
           <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
@@ -273,10 +273,10 @@ export function Analytics() {
                   : overview.topPosts.map((post, i) => (
                     <div key={post.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                       <span className="text-gray-500 text-xs font-bold w-5 text-center">#{i + 1}</span>
-                      <img src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
+                      <img src={resolveAvatarUrl(post.author.avatarUrl)} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{post.body || "(No caption)"}</p>
-                        <p className="text-gray-500 text-xs">@{post.author.username} · <span className="capitalize text-gray-400">{post.postType}</span></p>
+                        <p className="text-gray-500 text-xs">@{post.author.username} � <span className="capitalize text-gray-400">{post.postType}</span></p>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
                         <span className="flex items-center gap-1"><Eye size={11} className="text-blue-400" /> {fmtNum(post.viewCount)}</span>
@@ -298,7 +298,7 @@ export function Analytics() {
                   : overview.topCreators.map((c, i) => (
                     <div key={c.username} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                       <span className="text-gray-500 text-xs font-bold w-5 text-center">#{i + 1}</span>
-                      <img src={resolveMediaUrl(c.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username}`} alt="" className="w-9 h-9 rounded-full flex-shrink-0" />
+                      <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="w-9 h-9 rounded-full flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-semibold truncate">{c.displayName}</p>
                         <p className="text-gray-500 text-xs">@{c.username}</p>
@@ -317,7 +317,7 @@ export function Analytics() {
         ) : <div className="text-center py-20 text-gray-500">Failed to load engagement data.</div>
       )}
 
-      {/* ── CONTENT ────────────────────────────────────────────── */}
+      {/* -- CONTENT ---------------------------------------------- */}
       {tab === "Content" && (
         loading ? (
           <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
@@ -340,7 +340,7 @@ export function Analytics() {
 
             {/* Posts over time */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-white font-semibold mb-1">New Posts — Last 7 Days</h3>
+              <h3 className="text-white font-semibold mb-1">New Posts � Last 7 Days</h3>
               <p className="text-gray-500 text-xs mb-4">All post types combined</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={overview.postsChart}>
@@ -386,7 +386,7 @@ export function Analytics() {
         ) : <div className="text-center py-20 text-gray-500">Failed to load content data.</div>
       )}
 
-      {/* ── SESSIONS ────────────────────────────────────────────── */}
+      {/* -- SESSIONS ---------------------------------------------- */}
       {tab === "Sessions" && (
         loading ? (
           <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
@@ -426,7 +426,7 @@ export function Analytics() {
 
             {/* Line chart: daily avg session duration */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-white font-semibold mb-1">Avg Session Duration — Last 30 Days</h3>
+              <h3 className="text-white font-semibold mb-1">Avg Session Duration � Last 30 Days</h3>
               <p className="text-gray-500 text-xs mb-4">Daily average time spent in app (minutes)</p>
               {sessionStats.dailyAvg.length === 0 ? (
                 <div className="flex items-center justify-center h-[220px] text-gray-600 text-sm">No completed sessions yet</div>
@@ -446,7 +446,7 @@ export function Analytics() {
                       formatter={(value: number, _name: string, props: { payload?: { avgDurationS?: number; sessions?: number } }) => {
                         const s = props.payload?.avgDurationS ?? 0;
                         const count = props.payload?.sessions ?? 0;
-                        return [`${fmtDuration(s)} avg · ${count} sessions`, "Duration"];
+                        return [`${fmtDuration(s)} avg � ${count} sessions`, "Duration"];
                       }}
                     />
                     <Line
@@ -465,7 +465,7 @@ export function Analytics() {
         ) : <div className="text-center py-20 text-gray-500">Failed to load session data.</div>
       )}
 
-      {/* ── GROWTH ────────────────────────────────────────────── */}
+      {/* -- GROWTH ---------------------------------------------- */}
       {tab === "Growth" && (
         loading ? (
           <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
@@ -485,7 +485,7 @@ export function Analytics() {
             </div>
 
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-white font-semibold mb-1">User Growth — Last 7 Days</h3>
+              <h3 className="text-white font-semibold mb-1">User Growth � Last 7 Days</h3>
               <p className="text-gray-500 text-xs mb-4">Daily new signups</p>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chart}>
@@ -499,7 +499,7 @@ export function Analytics() {
             </div>
 
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-white font-semibold mb-1">Post Creation — Last 7 Days</h3>
+              <h3 className="text-white font-semibold mb-1">Post Creation � Last 7 Days</h3>
               <p className="text-gray-500 text-xs mb-4">New posts published per day</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={overview.postsChart}>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Loader2, DollarSign, TrendingUp, Hash, Users, Inbox,
   Coins, Activity, BarChart2, Zap,
@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 /* ------------------------------------------------------------------ */
 /*  Existing revenue types                                              */
@@ -139,7 +139,7 @@ const TIER_BADGE: Record<string, string> = {
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 export function RevenueDashboard() {
-  // ── Existing state ──
+  // -- Existing state --
   const [summary, setSummary]               = useState<RevenueSummary>(DEFAULT_SUMMARY);
   const [transactions, setTransactions]     = useState<Transaction[]>([]);
   const [chartData, setChartData]           = useState(DUMMY_CHART);
@@ -148,7 +148,7 @@ export function RevenueDashboard() {
   const [filter, setFilter]                 = useState<TypeFilter>("All");
   const [toast, setToast]                   = useState<string | null>(null);
 
-  // ── Token economy state ──
+  // -- Token economy state --
   const [tokenSummary, setTokenSummary]     = useState<TokenSummary>(DEFAULT_TOKEN_SUMMARY);
   const [tokenSummaryLoading, setTokenSummaryLoading] = useState(true);
   const [breakdown, setBreakdown]           = useState<BreakdownEntry[]>(DEFAULT_BREAKDOWN);
@@ -161,7 +161,7 @@ export function RevenueDashboard() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  /* ── Loaders ── */
+  /* -- Loaders -- */
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
     try {
@@ -233,7 +233,7 @@ export function RevenueDashboard() {
     loadTopSpenders();
   }, []);
 
-  /* ── Derived values for Revenue Insights ── */
+  /* -- Derived values for Revenue Insights -- */
   const revPerToken = 0.009;
   const avgCampaignBudget =
     tokenSummary.totalCampaigns > 0
@@ -246,11 +246,11 @@ export function RevenueDashboard() {
 
   const filtered = filter === "All" ? transactions : transactions.filter(t => t.type === filter);
 
-  /* ── Summary cards (existing) ── */
+  /* -- Summary cards (existing) -- */
   const SUMMARY_CARDS = [
     {
       label: "Total Revenue",
-      value: summaryLoading ? "—" : fmtMoney(summary.totalRevenue),
+      value: summaryLoading ? "�" : fmtMoney(summary.totalRevenue),
       icon: DollarSign,
       color: "text-green-400",
       bg: "bg-green-500/10",
@@ -258,7 +258,7 @@ export function RevenueDashboard() {
     },
     {
       label: "This Month",
-      value: summaryLoading ? "—" : fmtMoney(summary.thisMonth),
+      value: summaryLoading ? "�" : fmtMoney(summary.thisMonth),
       icon: TrendingUp,
       color: "text-blue-400",
       bg: "bg-blue-500/10",
@@ -266,7 +266,7 @@ export function RevenueDashboard() {
     },
     {
       label: "Transactions",
-      value: summaryLoading ? "—" : summary.transactions.toLocaleString(),
+      value: summaryLoading ? "�" : summary.transactions.toLocaleString(),
       icon: Hash,
       color: "text-purple-400",
       bg: "bg-purple-500/10",
@@ -274,7 +274,7 @@ export function RevenueDashboard() {
     },
     {
       label: "Avg per User",
-      value: summaryLoading ? "—" : fmtMoney(summary.avgPerUser),
+      value: summaryLoading ? "�" : fmtMoney(summary.avgPerUser),
       icon: Users,
       color: "text-yellow-400",
       bg: "bg-yellow-500/10",
@@ -282,11 +282,11 @@ export function RevenueDashboard() {
     },
   ];
 
-  /* ── Token overview cards ── */
+  /* -- Token overview cards -- */
   const TOKEN_CARDS = [
     {
       label: "Tokens Issued",
-      value: tokenSummaryLoading ? "—" : fmtTokens(tokenSummary.totalIssued),
+      value: tokenSummaryLoading ? "�" : fmtTokens(tokenSummary.totalIssued),
       icon: Coins,
       color: "text-purple-400",
       bg: "bg-purple-500/10",
@@ -294,7 +294,7 @@ export function RevenueDashboard() {
     },
     {
       label: "Tokens Spent",
-      value: tokenSummaryLoading ? "—" : fmtTokens(tokenSummary.totalSpent),
+      value: tokenSummaryLoading ? "�" : fmtTokens(tokenSummary.totalSpent),
       icon: Activity,
       color: "text-pink-400",
       bg: "bg-pink-500/10",
@@ -302,7 +302,7 @@ export function RevenueDashboard() {
     },
     {
       label: "In Circulation",
-      value: tokenSummaryLoading ? "—" : fmtTokens(tokenSummary.inCirculation),
+      value: tokenSummaryLoading ? "�" : fmtTokens(tokenSummary.inCirculation),
       icon: BarChart2,
       color: "text-indigo-400",
       bg: "bg-indigo-500/10",
@@ -310,7 +310,7 @@ export function RevenueDashboard() {
     },
     {
       label: "Campaigns Run",
-      value: tokenSummaryLoading ? "—" : tokenSummary.totalCampaigns.toLocaleString(),
+      value: tokenSummaryLoading ? "�" : tokenSummary.totalCampaigns.toLocaleString(),
       icon: Zap,
       color: "text-fuchsia-400",
       bg: "bg-fuchsia-500/10",
@@ -318,7 +318,7 @@ export function RevenueDashboard() {
     },
   ];
 
-  /* ── Custom pie legend ── */
+  /* -- Custom pie legend -- */
   const PieLegend = () => (
     <div className="flex items-center justify-center gap-6 mt-4">
       {breakdown.map((entry, i) => (
@@ -350,7 +350,7 @@ export function RevenueDashboard() {
           <p className="text-gray-500 text-sm mt-0.5">Monetization overview and transaction history</p>
         </div>
         <button
-          onClick={() => showToast("Export as CSV — coming soon")}
+          onClick={() => showToast("Export as CSV � coming soon")}
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition"
         >
           Export CSV
@@ -375,7 +375,7 @@ export function RevenueDashboard() {
 
       {/* Chart */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-        <h3 className="text-white font-semibold mb-4">Revenue — Last 7 Days</h3>
+        <h3 className="text-white font-semibold mb-4">Revenue � Last 7 Days</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData}>
             <XAxis dataKey="day" tick={TICK_STYLE} axisLine={false} tickLine={false} />
@@ -476,7 +476,7 @@ export function RevenueDashboard() {
         <div className="flex-1 h-px bg-gray-800" />
       </div>
 
-      {/* Section 1 — Token Economy Overview */}
+      {/* Section 1 � Token Economy Overview */}
       <div>
         <h2 className="text-lg font-bold text-white mb-4">Token Economy Overview</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -495,7 +495,7 @@ export function RevenueDashboard() {
         </div>
       </div>
 
-      {/* Section 2 — Token Usage Breakdown (pie chart) */}
+      {/* Section 2 � Token Usage Breakdown (pie chart) */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <h2 className="text-white font-semibold mb-1">Token Usage Breakdown</h2>
         <p className="text-gray-500 text-xs mb-4">Where tokens are being used across the platform</p>
@@ -532,7 +532,7 @@ export function RevenueDashboard() {
         )}
       </div>
 
-      {/* Section 3 — Top Token Spenders */}
+      {/* Section 3 � Top Token Spenders */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-800">
           <h2 className="text-white font-semibold">Top Token Spenders</h2>
@@ -569,7 +569,7 @@ export function RevenueDashboard() {
                   <td className="px-4 py-3 pl-5">
                     <div className="flex items-center gap-3">
                       <img
-                        src={resolveMediaUrl(s.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.username}`}
+                        src={resolveAvatarUrl(s.avatarUrl)}
                         alt={s.username}
                         className="w-8 h-8 rounded-full object-cover bg-gray-700"
                       />
@@ -603,7 +603,7 @@ export function RevenueDashboard() {
                         Most Active
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-600">—</span>
+                      <span className="text-xs text-gray-600">�</span>
                     )}
                   </td>
                 </tr>
@@ -613,7 +613,7 @@ export function RevenueDashboard() {
         )}
       </div>
 
-      {/* Section 4 — Revenue Insights */}
+      {/* Section 4 � Revenue Insights */}
       <div>
         <h2 className="text-lg font-bold text-white mb-4">Revenue Insights</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -627,7 +627,7 @@ export function RevenueDashboard() {
             </div>
             <p className="text-white text-3xl font-bold">$0.009</p>
             <p className="text-gray-500 text-xs mt-2">
-              1 token = $0.01 / 1.1 — based on top-up conversion rate
+              1 token = $0.01 / 1.1 � based on top-up conversion rate
             </p>
           </div>
 
@@ -640,12 +640,12 @@ export function RevenueDashboard() {
               </span>
             </div>
             <p className="text-white text-3xl font-bold">
-              {tokenSummaryLoading ? "—" : fmtTokens(avgCampaignBudget)}
+              {tokenSummaryLoading ? "�" : fmtTokens(avgCampaignBudget)}
             </p>
             <p className="text-gray-500 text-xs mt-2">
               tokens per campaign &bull;{" "}
               {tokenSummaryLoading
-                ? "—"
+                ? "�"
                 : fmtMoney(avgCampaignBudget * revPerToken)}{" "}
               USD equivalent
             </p>
@@ -660,11 +660,11 @@ export function RevenueDashboard() {
               </span>
             </div>
             <p className="text-white text-3xl font-bold">
-              {tokenSummaryLoading ? "—" : conversionRate + "%"}
+              {tokenSummaryLoading ? "�" : conversionRate + "%"}
             </p>
             <p className="text-gray-500 text-xs mt-2">
               {tokenSummaryLoading
-                ? "—"
+                ? "�"
                 : `${tokenSummary.toppedUpUsers.toLocaleString()} of ${tokenSummary.totalUsers.toLocaleString()} users`}{" "}
               have topped up
             </p>

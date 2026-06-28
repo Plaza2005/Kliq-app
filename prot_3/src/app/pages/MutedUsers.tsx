@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, BellOff, Loader2 } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface MutedUser { id: string; username: string; displayName: string; avatarUrl: string; }
 
@@ -40,7 +40,7 @@ export function MutedUsers() {
         <div className="divide-y divide-gray-900">
           {users.map(u => (
             <div key={u.id} className="flex items-center gap-3 px-4 py-3">
-              <img src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-11 h-11 rounded-full object-cover bg-gray-800 flex-shrink-0" />
+              <img src={resolveAvatarUrl(u.avatarUrl)} className="w-11 h-11 rounded-full object-cover bg-gray-800 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm">{u.displayName}</p>
                 <p className="text-gray-500 text-xs">@{u.username}</p>

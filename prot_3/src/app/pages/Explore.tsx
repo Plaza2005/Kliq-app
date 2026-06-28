@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, X, Loader2, ChevronRight, Check, Hash, TrendingUp, Heart, Music } from "lucide-react";
 import { useNavigate } from "react-router";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { MediaImg } from "../components/media/MediaImg";
 import { useSocial } from "../context/SocialContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -166,7 +167,7 @@ export function Explore() {
       className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-950 transition"
     >
       <img
-        src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+        src={resolveAvatarUrl(u.avatarUrl)}
         alt={u.username}
         className="w-11 h-11 rounded-full object-cover bg-gray-800 flex-shrink-0"
       />
@@ -193,10 +194,11 @@ export function Explore() {
           className="aspect-square bg-gray-900 cursor-pointer relative overflow-hidden group"
         >
           {(p.thumbUrl ?? p.mediaUrl) ? (
-            <img
+            <MediaImg
               src={resolveMediaUrl(p.thumbUrl ?? p.mediaUrl) ?? ""}
               alt=""
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              context={`Explore/post:${p.id}`}
             />
           ) : (
             <div

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize2, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize2, Loader2, SkipForward, PictureInPicture2 } from "lucide-react";
 import { api, resolveMediaUrl } from "../api/client";
 
 interface WatchResponse {
@@ -8,8 +8,11 @@ interface WatchResponse {
   title: string;
   episodeNumber?: number;
   seriesTitle?: string;
+  titleId?: string;
+  nextEpisodeId?: string | null;
   locked?: boolean;
   requiredTier?: string;
+  duration?: number | null;
 }
 
 function fmtTime(secs: number): string {
@@ -32,6 +35,8 @@ export function KliqStreamPlayer() {
 
   const [data, setData] = useState<WatchResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [ageRestricted, setAgeRestricted] = useState(false);
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -39,19 +44,28 @@ export function KliqStreamPlayer() {
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const INTRO_SKIP_SECS = 30;
 
   // Fetch watch data
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    api.get<WatchResponse>(`/kliqstream/watch/${id}`)
+    api.get<WatchResponse>(`/kliqstream/watch/${id}${isMovie ? "?type=movie" : ""}`)
       .then(d => setData(d))
-      .catch(() => {
-        // Fallback: try treating it as a movie
+      .catch((err: Error) => {
+        const msg = err.message ?? "";
+        if (msg.toLowerCase().includes("age") || msg.toLowerCase().includes("18")) {
+          setAgeRestricted(true);
+        } else {
+          setErrorMsg(msg || "Content unavailable");
+        }
         setData(null);
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, isMovie]);
 
   // Auto-hide controls after 3s
   const resetHideTimer = useCallback(() => {
@@ -95,7 +109,7 @@ export function KliqStreamPlayer() {
       if (!el) return;
       api.post("/kliqstream/progress", {
         contentId: id,
-        contentType: "episode",
+        contentType: isMovie ? "movie" : "episode",
         progressS: Math.floor(el.currentTime),
         durationS: isFinite(el.duration) ? Math.floor(el.duration) : undefined,
       }).catch(() => {});
@@ -110,7 +124,7 @@ export function KliqStreamPlayer() {
       el?.removeEventListener("ended", save);
       save();
     };
-  }, [id]);
+  }, [id, isMovie]);
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -155,6 +169,41 @@ export function KliqStreamPlayer() {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <Loader2 size={40} className="animate-spin text-red-500" />
+      </div>
+    );
+  }
+
+  // Age restriction gate
+  if (ageRestricted) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 gap-5 px-6 text-center">
+        <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-700">
+          <span className="text-3xl">🔞</span>
+        </div>
+        <p className="text-white font-bold text-xl">Mature Content</p>
+        <p className="text-gray-400 text-sm max-w-xs">
+          This content is rated 18+. You must verify your age in your profile settings to continue.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-md bg-zinc-800 text-white text-sm font-semibold hover:bg-zinc-700 transition flex items-center gap-2">
+            <ArrowLeft size={15} /> Go Back
+          </button>
+          <button onClick={() => navigate("/edit-profile")} className="px-5 py-2.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition">
+            Update Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Generic error
+  if (errorMsg && !data) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 gap-4 px-6 text-center">
+        <p className="text-white font-bold text-lg">{errorMsg}</p>
+        <button onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-md bg-zinc-800 text-white text-sm font-semibold hover:bg-zinc-700 transition flex items-center gap-2">
+          <ArrowLeft size={15} /> Go Back
+        </button>
       </div>
     );
   }
@@ -226,6 +275,7 @@ export function KliqStreamPlayer() {
         onPause={() => { setPlaying(false); setShowControls(true); }}
         onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
         onLoadedMetadata={e => setDuration(e.currentTarget.duration)}
+        onEnded={() => { if (data.nextEpisodeId) navigate(`/kliqstream/watch/${data.nextEpisodeId}`); }}
         onClick={togglePlay}
       />
 
@@ -262,6 +312,18 @@ export function KliqStreamPlayer() {
 
         {/* Bottom controls */}
         <div className="bg-gradient-to-t from-black/90 to-transparent px-4 pb-6 pt-12">
+          {/* Skip intro button (visible in first 30s) */}
+          {currentTime < INTRO_SKIP_SECS && currentTime > 0 && (
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => { if (videoRef.current) videoRef.current.currentTime = INTRO_SKIP_SECS; }}
+                className="bg-black/60 border border-white/30 text-white text-xs font-semibold px-4 py-2 rounded hover:bg-white/20 transition"
+              >
+                Skip Intro →
+              </button>
+            </div>
+          )}
+
           {/* Seek bar */}
           <div className="mb-3 flex items-center gap-2">
             <span className="text-white/70 text-xs w-10 text-right tabular-nums">{fmtTime(currentTime)}</span>
@@ -290,31 +352,70 @@ export function KliqStreamPlayer() {
             </button>
 
             {/* Mute toggle */}
-            <button
-              onClick={toggleMute}
-              className="p-2 text-white hover:text-gray-300 transition"
-            >
+            <button onClick={toggleMute} className="p-2 text-white hover:text-gray-300 transition">
               {muted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
             </button>
 
             {/* Volume slider */}
             <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              onChange={handleVolume}
+              type="range" min={0} max={1} step={0.05}
+              value={muted ? 0 : volume} onChange={handleVolume}
               className="w-20 h-1 accent-red-500 cursor-pointer"
             />
 
             <div className="flex-1" />
 
+            {/* Speed selector */}
+            <div className="relative">
+              <button
+                onClick={e => { e.stopPropagation(); setShowSpeedMenu(s => !s); }}
+                className="text-white text-xs font-mono px-2 py-1 rounded border border-white/30 hover:bg-white/10 transition"
+              >
+                {speed === 1 ? "1×" : `${speed}×`}
+              </button>
+              {showSpeedMenu && (
+                <div className="absolute bottom-full right-0 mb-1 bg-black/90 border border-white/20 rounded-lg overflow-hidden">
+                  {SPEEDS.map(s => (
+                    <button
+                      key={s}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSpeed(s);
+                        if (videoRef.current) videoRef.current.playbackRate = s;
+                        setShowSpeedMenu(false);
+                      }}
+                      className={`block w-full px-4 py-1.5 text-xs text-left font-mono hover:bg-white/10 transition ${speed === s ? "text-red-400 font-bold" : "text-white"}`}
+                    >
+                      {s === 1 ? "1× Normal" : `${s}×`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* PiP */}
+            {"pictureInPictureEnabled" in document && (
+              <button
+                onClick={() => (videoRef.current as HTMLVideoElement)?.requestPictureInPicture?.().catch(() => {})}
+                className="p-2 text-white hover:text-gray-300 transition"
+              >
+                <PictureInPicture2 size={18} />
+              </button>
+            )}
+
+            {/* Next episode */}
+            {data.nextEpisodeId && (
+              <button
+                onClick={() => navigate(`/kliqstream/watch/${data.nextEpisodeId}`)}
+                className="p-2 text-white hover:text-gray-300 transition"
+                title="Next Episode"
+              >
+                <SkipForward size={20} />
+              </button>
+            )}
+
             {/* Fullscreen */}
-            <button
-              onClick={handleFullscreen}
-              className="p-2 text-white hover:text-gray-300 transition"
-            >
+            <button onClick={handleFullscreen} className="p-2 text-white hover:text-gray-300 transition">
               <Maximize2 size={20} />
             </button>
           </div>

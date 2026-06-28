@@ -1,6 +1,6 @@
-ï»¿import { useState, useEffect, useCallback } from "react";
-import { ExternalLink, Trash2, ChevronLeft, ChevronRight, Loader2, Heart, MessageCircle, Globe, Youtube, Tv, Store, Eye } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { useState, useEffect, useCallback } from "react";
+import { ExternalLink, Trash2, ChevronLeft, ChevronRight, Loader2, Heart, MessageCircle, Globe, Youtube, Tv, Store, Eye, AlertTriangle, RefreshCw } from "lucide-react";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 const KLIQ_APP_URL = "http://localhost:5174";
 
@@ -29,7 +29,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// Map tab â†’ postType query values
+// Map tab ? postType query values
 const TAB_TYPES: Record<string, string> = {
   Social:      "social",
   KliqTube:    "tube",
@@ -56,6 +56,14 @@ const POST_TYPE_LABEL: Record<string, string> = {
   marketplace: "Marketplace",
 };
 
+interface MediaFailure {
+  id: string;
+  target: string;
+  details: string | null;
+  createdAt: string;
+  actor: { username: string } | null;
+}
+
 export function Content() {
   const [activeTab, setActiveTab] = useState("Social");
   const [content, setContent]     = useState<ApiContent[]>([]);
@@ -65,8 +73,19 @@ export function Content() {
   const [loading, setLoading]     = useState(true);
   const [toast, setToast]         = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<ApiContent | null>(null);
+  const [showFailures, setShowFailures] = useState(false);
+  const [failures, setFailures]         = useState<MediaFailure[]>([]);
+  const [failuresLoading, setFailuresLoading] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+
+  const loadFailures = useCallback(async () => {
+    setFailuresLoading(true);
+    try {
+      const data = await adminApi.get<MediaFailure[]>("/admin/media-failures");
+      setFailures(data);
+    } catch { /* ignore */ } finally { setFailuresLoading(false); }
+  }, []);
 
   const load = useCallback(async (p: number, tab: string) => {
     setLoading(true);
@@ -140,6 +159,46 @@ export function Content() {
         <p className="text-gray-500 text-sm mt-0.5">{total} {activeTab} items</p>
       </div>
 
+      {/* Media Failure Report */}
+      <div className="bg-gray-900/60 border border-gray-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => { setShowFailures(v => { if (!v) loadFailures(); return !v; }); }}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/40 transition"
+        >
+          <div className="flex items-center gap-2 text-yellow-400 font-semibold text-sm">
+            <AlertTriangle size={16} /> Media Failure Log
+          </div>
+          <span className="text-gray-500 text-xs">{showFailures ? "Hide" : "Show"}</span>
+        </button>
+        {showFailures && (
+          <div className="border-t border-gray-800 px-4 pb-4">
+            <div className="flex justify-end pt-3 pb-2">
+              <button onClick={loadFailures} className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition">
+                <RefreshCw size={12} /> Refresh
+              </button>
+            </div>
+            {failuresLoading ? (
+              <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-gray-500" /></div>
+            ) : failures.length === 0 ? (
+              <p className="text-gray-600 text-sm text-center py-4">No media failures recorded.</p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {failures.map(f => (
+                  <div key={f.id} className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-2">
+                    <p className="text-yellow-300 text-xs font-mono truncate">{f.target}</p>
+                    <div className="flex items-center gap-2 mt-1 text-gray-600 text-[10px]">
+                      {f.details && <span className="text-gray-500">{f.details}</span>}
+                      {f.actor && <span>· @{f.actor.username}</span>}
+                      <span>· {timeAgo(f.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Platform Tabs */}
       <div className="flex gap-1 bg-gray-900/60 border border-gray-800 rounded-xl p-1">
         {["Social", "KliqTube", "Stream", "Marketplace"].map(tab => {
@@ -196,7 +255,7 @@ export function Content() {
                 <div className="flex items-center justify-between mb-3">
                   <a href={`${KLIQ_APP_URL}/user/${item.author.username}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 group">
-                    <img src={resolveMediaUrl(item.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.author.username}`} alt="" className="w-6 h-6 rounded-full bg-gray-700" />
+                    <img src={resolveAvatarUrl(item.author.avatarUrl)} alt="" className="w-6 h-6 rounded-full bg-gray-700" />
                     <span className="text-indigo-400 text-xs group-hover:underline">@{item.author.username}</span>
                   </a>
                   <span className="text-gray-600 text-xs">{timeAgo(item.createdAt)}</span>
@@ -225,7 +284,7 @@ export function Content() {
       {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-gray-500 text-sm">Page {page} of {pages} Â· {total} items</p>
+          <p className="text-gray-500 text-sm">Page {page} of {pages} · {total} items</p>
           <div className="flex gap-2">
             <button onClick={() => load(page - 1, activeTab)} disabled={page <= 1}
               className="p-2 bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 rounded-lg transition">

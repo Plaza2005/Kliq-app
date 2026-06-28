@@ -95,7 +95,7 @@ export async function searchRoutes(app: FastifyInstance) {
 
       return users.map(u => ({
         ...u,
-        avatarUrl: u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+        avatarUrl: u.avatarUrl,
       }));
     }
   );
@@ -132,7 +132,7 @@ export async function searchRoutes(app: FastifyInstance) {
         author: {
           username:    p.author.username,
           displayName: p.author.displayName,
-          avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+          avatarUrl:   p.author.avatarUrl,
         },
       }));
     }

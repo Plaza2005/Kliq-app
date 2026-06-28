@@ -3,7 +3,8 @@ import { Play, Plus, Info, X, Tv, Lock, Loader2, Eye } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useSocial } from "../context/SocialContext";
 import { useUser } from "../context/UserContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { MediaVideo } from "../components/media/MediaVideo";
 
 interface StreamPost {
   id: string;
@@ -87,7 +88,7 @@ export function Stream() {
           <div className="bg-gray-950 border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden">
             <div className="relative h-48">
               {heroPost.mediaUrl ? (
-                <video src={resolveMediaUrl(heroPost.mediaUrl) ?? ""} className="w-full h-full object-cover" />
+                <MediaVideo src={resolveMediaUrl(heroPost.mediaUrl) ?? ""} className="w-full h-full object-cover" context={`Stream/hero:${heroPost.id}`} />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-purple-900 to-pink-900" />
               )}
@@ -158,10 +159,11 @@ export function Stream() {
             <div className="relative w-full h-[50vh] md:h-[60vh] bg-gray-900">
               <div className="absolute inset-0">
                 {heroPost.mediaUrl ? (
-                  <video
+                  <MediaVideo
                     src={resolveMediaUrl(heroPost.mediaUrl) ?? ""}
                     className="w-full h-full object-cover"
                     autoPlay muted loop playsInline
+                    context={`Stream/hero-banner:${heroPost.id}`}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-950 via-indigo-900 to-black" />
@@ -202,8 +204,9 @@ export function Stream() {
                       className="group text-left">
                       <div className="aspect-video rounded-lg overflow-hidden bg-gray-900 mb-2 group-hover:scale-105 transition-transform duration-300 relative">
                         {post.mediaUrl ? (
-                          <video src={resolveMediaUrl(post.mediaUrl) ?? ""}
-                            className="w-full h-full object-cover" preload="metadata" />
+                          <MediaVideo src={resolveMediaUrl(post.mediaUrl) ?? ""}
+                            className="w-full h-full object-cover" preload="metadata"
+                            context={`Stream/grid:${post.id}`} />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center">
                             <Play size={24} className="text-white/60" />
@@ -215,7 +218,7 @@ export function Stream() {
                       </div>
                       <p className="text-gray-300 text-xs font-medium line-clamp-2 group-hover:text-white transition">{post.body}</p>
                       <div className="flex items-center gap-2 mt-1 text-gray-600 text-[10px]">
-                        <img src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} alt="" className="w-3.5 h-3.5 rounded-full" />
+                        <img src={resolveAvatarUrl(post.author.avatarUrl)} alt="" className="w-3.5 h-3.5 rounded-full" />
                         <span className="truncate">{post.author.displayName}</span>
                         <span className="flex items-center gap-0.5 flex-shrink-0"><Eye size={9} /> {fmtNum(post.viewCount)}</span>
                       </div>

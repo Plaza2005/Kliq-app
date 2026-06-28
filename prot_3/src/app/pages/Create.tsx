@@ -1,111 +1,280 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router";
-import { X, Zap, Timer, Layout, Ratio, Sparkles, ImagePlus, RotateCcw, Radio, ChevronDown, Check, Loader2, Camera, Mic, Image, Scissors, Plus } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router";
+import { X, Zap, Timer, Layout, Ratio, Sparkles, ImagePlus, RotateCcw, Check, Loader2, Camera, Mic, Image, Scissors, Plus } from "lucide-react";
+import { api, resolveAvatarUrl } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
 const FILTERS = ["Normal", "Vivid", "Warm", "Cool", "Fade", "Chrome", "Noir", "Neon"];
-const LIVE_CATEGORIES = ["Gaming", "Music", "Chat", "Education", "Art", "Sports", "Cooking", "Tech"];
-
 const PERM_KEY = "kliq_media_perms_asked";
 
 export function Create() {
   const navigate = useNavigate();
   const location = useLocation();
-  const stitchState = (location.state as { stitchOfId?: string; stitchCaption?: string } | null);
+  const [searchParams] = useSearchParams();
+  // Support both route state (from StitchButton) and query params (from PostDetail links)
+  const stitchState = (() => {
+    const stateVal = location.state as { stitchOfId?: string; stitchCaption?: string } | null;
+    const qMode = searchParams.get("mode");
+    const qPostId = searchParams.get("postId");
+    if (qPostId && (qMode === "stitch" || qMode === "duet")) return { stitchOfId: qPostId, mode: qMode };
+    return stateVal;
+  })();
   const { user } = useAuth();
+
   const [activeFilter, setActiveFilter] = useState("Normal");
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [mode, setMode] = useState<"photo" | "video" | "live">("video");
 
-  // Permission modal
   const [showPermModal, setShowPermModal] = useState(false);
-  const [permGranted, setPermGranted] = useState({ camera: false, mic: false });
 
-  // Live mode state
-  const [liveTitle, setLiveTitle] = useState("");
-  const [liveCategory, setLiveCategory] = useState("Gaming");
-  const [isLive, setIsLive] = useState(false);
-
-  // Post flow state
   const [caption, setCaption] = useState("");
   const [postDone, setPostDone] = useState(false);
   const [posting, setPosting] = useState(false);
 
-  // File upload state
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewIsVideo, setPreviewIsVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [detectedDuration, setDetectedDuration] = useState<number | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  const SHORT_FORM_MAX = 60; // seconds — videos over this go to KliqTube
-
-  // Carousel state (multiple images)
-  const [carouselUrls, setCarouselUrls] = useState<string[]>([]);
-  const [carouselPreviews, setCarouselPreviews] = useState<string[]>([]);
   const carouselInputRef = useRef<HTMLInputElement>(null);
 
+  const SHORT_FORM_MAX = 60;
+
+  const [carouselUrls, setCarouselUrls] = useState<string[]>([]);
+  const [carouselPreviews, setCarouselPreviews] = useState<string[]>([]);
+
+  // Real camera
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cameraIdRef = useRef(0); // incremented on every startCamera call; stale resolves are discarded
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
   useEffect(() => {
-    const asked = localStorage.getItem(PERM_KEY);
-    if (!asked) {
-      setShowPermModal(true);
-    }
+    if (!localStorage.getItem(PERM_KEY)) setShowPermModal(true);
   }, []);
 
-  const requestPermissions = async () => {
-    const result = { camera: false, mic: false };
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach(t => t.stop());
-      result.camera = true;
-      result.mic = true;
-    } catch {
-      try {
-        const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        vStream.getTracks().forEach(t => t.stop());
-        result.camera = true;
-      } catch { /* camera denied */ }
-      try {
-        const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        aStream.getTracks().forEach(t => t.stop());
-        result.mic = true;
-      } catch { /* mic denied */ }
+  // Live tab → hand off to the dedicated GoLive page which has full streaming
+  useEffect(() => {
+    if (mode === "live") navigate("/go-live", { replace: true });
+  }, [mode, navigate]);
+
+  const startCamera = useCallback(async (facing: "user" | "environment") => {
+    const id = ++cameraIdRef.current;
+    const hadStream = !!streamRef.current;
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+    setCameraError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      if (cameraIdRef.current === id) setCameraError("Camera not supported in this browser.");
+      return;
     }
-    setPermGranted(result);
+
+    if (hadStream) {
+      await new Promise<void>(r => setTimeout(r, 600));
+      if (cameraIdRef.current !== id) return;
+    }
+
+    // Progressive constraint fallback — some drivers / OSes reject complex constraints
+    // even with 'ideal', and some fail when the mic is already held by another app.
+    const tries: MediaStreamConstraints[] = [
+      { video: { facingMode: { ideal: facing } }, audio: true },
+      { video: true, audio: true },
+      { video: true },  // mic might be claimed by Teams/Discord/etc.
+    ];
+
+    let stream: MediaStream | null = null;
+    let lastErr: unknown = null;
+
+    for (let i = 0; i < tries.length; i++) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(tries[i]);
+        break;
+      } catch (err: unknown) {
+        lastErr = err;
+        console.error(`[camera] attempt ${i + 1} failed:`, err);
+        if (cameraIdRef.current !== id) return;
+        const name = (err as { name?: string })?.name ?? "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          setCameraError("Camera access denied. Allow it in your browser settings, then tap Retry.");
+          return;
+        }
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          setCameraError("No camera found on this device.");
+          return;
+        }
+        if (i < tries.length - 1) {
+          await new Promise<void>(r => setTimeout(r, 800));
+          if (cameraIdRef.current !== id) return;
+        }
+      }
+    }
+
+    if (!stream) {
+      if (cameraIdRef.current !== id) return;
+      const name = (lastErr as { name?: string })?.name ?? "";
+      setCameraError(
+        name === "NotReadableError" || name === "TrackStartError"
+          ? "Camera is busy — close other apps using the camera, then tap Retry."
+          : "Could not open camera. Tap Retry or check your browser settings."
+      );
+      return;
+    }
+
+    if (cameraIdRef.current !== id) { stream.getTracks().forEach(t => t.stop()); return; }
+
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }
+    setCameraActive(true);
+  }, []);
+
+  // Start the camera once on mount. Mode tab switches (photo ↔ video) reuse the
+  // same stream — stopping and restarting on every tab click causes the OS to keep
+  // the device "in use" briefly, triggering NotReadableError on the next acquire.
+  useEffect(() => {
+    if (localStorage.getItem(PERM_KEY)) {
+      startCamera(facingMode);
+    }
+    return () => {
+      // Invalidate any in-flight getUserMedia so it doesn't set state on an
+      // unmounted component, then release the hardware.
+      cameraIdRef.current++;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — only mount/unmount
+
+  const flipCamera = async () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    await startCamera(next);
+  };
+
+  const takePhoto = () => {
+    const video = videoRef.current;
+    if (!video || !cameraActive) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      setCameraActive(false);
+      const objectUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objectUrl);
+      setPreviewIsVideo(false);
+      setDetectedDuration(null);
+      setHasRecorded(true);
+      setUploading(true);
+      try {
+        const { url } = await api.upload(new File([blob], "photo.jpg", { type: "image/jpeg" }));
+        setMediaUrl(url);
+      } catch {
+        setMediaUrl(null);
+      } finally {
+        setUploading(false);
+      }
+    }, "image/jpeg", 0.92);
+  };
+
+  const startRecording = () => {
+    const stream = streamRef.current;
+    if (!stream || !cameraActive) return;
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : "video/webm";
+    chunksRef.current = [];
+    const mr = new MediaRecorder(stream, { mimeType });
+    recorderRef.current = mr;
+    mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    mr.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const objectUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objectUrl);
+      setPreviewIsVideo(true);
+      setHasRecorded(true);
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      setCameraActive(false);
+      const duration = await new Promise<number>(resolve => {
+        const vid = document.createElement("video");
+        vid.preload = "metadata";
+        vid.onloadedmetadata = () => resolve(vid.duration);
+        vid.onerror = () => resolve(0);
+        vid.src = objectUrl;
+      });
+      setDetectedDuration(isFinite(duration) ? Math.round(duration) : null);
+      setUploading(true);
+      try {
+        const { url } = await api.upload(new File([blob], "video.webm", { type: "video/webm" }));
+        setMediaUrl(url);
+      } catch {
+        setMediaUrl(null);
+      } finally {
+        setUploading(false);
+      }
+    };
+    mr.start(500);
+    setIsRecording(true);
+    setRecordingSeconds(0);
+    recordTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
+  };
+
+  const stopRecording = () => {
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    recorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const handleCapturePress = () => {
+    if (mode === "photo") takePhoto();
+    else if (isRecording) stopRecording();
+    else startRecording();
+  };
+
+  const requestPermissions = () => {
     localStorage.setItem(PERM_KEY, "asked");
     setShowPermModal(false);
+    // startCamera's getUserMedia call is what triggers the browser permission dialog —
+    // no need for a separate pre-flight acquire that would race with it.
+    startCamera(facingMode);
   };
 
   const skipPermissions = () => {
     localStorage.setItem(PERM_KEY, "asked");
     setShowPermModal(false);
-  };
-
-  const handleGalleryClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+    startCamera(facingMode);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    setCameraActive(false);
     const local = URL.createObjectURL(file);
     setPreviewUrl(local);
+    setPreviewIsVideo(file.type.startsWith("video/"));
     setHasRecorded(true);
-
-    // Detect video duration before uploading so we can route to the right destination
     if (file.type.startsWith("video/")) {
       const duration = await new Promise<number>(resolve => {
         const vid = document.createElement("video");
         vid.preload = "metadata";
-        vid.onloadedmetadata = () => { URL.revokeObjectURL(vid.src); resolve(vid.duration); };
+        vid.onloadedmetadata = () => resolve(vid.duration);
         vid.onerror = () => resolve(0);
         vid.src = local;
       });
@@ -113,7 +282,6 @@ export function Create() {
     } else {
       setDetectedDuration(null);
     }
-
     setUploading(true);
     try {
       const { url } = await api.upload(file);
@@ -126,18 +294,39 @@ export function Create() {
     e.target.value = "";
   };
 
+  const addCarouselImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setCarouselPreviews(prev => [...prev, preview]);
+    if (!hasRecorded) { setHasRecorded(true); setPreviewUrl(preview); }
+    try {
+      const { url } = await api.upload(file);
+      setCarouselUrls(prev => [...prev, url]);
+    } catch { /* keep preview */ }
+    e.target.value = "";
+  };
+
+  const resetCapture = () => {
+    setHasRecorded(false);
+    setIsRecording(false);
+    setMediaUrl(null);
+    setPreviewIsVideo(false);
+    setRecordingSeconds(0);
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
+    startCamera(facingMode);
+  };
+
   const isLongForm = detectedDuration != null && detectedDuration > SHORT_FORM_MAX;
 
   const submitPost = async () => {
     if (!caption.trim() && !mediaUrl && carouselUrls.length === 0) return;
-    if (isLongForm && !videoTitle.trim()) return; // title required for KliqTube
+    if (isLongForm && !videoTitle.trim()) return;
     setPosting(true);
     try {
       const isCarousel = carouselUrls.length > 0;
       await api.post("/posts", {
         body: caption,
-        mediaType: mediaUrl ? (isLongForm ? "video" : undefined) : undefined,
-        // Let server decide postType for videos via videoDuration; explicit for non-video
         ...(detectedDuration != null
           ? { videoDuration: detectedDuration, mediaType: "video" }
           : { postType: isCarousel ? "carousel" : (mode === "photo" ? "post" : "reel") }),
@@ -152,43 +341,17 @@ export function Create() {
     }
   };
 
-  const addCarouselImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setCarouselPreviews(prev => [...prev, preview]);
-    if (!hasRecorded) { setHasRecorded(true); setPreviewUrl(preview); }
-    try {
-      const { url } = await api.upload(file);
-      setCarouselUrls(prev => [...prev, url]);
-    } catch { /* upload failed, keep preview */ }
-    e.target.value = "";
-  };
-
-  const handleRecordToggle = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setHasRecorded(true);
-    } else {
-      setIsRecording(true);
-    }
-  };
-
-  const resetCapture = () => {
-    setHasRecorded(false);
-    setIsRecording(false);
-    setMediaUrl(null);
-    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
-  };
-
-  // Post-recording caption screen
+  // ── CAPTION / PREVIEW SCREEN ────────────────────────────────────────────────
   if (hasRecorded && !postDone) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        {/* Preview thumbnail */}
         <div className="relative flex-1 bg-gray-950 overflow-hidden">
           {previewUrl ? (
-            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover opacity-90" />
+            previewIsVideo ? (
+              <video src={previewUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+            ) : (
+              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover opacity-90" />
+            )
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-gray-800 to-black flex items-center justify-center">
               <div className="text-center">
@@ -207,10 +370,7 @@ export function Create() {
               </div>
             </div>
           )}
-          <button
-            onClick={resetCapture}
-            className="absolute top-4 left-4 p-2.5 bg-black/50 backdrop-blur-sm rounded-full text-white"
-          >
+          <button onClick={resetCapture} className="absolute top-4 left-4 p-2.5 bg-black/50 backdrop-blur-sm rounded-full text-white">
             <X size={20} />
           </button>
           <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-white text-xs font-bold ${isLongForm ? "bg-red-600" : "bg-gradient-to-r from-purple-600 to-pink-600"}`}>
@@ -218,9 +378,7 @@ export function Create() {
           </div>
         </div>
 
-        {/* Caption + post */}
         <div className="bg-gray-950 border-t border-gray-800 p-5 pb-8 space-y-4">
-          {/* Destination badge — tells user where their upload is going */}
           <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${isLongForm ? "bg-red-900/30 border-red-700/40" : "bg-purple-900/20 border-purple-700/30"}`}>
             <span className="text-lg">{isLongForm ? "📺" : "⚡"}</span>
             <div>
@@ -235,7 +393,6 @@ export function Create() {
             </div>
           </div>
 
-          {/* KliqTube title field — required for long-form */}
           {isLongForm && (
             <input
               value={videoTitle}
@@ -246,15 +403,15 @@ export function Create() {
             />
           )}
 
-          {/* Stitch context banner */}
           {stitchState?.stitchOfId && (
             <div className="flex items-center gap-2 bg-purple-900/30 border border-purple-700/40 rounded-xl px-3 py-2">
               <Scissors size={14} className="text-purple-400 flex-shrink-0" />
-              <p className="text-purple-300 text-xs font-semibold">Stitching another creator's post</p>
+              <p className="text-purple-300 text-xs font-semibold">
+                {(stitchState as { mode?: string }).mode === "duet" ? "Creating a Duet" : "Stitching another creator's post"}
+              </p>
             </div>
           )}
 
-          {/* Carousel image strip */}
           {carouselPreviews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {carouselPreviews.map((src, i) => (
@@ -283,11 +440,7 @@ export function Create() {
           )}
 
           <div className="flex items-start gap-3">
-            <img
-              src={resolveMediaUrl(user?.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? "me"}`}
-              alt="You"
-              className="w-10 h-10 rounded-full flex-shrink-0 mt-1"
-            />
+            <img src={resolveAvatarUrl(user?.avatarUrl)} alt="You" className="w-10 h-10 rounded-full flex-shrink-0 mt-1" />
             <textarea
               value={caption}
               onChange={e => setCaption(e.target.value)}
@@ -299,21 +452,14 @@ export function Create() {
 
           <div className="flex gap-2">
             {["#kliq", "#trending", "#fyp"].map(tag => (
-              <button
-                key={tag}
-                onClick={() => setCaption(c => c + " " + tag)}
-                className="text-xs bg-gray-800 text-purple-300 px-3 py-1.5 rounded-full hover:bg-gray-700 transition"
-              >
+              <button key={tag} onClick={() => setCaption(c => c + " " + tag)} className="text-xs bg-gray-800 text-purple-300 px-3 py-1.5 rounded-full hover:bg-gray-700 transition">
                 {tag}
               </button>
             ))}
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={resetCapture}
-              className="flex-1 border border-gray-700 text-white py-3.5 rounded-xl font-semibold hover:bg-gray-900 transition text-sm"
-            >
+            <button onClick={resetCapture} className="flex-1 border border-gray-700 text-white py-3.5 rounded-xl font-semibold hover:bg-gray-900 transition text-sm">
               Discard
             </button>
             <button
@@ -329,7 +475,7 @@ export function Create() {
     );
   }
 
-  // Post success screen
+  // ── SUCCESS SCREEN ──────────────────────────────────────────────────────────
   if (postDone) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center gap-6">
@@ -340,152 +486,14 @@ export function Create() {
           <h2 className="text-white text-2xl font-bold mb-2">Posted!</h2>
           <p className="text-gray-400 text-sm">Your content is now live on Kliq</p>
         </div>
-        <button
-          onClick={() => navigate("/")}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3.5 rounded-2xl hover:opacity-90 transition"
-        >
+        <button onClick={() => navigate("/")} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3.5 rounded-2xl hover:opacity-90 transition">
           Back to Home
         </button>
       </div>
     );
   }
 
-  // Live mode: "Go Live" setup screen (replaces camera view when mode=live)
-  if (mode === "live" && !isLive) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        {/* Fake preview */}
-        <div className="relative flex-1 bg-gray-950 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black" />
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="border border-white/5" />
-            ))}
-          </div>
-
-          {/* Top controls */}
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute top-4 left-4 z-10 p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white"
-          >
-            <X size={22} />
-          </button>
-
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-1 bg-black/40 backdrop-blur-sm rounded-full p-1">
-            {(["photo", "video", "live"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition ${mode === m ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-400 hover:text-white"}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          <div className="absolute top-4 right-4 flex flex-col gap-3">
-            <button className="p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white">
-              <RotateCcw size={20} />
-            </button>
-          </div>
-
-          {/* Live preview label */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-white text-xs font-bold">LIVE PREVIEW</span>
-          </div>
-        </div>
-
-        {/* Go Live setup panel */}
-        <div className="bg-gray-950 border-t border-gray-800 px-5 pt-5 pb-8 space-y-4">
-          <h3 className="text-white font-bold text-lg">Set Up Your Stream</h3>
-
-          <input
-            value={liveTitle}
-            onChange={e => setLiveTitle(e.target.value)}
-            placeholder="Stream title (e.g. 'Chill beats & chat')"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-600 transition"
-          />
-
-          <div className="relative">
-            <select
-              value={liveCategory}
-              onChange={e => setLiveCategory(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-600 transition appearance-none"
-            >
-              {LIVE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-          </div>
-
-          <button
-            onClick={() => setIsLive(true)}
-            disabled={!liveTitle.trim()}
-            className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition ${liveTitle.trim() ? "bg-red-600 hover:bg-red-500 text-white" : "bg-gray-800 text-gray-600 cursor-not-allowed"}`}
-          >
-            <Radio size={18} className={liveTitle.trim() ? "text-white" : "text-gray-600"} />
-            Go Live
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Active live stream screen
-  if (mode === "live" && isLive) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        <div className="relative flex-1 bg-gray-950 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black" />
-
-          {/* Live badge */}
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full z-10">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span className="text-white text-xs font-black tracking-wider">LIVE</span>
-          </div>
-
-          {/* Viewer count */}
-          <div className="absolute top-4 right-16 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
-            <span className="text-white text-xs font-bold">👁 1.2K</span>
-          </div>
-
-          <button
-            onClick={() => { setIsLive(false); }}
-            className="absolute top-4 right-4 z-10 p-2 bg-black/40 backdrop-blur-sm rounded-full text-white"
-          >
-            <X size={20} />
-          </button>
-
-          {/* Stream title overlay */}
-          <div className="absolute bottom-20 left-4 right-4">
-            <p className="text-white font-bold text-lg drop-shadow">{liveTitle}</p>
-            <p className="text-gray-300 text-sm">{liveCategory}</p>
-          </div>
-
-          {/* Fake chat */}
-          <div className="absolute bottom-24 right-4 space-y-1">
-            {["alex_creates: 🔥🔥", "mia_arts: love this!", "dj_krpt: W stream"].map((msg, i) => (
-              <div key={i} className="bg-black/50 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-xl max-w-[160px]">
-                {msg}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* End stream button */}
-        <div className="bg-black px-5 py-4">
-          <button
-            onClick={() => { setIsLive(false); setMode("video"); navigate("/"); }}
-            className="w-full border-2 border-red-600 text-red-400 font-bold py-3.5 rounded-2xl hover:bg-red-600/10 transition"
-          >
-            End Stream
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Default camera view (photo / video mode)
+  // ── CAMERA VIEW ─────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden">
       {/* Permission modal — shown once on first visit */}
@@ -495,7 +503,6 @@ export function Create() {
             <div className="w-10 h-1 bg-gray-700 rounded-full mx-auto mb-6" />
             <h3 className="text-white font-bold text-xl mb-1">Allow KLIQ to access your device</h3>
             <p className="text-gray-400 text-sm mb-6">To create posts with your camera, microphone, and gallery, we need your permission.</p>
-
             <div className="space-y-3 mb-6">
               {[
                 { icon: Camera, label: "Camera", desc: "Take photos and record videos" },
@@ -513,70 +520,65 @@ export function Create() {
                 </div>
               ))}
             </div>
-
-            <button
-              onClick={requestPermissions}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-4 rounded-2xl text-base hover:opacity-90 transition mb-3"
-            >
+            <button onClick={requestPermissions} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-4 rounded-2xl text-base hover:opacity-90 transition mb-3">
               Allow Access
             </button>
-            <button
-              onClick={skipPermissions}
-              className="w-full text-gray-500 text-sm py-2 hover:text-gray-300 transition"
-            >
+            <button onClick={skipPermissions} className="w-full text-gray-500 text-sm py-2 hover:text-gray-300 transition">
               Not now
             </button>
           </div>
         </div>
       )}
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,video/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*,video/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      <input
-        ref={carouselInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={addCarouselImage}
-      />
-      {/* Camera viewfinder */}
-      <div className="relative flex-1 bg-gray-950">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-full h-full bg-gradient-to-b from-gray-900 to-black opacity-60" />
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="border border-white/5" />
-            ))}
-          </div>
+      <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
+      <input ref={carouselInputRef} type="file" accept="image/*" className="hidden" onChange={addCarouselImage} />
+
+      {/* Viewfinder */}
+      <div className="relative flex-1 bg-black overflow-hidden">
+        {/* Live camera feed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${cameraActive ? "opacity-100" : "opacity-0"}`}
+        />
+        {!cameraActive && !cameraError && (
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black" />
+        )}
+        {/* Rule-of-thirds grid */}
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="border border-white/5" />
+          ))}
         </div>
 
-        {/* Close button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-10 p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition"
-        >
+        {/* Camera error state */}
+        {cameraError && (
+          <div className="absolute inset-0 flex items-center justify-center p-8 z-10">
+            <div className="text-center bg-black/80 rounded-2xl p-6 border border-gray-800">
+              <p className="text-red-400 text-sm mb-4">{cameraError}</p>
+              <button
+                onClick={() => startCamera(facingMode)}
+                className="text-xs bg-gray-800 text-white px-4 py-2 rounded-full border border-gray-600 hover:bg-gray-700 transition"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Close */}
+        <button onClick={() => navigate(-1)} className="absolute top-4 left-4 z-10 p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition">
           <X size={22} />
         </button>
 
-        {/* Flash / flip */}
+        {/* Flash + Flip */}
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-3">
           <button className="p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition">
             <Zap size={20} />
           </button>
-          <button className="p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition">
+          <button onClick={flipCamera} className="p-2.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition">
             <RotateCcw size={20} />
           </button>
         </div>
@@ -594,7 +596,7 @@ export function Create() {
           ))}
         </div>
 
-        {/* Controls strip */}
+        {/* Right controls */}
         <div className="absolute top-20 right-4 z-10 flex flex-col gap-4">
           {[
             { icon: Timer, label: "Timer" },
@@ -611,11 +613,13 @@ export function Create() {
           ))}
         </div>
 
-        {/* Recording indicator */}
+        {/* Recording timer */}
         {isRecording && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 mt-14 z-10 flex items-center gap-2 bg-red-600/90 px-4 py-1.5 rounded-full">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span className="text-white text-xs font-bold tracking-wider">REC</span>
+            <span className="text-white text-xs font-bold tracking-wider font-mono">
+              {String(Math.floor(recordingSeconds / 60)).padStart(2, "0")}:{String(recordingSeconds % 60).padStart(2, "0")}
+            </span>
           </div>
         )}
 
@@ -642,15 +646,15 @@ export function Create() {
 
       {/* Bottom controls */}
       <div className="bg-black px-6 pt-4 pb-8 flex items-center justify-between">
-        {/* Gallery / Carousel */}
+        {/* Gallery / Multi */}
         <div className="flex flex-col gap-1">
-          <button onClick={handleGalleryClick} title="Choose from gallery" className="w-14 h-14 rounded-xl bg-gray-800 overflow-hidden hover:opacity-80 transition flex-shrink-0">
+          <button onClick={() => fileInputRef.current?.click()} title="Choose from gallery" className="w-14 h-14 rounded-xl bg-gray-800 overflow-hidden hover:opacity-80 transition flex-shrink-0">
             <div className="w-full h-full bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
               <ImagePlus size={22} className="text-gray-400" />
             </div>
           </button>
           <button
-            onClick={() => { carouselInputRef.current?.click(); }}
+            onClick={() => carouselInputRef.current?.click()}
             title="Add to carousel"
             className="w-14 h-7 rounded-lg bg-gray-800 flex items-center justify-center gap-1 hover:bg-gray-700 transition"
           >
@@ -659,19 +663,24 @@ export function Create() {
           </button>
         </div>
 
-        {/* Record button */}
+        {/* Capture button */}
         <button
-          onClick={handleRecordToggle}
-          className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all ${isRecording ? "scale-90" : "scale-100"}`}
+          onClick={handleCapturePress}
+          disabled={!cameraActive}
+          className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${isRecording ? "scale-90" : "scale-100"}`}
         >
           <div className="absolute inset-0 rounded-full border-4 border-white" />
-          <div className={`transition-all duration-200 ${isRecording ? "w-8 h-8 rounded-lg bg-red-500" : "w-14 h-14 rounded-full bg-white"}`} />
+          {mode === "photo" ? (
+            <div className="w-14 h-14 rounded-full bg-white" />
+          ) : (
+            <div className={`transition-all duration-200 ${isRecording ? "w-8 h-8 rounded-lg bg-red-500" : "w-14 h-14 rounded-full bg-white"}`} />
+          )}
           {isRecording && (
             <div className="absolute -inset-1 rounded-full border-4 border-red-500 animate-pulse" />
           )}
         </button>
 
-        {/* Wand / effects */}
+        {/* Effects */}
         <button className="w-14 h-14 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center hover:bg-gray-800 transition flex-shrink-0">
           <Sparkles size={22} className="text-purple-400" />
         </button>

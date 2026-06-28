@@ -5,7 +5,7 @@ import {
   CornerUpLeft, X, BellOff, Flag, LogOut, UserCheck, Check,
   Copy, Star, Share2, Trash2, Loader2,
 } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveMediaUrl, resolveAvatarUrl } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useRealtime } from "../context/RealtimeContext";
 
@@ -120,7 +120,7 @@ export function CommunityChat() {
         const mapped: Message[] = data.map(m => initMsg({
           id: Number(m.id) || Date.now() + Math.random(),
           user: m.author.username,
-          avatar: m.author.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.author.username}`,
+          avatar: resolveAvatarUrl(m.author.avatarUrl),
           text: m.body,
           time: timeStr(m.createdAt),
           isOwn: user?.username === m.author.username,
@@ -142,7 +142,7 @@ export function CommunityChat() {
         setMessages(prev => [...prev, initMsg({
           id: Number(m.id) || Date.now() + Math.random(),
           user: m.author.username,
-          avatar: m.author.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.author.username}`,
+          avatar: resolveAvatarUrl(m.author.avatarUrl),
           text: m.body,
           time: timeStr(m.createdAt),
           isOwn: user?.username === m.author.username,
@@ -163,7 +163,7 @@ export function CommunityChat() {
     const text = input.trim();
     const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const optimisticId = Date.now();
-    const myAvatar = user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "me"}`;
+    const myAvatar = resolveAvatarUrl(user?.avatarUrl);
     const myUsername = user?.username || "me";
 
     // Optimistic append
@@ -193,7 +193,7 @@ export function CommunityChat() {
 
   const sendImage = (url: string) => {
     const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const myAvatar = user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "me"}`;
+    const myAvatar = resolveAvatarUrl(user?.avatarUrl);
     const myUsername = user?.username || "me";
     setMessages(prev => [...prev, initMsg({ id: Date.now(), user: myUsername, avatar: myAvatar, imageUrl: url, time: now, isOwn: true })]);
     setShowGallery(false);

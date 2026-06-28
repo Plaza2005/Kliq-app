@@ -1,5 +1,7 @@
 import { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
+import * as crypto from "crypto";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../email";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /auth/register
@@ -34,13 +36,21 @@ export async function authRoutes(app: FastifyInstance) {
       }
 
       const hash = await bcrypt.hash(password, 12);
+      const verifyToken = crypto.randomBytes(32).toString("hex");
+      const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const user = await app.prisma.user.create({
-        data: { email, password: hash, displayName, username, ...(phone ? { phone } : {}) },
+        data: {
+          email, password: hash, displayName, username,
+          emailVerifyToken: verifyToken, emailVerifyExpiry: verifyExpiry,
+          ...(phone ? { phone } : {}),
+        },
       });
 
       await app.prisma.activityLog.create({
         data: { actorId: user.id, action: "user.register", target: user.email },
       });
+
+      sendVerificationEmail(email, verifyToken).catch(() => {});
 
       const token = app.jwt.sign(
         { id: user.id, isAdmin: user.isAdmin },
@@ -104,12 +114,76 @@ export async function authRoutes(app: FastifyInstance) {
     }
   );
 
+  // GET /auth/verify-email?token=xxx
+  app.get<{ Querystring: { token: string } }>("/verify-email", async (req, reply) => {
+    const { token } = req.query;
+    if (!token) return reply.status(400).send({ error: "Missing token" });
+    const user = await app.prisma.user.findFirst({
+      where: { emailVerifyToken: token, emailVerifyExpiry: { gt: new Date() } },
+    });
+    if (!user) return reply.status(400).send({ error: "Invalid or expired token" });
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailVerifyToken: null, emailVerifyExpiry: null },
+    });
+    return { ok: true, message: "Email verified successfully" };
+  });
+
+  // POST /auth/resend-verification
+  app.post("/resend-verification", { preHandler: [app.authenticate] }, async (req, reply) => {
+    const user = await app.prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return reply.status(404).send({ error: "User not found" });
+    if (user.emailVerified) return reply.status(400).send({ error: "Email already verified" });
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifyToken: verifyToken, emailVerifyExpiry: verifyExpiry },
+    });
+    await sendVerificationEmail(user.email, verifyToken);
+    return { ok: true };
+  });
+
+  // POST /auth/forgot-password
+  app.post<{ Body: { email: string } }>("/forgot-password", async (req, reply) => {
+    const { email } = req.body;
+    if (!email) return reply.status(400).send({ error: "Email is required" });
+    const user = await app.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    // Always return 200 to avoid email enumeration
+    if (!user) return { ok: true };
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken, resetTokenExpiry: resetExpiry },
+    });
+    await sendPasswordResetEmail(user.email, resetToken).catch(() => {});
+    return { ok: true };
+  });
+
+  // POST /auth/reset-password
+  app.post<{ Body: { token: string; password: string } }>("/reset-password", async (req, reply) => {
+    const { token, password } = req.body;
+    if (!token || !password) return reply.status(400).send({ error: "token and password are required" });
+    if (password.length < 8) return reply.status(400).send({ error: "Password must be at least 8 characters" });
+    const user = await app.prisma.user.findFirst({
+      where: { resetToken: token, resetTokenExpiry: { gt: new Date() } },
+    });
+    if (!user) return reply.status(400).send({ error: "Invalid or expired reset token" });
+    const hash = await bcrypt.hash(password, 12);
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { password: hash, resetToken: null, resetTokenExpiry: null },
+    });
+    return { ok: true, message: "Password reset successfully" };
+  });
+
   // PATCH /auth/me  (update own profile)
-  app.patch<{ Body: { username?: string; displayName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; phone?: string } }>(
+  app.patch<{ Body: { username?: string; displayName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; phone?: string; dateOfBirth?: string } }>(
     "/me",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { username, displayName, bio, avatarUrl, coverUrl, phone } = req.body;
+      const { username, displayName, bio, avatarUrl, coverUrl, phone, dateOfBirth } = req.body;
 
       if (username !== undefined) {
         const clean = username.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
@@ -117,6 +191,8 @@ export async function authRoutes(app: FastifyInstance) {
         const taken = await app.prisma.user.findFirst({ where: { username: clean, NOT: { id: req.user.id } } });
         if (taken) return reply.status(409).send({ error: "Username already taken" });
       }
+
+      const dobDate = dateOfBirth ? new Date(dateOfBirth) : undefined;
 
       const user = await app.prisma.user.update({
         where: { id: req.user.id },
@@ -127,6 +203,7 @@ export async function authRoutes(app: FastifyInstance) {
           ...(avatarUrl   !== undefined && { avatarUrl }),
           ...(coverUrl    !== undefined && { coverUrl }),
           ...(phone       !== undefined && { phone }),
+          ...(dobDate     !== undefined && { dateOfBirth: dobDate }),
         },
       });
       return sanitize(user);
@@ -141,7 +218,7 @@ function sanitize(u: { id: string; username: string; email: string; displayName:
     email:           u.email,
     displayName:     u.displayName,
     bio:             u.bio,
-    avatarUrl:       u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+    avatarUrl:       u.avatarUrl,
     coverUrl:        u.coverUrl,
     phone:           u.phone ?? null,
     tier:            u.tier,

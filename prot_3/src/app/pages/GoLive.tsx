@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Radio, X, Camera, ChevronDown, Send, Users, Clock } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useRealtime } from "../context/RealtimeContext";
 
 const CATEGORIES = ["Gaming", "Music", "IRL", "Sports", "Education", "Entertainment"] as const;
@@ -44,35 +44,83 @@ export function GoLive() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const viewerPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const cameraIdRef = useRef(0);
 
   const startCamera = useCallback(async () => {
+    const id = ++cameraIdRef.current;
+
+    const hadStream = !!streamRef.current;
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
     setCameraBlocked(false);
     setError(null);
+
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Your browser does not support camera access. Please use a modern browser.");
+      if (cameraIdRef.current === id) {
+        setError("Your browser does not support camera access. Please use a modern browser.");
+        setCameraBlocked(true);
+      }
+      return;
+    }
+
+    // When coming from Create (or retrying), give the OS time to release the device.
+    // Use 500ms when a previous stream was active, 400ms always (covers navigating here
+    // from the Create page which stopped its own stream just before mounting GoLive).
+    await new Promise<void>(r => setTimeout(r, hadStream ? 600 : 400));
+    if (cameraIdRef.current !== id) return;
+
+    // Progressive fallback: full constraints → video+audio → video only (mic may be held by another app)
+    const tries: MediaStreamConstraints[] = [
+      { video: true, audio: true },
+      { video: true },
+    ];
+
+    let stream: MediaStream | null = null;
+    let lastErr: unknown = null;
+
+    for (let i = 0; i < tries.length; i++) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(tries[i]);
+        break;
+      } catch (err: unknown) {
+        lastErr = err;
+        console.error(`[go-live camera] attempt ${i + 1} failed:`, err);
+        if (cameraIdRef.current !== id) return;
+        const name = (err as { name?: string })?.name ?? "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          setError("Camera/microphone permission denied. Click \"Retry\" after granting access in your browser settings.");
+          setCameraBlocked(true);
+          return;
+        }
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          setError("No camera or microphone found on this device.");
+          setCameraBlocked(true);
+          return;
+        }
+        if (i < tries.length - 1) {
+          await new Promise<void>(r => setTimeout(r, 800));
+          if (cameraIdRef.current !== id) return;
+        }
+      }
+    }
+
+    if (!stream) {
+      if (cameraIdRef.current !== id) return;
+      const name = (lastErr as { name?: string })?.name ?? "";
+      setError(
+        name === "NotReadableError" || name === "TrackStartError"
+          ? "Camera is busy — close other apps using the camera, then click Retry."
+          : "Could not access camera. Please check browser permissions and click Retry."
+      );
       setCameraBlocked(true);
       return;
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.muted = true;
-      }
-    } catch (err: unknown) {
-      console.error("Camera access error:", err);
-      const name = (err as { name?: string })?.name ?? "";
-      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        setError("Camera/microphone permission denied. Click \"Retry\" after granting access in your browser settings.");
-      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-        setError("No camera or microphone found on this device.");
-      } else if (name === "NotReadableError" || name === "TrackStartError") {
-        setError("Camera is already in use by another app. Close other apps and click \"Retry\".");
-      } else {
-        setError("Could not access camera. Please check browser permissions and click \"Retry\".");
-      }
-      setCameraBlocked(true);
+
+    if (cameraIdRef.current !== id) { stream.getTracks().forEach(t => t.stop()); return; }
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.muted = true;
     }
   }, []);
 
@@ -80,6 +128,7 @@ export function GoLive() {
   useEffect(() => {
     startCamera();
     return () => {
+      cameraIdRef.current++; // cancel any in-flight getUserMedia
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, [startCamera]);
@@ -127,8 +176,8 @@ export function GoLive() {
     if (!streamId) return;
     viewerPollRef.current = setInterval(async () => {
       try {
-        const data = await api.get<{ streams: { id: string; viewerCount: number }[] }>("/live/streams");
-        const match = data.streams?.find(s => s.id === streamId);
+        const data = await api.get<{ id: string; viewerCount: number }[]>("/live/streams");
+        const match = data.find(s => s.id === streamId);
         if (match) setViewerCount(match.viewerCount ?? 0);
       } catch {}
     }, 10000);
@@ -284,7 +333,7 @@ export function GoLive() {
             {chatMessages.map(msg => (
               <div key={msg.id} className="flex items-start gap-2">
                 <img
-                  src={resolveMediaUrl(msg.sender.avatarUrl) ?? ""}
+                  src={resolveAvatarUrl(msg.sender.avatarUrl)}
                   alt={msg.sender.username}
                   className="w-6 h-6 rounded-full bg-gray-700 flex-shrink-0 mt-0.5 object-cover"
                 />

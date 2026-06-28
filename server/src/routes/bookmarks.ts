@@ -25,6 +25,6 @@ export async function bookmarkRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" },
       take: 50,
     });
-    return bookmarks.map(b => ({ ...b.post, bookmarkedAt: b.createdAt, author: { ...b.post.author, avatarUrl: b.post.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${b.post.author.username}` } }));
+    return bookmarks.map(b => ({ ...b.post, bookmarkedAt: b.createdAt, author: { ...b.post.author, avatarUrl: b.post.author.avatarUrl } }));
   });
 }

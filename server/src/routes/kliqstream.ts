@@ -47,12 +47,13 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
             id:          t.author.id,
             username:    t.author.username,
             displayName: t.author.displayName,
-            avatarUrl:   t.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.author.username}`,
+            avatarUrl:   t.author.avatarUrl,
           },
         };
       };
 
       const featured = allTitles.filter(t => t.isFeatured).map(mapTitle);
+      const allMapped = allTitles.map(mapTitle);
 
       // Group by genre
       const genreMap = new Map<string, (typeof allTitles[0])[]>();
@@ -66,7 +67,40 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
         titles: titles.map(mapTitle),
       }));
 
-      return { featured, genres };
+      // New releases: newest 12
+      const newReleases = [...allMapped].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ).slice(0, 12);
+
+      // Trending: featured first, then rest (simulated by recency + featuring)
+      const trending = [
+        ...allMapped.filter(t => t.isFeatured),
+        ...allMapped.filter(t => !t.isFeatured),
+      ].slice(0, 12);
+
+      // Top 10: first 10 by popularity (featured + recency proxy)
+      const top10 = trending.slice(0, 10);
+
+      // Recommended: based on user's previously watched genres
+      const userProgress = await app.prisma.watchProgress.findMany({
+        where: { userId: req.user.id },
+        take: 50,
+        orderBy: { updatedAt: "desc" },
+      });
+      let recommended: typeof allMapped = [];
+      if (userProgress.length > 0) {
+        const watchedEps = await app.prisma.kliqEpisode.findMany({
+          where: { id: { in: userProgress.map(p => p.contentId) } },
+          include: { season: { include: { title: { select: { id: true, genre: true } } } } },
+        });
+        const watchedGenres = new Set(watchedEps.map(e => e.season.title.genre));
+        const watchedTitleIds = new Set(watchedEps.map(e => e.season.title.id));
+        recommended = allMapped
+          .filter(t => watchedGenres.has(t.genre) && !watchedTitleIds.has(t.id))
+          .slice(0, 12);
+      }
+
+      return { featured, genres, trending, newReleases, top10, recommended };
     }
   );
 
@@ -123,7 +157,7 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
           id:          title.author.id,
           username:    title.author.username,
           displayName: title.author.displayName,
-          avatarUrl:   title.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${title.author.username}`,
+          avatarUrl:   title.author.avatarUrl,
         },
         seasons: title.seasons.map(s => ({
           id:       s.id,
@@ -142,34 +176,76 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
     }
   );
 
-  // GET /kliqstream/watch/:episodeId
-  app.get<{ Params: { episodeId: string } }>(
-    "/watch/:episodeId",
+  // GET /kliqstream/watch/:id — watches an episode OR a movie title directly
+  app.get<{ Params: { id: string }; Querystring: { type?: string } }>(
+    "/watch/:id",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
+      const { id } = req.params;
+      const isMovie = req.query.type === "movie";
+
+      const user = await app.prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { tier: true, dateOfBirth: true },
+      });
+      const userTier = user?.tier ?? "free";
+      const MATURE_RATINGS = ["18+", "R", "R18", "NC-17", "X", "MA"];
+
+      const checkAge = (ageRating: string) => {
+        if (!MATURE_RATINGS.includes(ageRating)) return null;
+        if (!user?.dateOfBirth) return reply.status(403).send({ error: "Age verification required to watch mature content", ageRestricted: true });
+        const ageYears = (Date.now() - new Date(user.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        if (ageYears < 18) return reply.status(403).send({ error: "You must be 18 or older to watch this content", ageRestricted: true });
+        return null;
+      };
+
+      // Handle movie (title ID passed directly)
+      if (isMovie) {
+        const title = await app.prisma.kliqStreamTitle.findUnique({
+          where: { id },
+          include: { author: { select: { id: true } } },
+        });
+        if (!title) return reply.status(404).send({ error: "Title not found" });
+        if (title.status !== "approved") return reply.status(403).send({ error: "Content not available" });
+        if (!tierAllows(userTier, title.minTier)) return reply.status(403).send({ error: "Upgrade your tier to watch this content", locked: true, requiredTier: title.minTier });
+        const ageErr = checkAge(title.ageRating);
+        if (ageErr) return ageErr;
+        return { mediaUrl: title.mediaUrl ?? "", duration: title.duration, title: title.title, nextEpisodeId: null };
+      }
+
+      // Handle episode
       const episode = await app.prisma.kliqEpisode.findUnique({
-        where: { id: req.params.episodeId },
+        where: { id },
         include: {
           season: {
-            include: { title: { select: { minTier: true, status: true } } },
+            include: {
+              title: { select: { id: true, title: true, minTier: true, status: true, ageRating: true } },
+              episodes: { orderBy: { number: "asc" }, select: { id: true, number: true } },
+            },
           },
         },
       });
       if (!episode) return reply.status(404).send({ error: "Episode not found" });
-      if (episode.season.title.status !== "approved") {
-        return reply.status(403).send({ error: "Content not available" });
-      }
-
-      const user = await app.prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { tier: true },
-      });
-      const userTier = user?.tier ?? "free";
+      if (episode.season.title.status !== "approved") return reply.status(403).send({ error: "Content not available" });
       if (!tierAllows(userTier, episode.season.title.minTier)) {
         return reply.status(403).send({ error: "Upgrade your tier to watch this content", locked: true });
       }
+      const ageErr = checkAge(episode.season.title.ageRating);
+      if (ageErr) return ageErr;
 
-      return { mediaUrl: episode.mediaUrl, duration: episode.duration };
+      const eps = episode.season.episodes;
+      const curIdx = eps.findIndex(e => e.id === episode.id);
+      const nextEp = curIdx >= 0 && curIdx + 1 < eps.length ? eps[curIdx + 1] : null;
+
+      return {
+        mediaUrl: episode.mediaUrl,
+        duration: episode.duration,
+        title: episode.title,
+        episodeNumber: episode.number,
+        seriesTitle: episode.season.title.title,
+        titleId: episode.season.title.id,
+        nextEpisodeId: nextEp?.id ?? null,
+      };
     }
   );
 
@@ -228,11 +304,36 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
   // GET /kliqstream/continue-watching
   app.get("/continue-watching", { preHandler: [app.authenticate] }, async (req) => {
     const progress = await app.prisma.watchProgress.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.id, contentType: "episode", durationS: { gt: 0 } },
       orderBy: { updatedAt: "desc" },
       take: 10,
     });
-    return progress;
+    if (progress.length === 0) return [];
+
+    const episodes = await app.prisma.kliqEpisode.findMany({
+      where: { id: { in: progress.map(p => p.contentId) } },
+      include: {
+        season: { include: { title: { select: { id: true, title: true, posterUrl: true } } } },
+      },
+    });
+
+    return progress.map(p => {
+      const ep = episodes.find(e => e.id === p.contentId);
+      const pct = p.durationS ? Math.round((p.progressS / p.durationS) * 100) : 0;
+      return {
+        contentId: p.contentId,
+        contentType: p.contentType,
+        progressS: p.progressS,
+        durationS: p.durationS,
+        progressPct: pct,
+        title: ep?.season?.title?.title ?? "Unknown",
+        titleId: ep?.season?.titleId ?? null,
+        thumbUrl: ep?.thumbUrl ?? ep?.season?.title?.posterUrl ?? null,
+        episodeTitle: ep?.title ?? null,
+        episodeNumber: ep?.number ?? null,
+        seasonNumber: ep?.season?.number ?? null,
+      };
+    });
   });
 
   // POST /kliqstream/watchlist/:titleId — add to My List
@@ -262,6 +363,30 @@ export async function kliqstreamRoutes(app: FastifyInstance) {
     const items = await app.prisma.kliqPlaylistItem.findMany({ where: { playlistId: `wl_${req.user.id}` } });
     if (items.length === 0) return [];
     return app.prisma.kliqStreamTitle.findMany({ where: { id: { in: items.map(i => i.contentId) } } });
+  });
+
+  // GET /kliqstream/playlists — list user's custom playlists
+  app.get("/playlists", { preHandler: [app.authenticate] }, async (req) => {
+    const playlists = await app.prisma.kliqPlaylist.findMany({
+      where: { userId: req.user.id, NOT: { id: { startsWith: "wl_" } } },
+      include: { items: { select: { contentId: true, contentType: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return playlists.map(p => ({
+      id: p.id, name: p.name, createdAt: p.createdAt,
+      items: p.items.map(i => ({ contentId: i.contentId, contentType: i.contentType })),
+    }));
+  });
+
+  // POST /kliqstream/playlists — create a new playlist
+  app.post<{ Body: { name: string } }>("/playlists", { preHandler: [app.authenticate] }, async (req, reply) => {
+    const { name } = req.body;
+    if (!name?.trim()) return reply.status(400).send({ error: "name is required" });
+    const playlist = await app.prisma.kliqPlaylist.create({
+      data: { userId: req.user.id, name: name.trim() },
+      include: { items: { select: { contentId: true, contentType: true } } },
+    });
+    return reply.status(201).send({ id: playlist.id, name: playlist.name, createdAt: playlist.createdAt, items: [] });
   });
 
   // POST /kliqstream/titles/:id/seasons

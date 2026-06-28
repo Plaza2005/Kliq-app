@@ -216,11 +216,23 @@ export function Login() {
     }
   };
 
-  const handleForgot = (e: React.FormEvent) => {
+  const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) { setError("Please enter your email address."); return; }
     setError("");
-    setForgotStage("sent");
+    setSubmitting(true);
+    try {
+      await fetch("/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      });
+      setForgotStage("sent");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 

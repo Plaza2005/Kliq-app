@@ -35,11 +35,11 @@ export function WalletHistory() {
       {balance && (
         <div className="grid grid-cols-3 gap-3 p-4">
           <div className="bg-gradient-to-br from-yellow-900/40 to-orange-900/40 border border-yellow-800/30 rounded-2xl p-3 text-center">
-            <p className="text-yellow-400 font-bold text-xl">🪙 {balance.tokens.toLocaleString()}</p>
+            <p className="text-yellow-400 font-bold text-xl">🪙 {(balance.tokens ?? 0).toLocaleString()}</p>
             <p className="text-gray-500 text-xs mt-1">Tokens</p>
           </div>
           <div className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border border-cyan-800/30 rounded-2xl p-3 text-center">
-            <p className="text-cyan-400 font-bold text-xl">💎 {balance.diamonds.toLocaleString()}</p>
+            <p className="text-cyan-400 font-bold text-xl">💎 {(balance.diamonds ?? 0).toLocaleString()}</p>
             <p className="text-gray-500 text-xs mt-1">Diamonds</p>
           </div>
           <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border border-green-800/30 rounded-2xl p-3 text-center">

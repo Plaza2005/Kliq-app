@@ -1,7 +1,6 @@
 import { FastifyInstance } from "fastify";
-import * as fs from "fs";
-import * as path from "path";
 import { wsHub } from "../ws";
+import { sendPushNotification } from "../firebase";
 
 export async function postRoutes(app: FastifyInstance) {
   // GET /posts/feed
@@ -157,20 +156,97 @@ export async function postRoutes(app: FastifyInstance) {
     }
   );
 
-  // GET /posts/tube  (KliqTube feed)
-  app.get<{ Querystring: { page?: string; category?: string } }>(
+  // GET /posts/tube  (KliqTube feed — ranked, searchable, category-filtered)
+  app.get<{ Querystring: { page?: string; tab?: string; q?: string; category?: string } }>(
     "/tube",
     { preHandler: [app.authenticate] },
     async (req) => {
-      const page = parseInt(req.query.page || "1");
+      const page   = parseInt(req.query.page || "1");
+      const tab    = (req.query.tab || "all").toLowerCase();
+      const q      = req.query.q?.trim().toLowerCase() ?? "";
+      const cat    = req.query.category?.trim().toLowerCase() ?? "";
+      const take   = 18;
+      const skip   = (page - 1) * take;
+
+      // Build base where clause
+      const baseWhere: Record<string, unknown> = { deletedAt: null, postType: "tube" };
+      const andClauses: Record<string, unknown>[] = [];
+
+      if (q) andClauses.push({ OR: [{ title: { contains: q } }, { body: { contains: q } }] });
+      if (cat && cat !== "all") andClauses.push({ OR: [{ body: { contains: cat } }, { title: { contains: cat } }] });
+      if (andClauses.length > 0) baseWhere.AND = andClauses;
+
+      // Subscriptions tab: only show posts from followed users
+      if (tab === "subscriptions") {
+        const following = await app.prisma.follow.findMany({
+          where: { followerId: req.user.id }, select: { followingId: true },
+        });
+        baseWhere.authorId = { in: following.map(f => f.followingId) };
+      }
+
+      if (tab === "trending") {
+        // Fetch larger pool, score, then paginate
+        const candidates = await app.prisma.post.findMany({
+          where: baseWhere,
+          orderBy: { createdAt: "desc" },
+          take: Math.min(skip + take * 5, 200),
+          include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+        });
+        const now = Date.now();
+        const scored = candidates.map(p => {
+          const ageDays = (now - p.createdAt.getTime()) / 86400000;
+          const recency = Math.max(0, 1 - ageDays / 14);
+          const cv = (p as unknown as { completedViews: number }).completedViews ?? 0;
+          return { ...p, _score: p.likeCount * 3 + p.viewCount * 0.5 + cv * 10 + recency * 30 };
+        }).sort((a, b) => b._score - a._score);
+        return scored.slice(skip, skip + take).map(p => mapPost(p, new Set()));
+      }
+
       const posts = await app.prisma.post.findMany({
-        where: { deletedAt: null, postType: "tube" },
+        where: baseWhere,
         orderBy: { createdAt: "desc" },
-        take: 18,
-        skip: (page - 1) * 18,
+        take, skip,
         include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
       });
       return posts.map(p => mapPost(p, new Set()));
+    }
+  );
+
+  // GET /posts/tube/related/:id — ranked related videos by hashtag + author affinity
+  app.get<{ Params: { id: string } }>(
+    "/tube/related/:id",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const post = await app.prisma.post.findUnique({
+        where: { id: req.params.id, deletedAt: null },
+      });
+      if (!post) return reply.status(404).send({ error: "Not found" });
+
+      const tags = (post.body.match(/#\w+/g) ?? []).map(t => t.toLowerCase());
+      const tagClauses = tags.map(tag => ({ body: { contains: tag } }));
+
+      const candidates = await app.prisma.post.findMany({
+        where: {
+          deletedAt: null, postType: "tube", id: { not: req.params.id },
+          OR: [
+            { authorId: post.authorId },
+            ...(tagClauses.length > 0 ? tagClauses : [{ id: { not: "" } }]),
+          ],
+        },
+        take: 50,
+        include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+      });
+
+      const now = Date.now();
+      const scored = candidates.map(p => {
+        const ageDays = (now - p.createdAt.getTime()) / 86400000;
+        const recency  = Math.max(0, 1 - ageDays / 14);
+        const cv = (p as unknown as { completedViews: number }).completedViews ?? 0;
+        const tagBoost = tags.some(t => p.body.toLowerCase().includes(t)) ? 20 : 0;
+        return { ...p, _score: p.likeCount * 3 + p.viewCount * 0.5 + cv * 10 + recency * 20 + tagBoost };
+      }).sort((a, b) => b._score - a._score).slice(0, 12);
+
+      return scored.map(p => mapPost(p, new Set()));
     }
   );
 
@@ -204,7 +280,7 @@ export async function postRoutes(app: FastifyInstance) {
         skip: (page - 1) * 20,
         include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
       });
-      return posts.map(p => mapPost(p, new Set()));
+      return posts.map(p => ({ ...mapPost(p, new Set()), isPaylocked: p.isPaylocked, payPrice: p.payPrice ?? null }));
     }
   );
 
@@ -218,20 +294,48 @@ export async function postRoutes(app: FastifyInstance) {
         include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
       });
       if (!post) return reply.status(404).send({ error: "Post not found" });
-      const liked = await app.prisma.like.findUnique({
-        where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "post" } },
-      });
-      return mapPost(post, liked ? new Set([post.id]) : new Set());
+      const [liked, disliked, bookmarked, purchased] = await Promise.all([
+        app.prisma.like.findUnique({
+          where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "post" } },
+        }),
+        app.prisma.like.findUnique({
+          where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "post_dislike" } },
+        }),
+        app.prisma.bookmark.findUnique({
+          where: { userId_postId: { userId: req.user.id, postId: post.id } },
+        }),
+        post.isPaylocked ? app.prisma.like.findUnique({
+          where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "purchase" } },
+        }) : Promise.resolve(null),
+      ]);
+      return {
+        ...mapPost(post, liked ? new Set([post.id]) : new Set()),
+        disliked: !!disliked,
+        bookmarked: !!bookmarked,
+        isPaylocked: post.isPaylocked,
+        payPrice: post.payPrice ?? null,
+        purchased: !!purchased,
+      };
     }
   );
 
-  // POST /posts/:id/view — increment viewCount, broadcast to author
+  // POST /posts/:id/view — increment viewCount once per user per post
   app.post<{ Params: { id: string } }>(
     "/:id/view",
     { preHandler: [app.authenticate] },
     async (req) => {
+      const userId = req.user.id;
+      const postId = req.params.id;
+      const already = await app.prisma.like.findUnique({
+        where: { userId_targetId_targetType: { userId, targetId: postId, targetType: "post_view" } },
+      });
+      if (already) {
+        const cur = await app.prisma.post.findUnique({ where: { id: postId }, select: { viewCount: true } });
+        return { viewCount: cur?.viewCount ?? 0 };
+      }
+      await app.prisma.like.create({ data: { userId, targetId: postId, targetType: "post_view" } });
       const updated = await app.prisma.post.update({
-        where: { id: req.params.id },
+        where: { id: postId },
         data:  { viewCount: { increment: 1 } },
         select: { id: true, viewCount: true, authorId: true },
       });
@@ -385,28 +489,17 @@ export async function postRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (req, reply) => {
       const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
-      if (!post) return reply.status(404).send({ error: "Post not found" });
+      if (!post) return { deleted: true }; // already gone — treat as success
       if (post.authorId !== req.user.id && !req.user.isAdmin) {
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      await app.prisma.post.delete({ where: { id: req.params.id } });
-
-      await app.prisma.user.update({
-        where: { id: post.authorId },
-        data: { postCount: { decrement: 1 } },
-      });
-
-      // Remove media files from disk
-      const uploadsDir = path.join(process.cwd(), "uploads");
-      const tryDelete = (url: string | null) => {
-        if (!url) return;
-        const filename = url.split("/uploads/").pop();
-        if (!filename) return;
-        try { fs.unlinkSync(path.join(uploadsDir, filename)); } catch { /* ignore */ }
-      };
-      tryDelete(post.mediaUrl);
-      tryDelete(post.thumbUrl);
+      if (!post.deletedAt) {
+        await app.prisma.post.update({
+          where: { id: req.params.id },
+          data: { deletedAt: new Date() },
+        });
+      }
 
       return { deleted: true };
     }
@@ -430,14 +523,17 @@ export async function postRoutes(app: FastifyInstance) {
         });
 
         if (post.authorId !== req.user.id) {
-          const me = await app.prisma.user.findUnique({ where: { id: req.user.id } });
+          const [me, postAuthor] = await Promise.all([
+            app.prisma.user.findUnique({ where: { id: req.user.id }, select: { displayName: true, username: true, avatarUrl: true } }),
+            app.prisma.user.findUnique({ where: { id: post.authorId }, select: { fcmToken: true } }),
+          ]);
           const notif = await app.prisma.notification.create({
             data: {
               userId:        post.authorId,
               type:          "like",
               actorName:     me?.displayName ?? "Someone",
               actorUsername: me?.username ?? null,
-              actorAvatar:   me?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${me?.username}`,
+              actorAvatar:   me?.avatarUrl,
               message:       "liked your post",
               targetId:      post.id,
               targetType:    "post",
@@ -446,10 +542,13 @@ export async function postRoutes(app: FastifyInstance) {
           wsHub.send(post.authorId, { type: "notification:new", notification: {
             id: notif.id, type: notif.type, actorName: notif.actorName,
             actorUsername: notif.actorUsername,
-            actorAvatar: notif.actorAvatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actorName}`,
+            actorAvatar: notif.actorAvatar,
             message: notif.message, targetId: notif.targetId, targetType: notif.targetType,
             readAt: null, createdAt: notif.createdAt.toISOString(),
           } });
+          if (postAuthor?.fcmToken) {
+            sendPushNotification(postAuthor.fcmToken, `${me?.displayName ?? "Someone"} liked your post`, "").catch(() => {});
+          }
         }
       } catch {
         // Already liked — unique constraint
@@ -485,6 +584,42 @@ export async function postRoutes(app: FastifyInstance) {
       const unlikerId = (req.user as any).id as string;
       wsHub.broadcast({ type: "post:like", postId: req.params.id, likeCount: lc, likedBy: unlikerId, isLiked: false });
       return { liked: false, likeCount: lc };
+    }
+  );
+
+  // POST /posts/:id/dislike
+  app.post<{ Params: { id: string } }>(
+    "/:id/dislike",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
+      if (!post) return reply.status(404).send({ error: "Post not found" });
+      try {
+        await app.prisma.like.create({
+          data: { userId: req.user.id, targetId: req.params.id, targetType: "post_dislike" },
+        });
+        // Remove any existing like when disliking
+        await app.prisma.like.deleteMany({
+          where: { userId: req.user.id, targetId: req.params.id, targetType: "post" },
+        });
+      } catch {
+        // Already disliked — unique constraint
+      }
+      return { disliked: true };
+    }
+  );
+
+  // DELETE /posts/:id/dislike
+  app.delete<{ Params: { id: string } }>(
+    "/:id/dislike",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
+      if (!post) return reply.status(404).send({ error: "Post not found" });
+      await app.prisma.like.deleteMany({
+        where: { userId: req.user.id, targetId: req.params.id, targetType: "post_dislike" },
+      });
+      return { disliked: false };
     }
   );
 
@@ -582,14 +717,47 @@ export async function postRoutes(app: FastifyInstance) {
     }
   );
 
-  // POST /posts/:id/purchase
+  // POST /posts/:id/purchase — buy a marketplace item with tokens
   app.post<{ Params: { id: string } }>(
     "/:id/purchase",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
+      const post = await app.prisma.post.findUnique({ where: { id: req.params.id, deletedAt: null } });
       if (!post || post.postType !== "marketplace") return reply.status(400).send({ error: "Not a marketplace item" });
-      wsHub.send(post.authorId, { type: "marketplace:sale", postId: post.id, buyerId: req.user.id });
+      if (!post.isPaylocked || !post.payPrice) return { ok: true };
+      if (post.authorId === req.user.id) return reply.status(400).send({ error: "Cannot purchase your own item" });
+
+      // Check if already purchased
+      const existing = await app.prisma.like.findUnique({
+        where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "purchase" } },
+      });
+      if (existing) return { ok: true, alreadyPurchased: true };
+
+      const wallet = await app.prisma.wallet.findUnique({ where: { userId: req.user.id } });
+      if (!wallet || wallet.tokens < post.payPrice) return reply.status(400).send({ error: "Insufficient tokens" });
+
+      await app.prisma.$transaction([
+        app.prisma.wallet.update({ where: { userId: req.user.id }, data: { tokens: { decrement: post.payPrice } } }),
+        app.prisma.wallet.upsert({
+          where: { userId: post.authorId },
+          create: { userId: post.authorId, tokens: post.payPrice, balance: 0, diamonds: 0 },
+          update: { tokens: { increment: post.payPrice } },
+        }),
+      ]);
+      await app.prisma.like.upsert({
+        where: { userId_targetId_targetType: { userId: req.user.id, targetId: post.id, targetType: "purchase" } },
+        create: { userId: req.user.id, targetId: post.id, targetType: "purchase" },
+        update: {},
+      });
+
+      const buyer = await app.prisma.user.findUnique({ where: { id: req.user.id }, select: { username: true, displayName: true } });
+      wsHub.send(post.authorId, {
+        type: "marketplace:sale",
+        postId: post.id,
+        tokens: post.payPrice,
+        buyer: { id: req.user.id, username: buyer?.username, displayName: buyer?.displayName },
+      });
+
       return { ok: true };
     }
   );
@@ -671,14 +839,17 @@ export async function postRoutes(app: FastifyInstance) {
       }
 
       if (post.authorId !== req.user.id) {
-        const me = await app.prisma.user.findUnique({ where: { id: req.user.id } });
+        const [me, postAuthor] = await Promise.all([
+          app.prisma.user.findUnique({ where: { id: req.user.id }, select: { displayName: true, username: true, avatarUrl: true } }),
+          app.prisma.user.findUnique({ where: { id: post.authorId }, select: { fcmToken: true } }),
+        ]);
         const notif = await app.prisma.notification.create({
           data: {
             userId:        post.authorId,
             type:          "comment",
             actorName:     me?.displayName ?? "Someone",
             actorUsername: me?.username ?? null,
-            actorAvatar:   me?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${me?.username}`,
+            actorAvatar:   me?.avatarUrl,
             message:       `commented: ${body.slice(0, 50)}`,
             targetId:      post.id,
             targetType:    "post",
@@ -687,10 +858,13 @@ export async function postRoutes(app: FastifyInstance) {
         wsHub.send(post.authorId, { type: "notification:new", notification: {
           id: notif.id, type: notif.type, actorName: notif.actorName,
           actorUsername: notif.actorUsername,
-          actorAvatar: notif.actorAvatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actorName}`,
+          actorAvatar: notif.actorAvatar,
           message: notif.message, targetId: notif.targetId, targetType: notif.targetType,
           readAt: null, createdAt: notif.createdAt.toISOString(),
         } });
+        if (postAuthor?.fcmToken) {
+          sendPushNotification(postAuthor.fcmToken, `${me?.displayName ?? "Someone"} commented`, body.slice(0, 80)).catch(() => {});
+        }
       }
 
       const updatedPost = await app.prisma.post.findUnique({ where: { id: req.params.id }, select: { commentCount: true } });
@@ -742,7 +916,7 @@ function mapPost(p: PostRaw, likedSet: Set<string>, repostedSet?: Set<string>) {
     author: {
       username:    p.author.username,
       displayName: p.author.displayName,
-      avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+      avatarUrl:   p.author.avatarUrl,
       isVerified:  (p.author as { isVerified?: boolean }).isVerified ?? false,
     },
   };
@@ -763,7 +937,7 @@ function mapComment(c: CommentRaw) {
     author: {
       username:    c.author.username,
       displayName: c.author.displayName,
-      avatarUrl:   c.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author.username}`,
+      avatarUrl:   c.author.avatarUrl,
       isVerified:  (c.author as { isVerified?: boolean }).isVerified ?? false,
     },
     replies: (c.replies ?? []).map(r => ({
@@ -774,7 +948,7 @@ function mapComment(c: CommentRaw) {
       author: {
         username:    r.author.username,
         displayName: r.author.displayName,
-        avatarUrl:   r.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.author.username}`,
+        avatarUrl:   r.author.avatarUrl,
       },
     })),
   };

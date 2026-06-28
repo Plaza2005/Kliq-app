@@ -4,15 +4,23 @@ import { useNavigate } from "react-router";
 import { useSocial } from "../context/SocialContext";
 import { useNotifications, NotifType, Notification } from "../context/NotificationContext";
 import { useRealtime } from "../context/RealtimeContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
-type Tab = "Notifications" | "Chats";
+type Tab = "Notifications" | "Chats" | "Groups";
 
 interface Thread {
   threadId: string;
   updatedAt: string;
   other: { id: string; username: string; displayName: string; avatarUrl: string } | null;
   lastMessage: { body: string; createdAt: string } | null;
+}
+
+interface GroupThread {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  members: { user: { id: string; username: string; avatarUrl: string | null } }[];
+  messages: { body: string | null; createdAt: string; sender: { displayName: string } }[];
 }
 
 interface UserResult {
@@ -79,6 +87,8 @@ export function Inbox() {
   const [activeTab, setActiveTab] = useState<Tab>("Notifications");
   const [threads, setThreads]     = useState<Thread[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
+  const [groups, setGroups] = useState<GroupThread[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   // Compose new DM modal
   const [showCompose, setShowCompose] = useState(false);
@@ -120,6 +130,13 @@ export function Inbox() {
         .then(setThreads)
         .catch(() => {})
         .finally(() => setLoadingChats(false));
+    }
+    if (activeTab === "Groups") {
+      setLoadingGroups(true);
+      api.get<GroupThread[]>("/groups")
+        .then(setGroups)
+        .catch(() => {})
+        .finally(() => setLoadingGroups(false));
     }
   }, [activeTab]);
 
@@ -202,7 +219,7 @@ export function Inbox() {
                     className="w-full flex items-center gap-4 px-4 py-4 hover:bg-gray-900/30 transition text-left"
                   >
                     <img
-                      src={resolveMediaUrl(user.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                      src={resolveAvatarUrl(user.avatarUrl)}
                       alt={user.username}
                       className="w-12 h-12 rounded-full bg-gray-800 flex-shrink-0 object-cover"
                     />
@@ -233,7 +250,7 @@ export function Inbox() {
             )}
           </div>
           <div className="flex border-b border-gray-900">
-            {(["Notifications", "Chats"] as Tab[]).map((tab) => (
+            {(["Notifications", "Chats", "Groups"] as Tab[]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab ? "border-white text-white" : "border-transparent text-gray-600 hover:text-gray-400"}`}>
                 {tab}
@@ -279,7 +296,7 @@ export function Inbox() {
             );
           })}
         </div>
-      ) : (
+      ) : activeTab === "Chats" ? (
         <div className="divide-y divide-gray-900/50">
           {loadingChats ? (
             <div className="py-20 flex justify-center">
@@ -297,7 +314,7 @@ export function Inbox() {
                 onClick={() => navigate(`/chat/${other.username}`)}
               >
                 <div className="relative flex-shrink-0">
-                  <img src={resolveMediaUrl(other.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${other.username}`} alt={other.username} className="w-12 h-12 rounded-full bg-gray-800" />
+                  <img src={resolveAvatarUrl(other.avatarUrl)} alt={other.username} className="w-12 h-12 rounded-full bg-gray-800" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
@@ -311,6 +328,44 @@ export function Inbox() {
                   </p>
                 </div>
                 <Flame size={14} className="text-gray-800 flex-shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Groups tab */
+        <div className="divide-y divide-gray-900/50">
+          {loadingGroups ? (
+            <div className="py-20 flex justify-center">
+              <Loader2 size={24} className="animate-spin text-purple-400" />
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="py-20 text-center text-gray-600 text-sm">No group chats yet</div>
+          ) : groups.map(group => {
+            const lastMsg = group.messages[0];
+            return (
+              <div
+                key={group.id}
+                className="flex items-center gap-4 px-4 py-4 hover:bg-gray-900/30 transition cursor-pointer"
+                onClick={() => navigate(`/groups/${group.id}`)}
+              >
+                <div className="w-12 h-12 rounded-full bg-gray-800 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {group.avatarUrl
+                    ? <img src={resolveAvatarUrl(group.avatarUrl)} className="w-full h-full object-cover" />
+                    : <span className="text-xl font-bold text-gray-500">{group.name.charAt(0).toUpperCase()}</span>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-sm font-semibold text-white">{group.name}</p>
+                    <span className="text-gray-600 text-xs">
+                      {lastMsg ? timeAgo(lastMsg.createdAt) : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs truncate text-gray-600">
+                    {lastMsg ? `${lastMsg.sender.displayName}: ${lastMsg.body ?? ""}` : `${group.members.length} members`}
+                  </p>
+                </div>
               </div>
             );
           })}

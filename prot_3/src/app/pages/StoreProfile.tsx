@@ -10,7 +10,7 @@ const STORES: Record<string, {
   "1": {
     name: "Digital Art Drop", desc: "Premium digital art and NFTs from independent creators around the globe.", category: "Digital Art",
     followers: "4.2K", banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=artbykai", owner: "Kai Artworks", ownerHandle: "artbykai",
+    avatar: "/avatar-default.svg", owner: "Kai Artworks", ownerHandle: "artbykai",
     products: [
       { id: 1, title: "Abstract NFT #047", price: "0.25 ETH", img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop", rating: 4.9 },
       { id: 2, title: "Neon Dreams #12", price: "0.18 ETH", img: "https://images.unsplash.com/photo-1547036967-23d11aacaee0?q=80&w=400&auto=format&fit=crop", rating: 4.7 },
@@ -21,7 +21,7 @@ const STORES: Record<string, {
   "2": {
     name: "Creator Tools", desc: "Professional tools and software for content creators, editors, and digital artists.", category: "Software & Tools",
     followers: "1.8K", banner: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=1200&auto=format&fit=crop",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=toolsmith", owner: "ToolSmith Studio", ownerHandle: "toolsmith_studio",
+    avatar: "/avatar-default.svg", owner: "ToolSmith Studio", ownerHandle: "toolsmith_studio",
     products: [
       { id: 1, title: "Premiere Pro Preset Pack", price: "$29", img: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=400&auto=format&fit=crop", rating: 4.6 },
       { id: 2, title: "Color Grading LUTs Bundle", price: "$19", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400&auto=format&fit=crop", rating: 4.8 },

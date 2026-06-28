@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Camera, Globe, Lock, Check, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveMediaUrl, resolveAvatarUrl } from "../api/client";
 
 export function EditProfile() {
   const navigate = useNavigate();
@@ -11,6 +11,8 @@ export function EditProfile() {
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [bio, setBio]                 = useState(user?.bio ?? "");
   const [avatarUrl, setAvatarUrl]     = useState(user?.avatarUrl ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [subPrice, setSubPrice]       = useState("");
   const [isPrivate, setIsPrivate]     = useState(false);
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
@@ -37,9 +39,13 @@ export function EditProfile() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await api.patch<{
-        displayName: string; bio: string; avatarUrl: string; coverUrl: string | null;
-      }>("/auth/me", { displayName, bio, avatarUrl });
+      const [updated] = await Promise.all([
+        api.patch<{ displayName: string; bio: string; avatarUrl: string; coverUrl: string | null }>("/auth/me", {
+          displayName, bio, avatarUrl,
+          ...(dateOfBirth ? { dateOfBirth } : {}),
+        }),
+        subPrice !== "" ? api.patch("/subscriptions/price", { price: subPrice === "0" || subPrice === "" ? null : parseInt(subPrice) }) : Promise.resolve(null),
+      ]);
       updateUser(updated);
       setSaved(true);
       setTimeout(() => { setSaved(false); navigate("/profile"); }, 1500);
@@ -78,7 +84,7 @@ export function EditProfile() {
             onClick={() => avatarInputRef.current?.click()}
           >
             <img
-              src={resolveMediaUrl(avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
+              src={resolveAvatarUrl(avatarUrl)}
               alt="Profile"
               className="w-full h-full rounded-full object-cover border-4 border-gray-800"
             />
@@ -125,6 +131,38 @@ export function EditProfile() {
               className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-600 transition resize-none"
             />
             <p className="text-gray-600 text-xs text-right mt-1">{bio.length}/150</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Date of Birth <span className="text-gray-600 font-normal">(required for 18+ content)</span>
+            </label>
+            <input
+              type="date"
+              value={dateOfBirth}
+              onChange={e => setDateOfBirth(e.target.value)}
+              max={new Date(Date.now() - 13 * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-600 transition [color-scheme:dark]"
+            />
+            <p className="text-gray-600 text-xs mt-1">Your date of birth is kept private and used only for age verification.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Subscription Price <span className="text-gray-600 font-normal">(tokens/month, leave blank to disable)</span>
+            </label>
+            <div className="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:border-purple-600 transition">
+              <span className="px-4 py-3 text-yellow-400 text-sm border-r border-gray-700">🪙</span>
+              <input
+                type="number"
+                min={0}
+                placeholder="e.g. 100"
+                value={subPrice}
+                onChange={e => setSubPrice(e.target.value)}
+                className="flex-1 bg-transparent px-3 py-3 text-white text-sm focus:outline-none"
+              />
+            </div>
+            <p className="text-gray-600 text-xs mt-1">Fans will pay this many tokens per month to subscribe to your exclusive content.</p>
           </div>
         </div>
 

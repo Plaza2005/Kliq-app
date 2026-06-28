@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Radio, Users, X, Loader2, RefreshCw } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface LiveStream {
   id: string; title: string; category: string; viewerCount: number; startedAt: string;
@@ -60,7 +60,7 @@ export function LiveModeration() {
             <div key={s.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <img src={resolveMediaUrl(s.user.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.user.username}`} className="w-9 h-9 rounded-full" />
+                  <img src={resolveAvatarUrl(s.user.avatarUrl)} className="w-9 h-9 rounded-full" />
                   <div>
                     <p className="text-white font-semibold text-sm">{s.user.displayName}</p>
                     <p className="text-gray-500 text-xs">@{s.user.username}</p>
@@ -69,7 +69,7 @@ export function LiveModeration() {
                 <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />LIVE</span>
               </div>
               <p className="text-gray-200 text-sm font-medium mb-1 line-clamp-1">{s.title}</p>
-              <p className="text-gray-500 text-xs mb-3">{s.category} · {elapsed(s.startedAt)} elapsed</p>
+              <p className="text-gray-500 text-xs mb-3">{s.category} � {elapsed(s.startedAt)} elapsed</p>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-gray-400 text-xs"><Users size={12} />{s.viewerCount.toLocaleString()} watching</span>
                 <button onClick={() => terminate(s)} className="flex items-center gap-1 bg-red-900/40 hover:bg-red-900/80 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-lg transition"><X size={12} />Terminate</button>

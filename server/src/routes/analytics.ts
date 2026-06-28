@@ -123,7 +123,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
       postsChart:    postsByDay,
       topCreators:   topCreators.map(u => ({
         ...u,
-        avatarUrl: u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+        avatarUrl: u.avatarUrl,
       })),
       topPosts: topPosts.map(p => ({
         id: p.id, body: p.body, postType: p.postType,
@@ -131,7 +131,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
         author: {
           username:    p.author.username,
           displayName: p.author.displayName,
-          avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+          avatarUrl:   p.author.avatarUrl,
         },
       })),
     };

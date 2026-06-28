@@ -48,6 +48,12 @@ export function resolveMediaUrl(url: string | null | undefined): string | undefi
   return `${BASE}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+export function resolveAvatarUrl(url: string | null | undefined): string {
+  if (!url) return "/avatar-default.svg";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("/")) return url;
+  return `${BASE}/${url}`;
+}
+
 export const adminApi = {
   get:    <T>(path: string)               => request<T>("GET",    path),
   post:   <T>(path: string, body?: unknown) => request<T>("POST",   path, body),

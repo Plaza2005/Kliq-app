@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { wsHub } from "../ws";
+import { sendPushNotification } from "../firebase";
 
 export async function userRoutes(app: FastifyInstance) {
   // GET /users/suggested
@@ -26,7 +27,7 @@ export async function userRoutes(app: FastifyInstance) {
 
       return users.map(u => ({
         ...u,
-        avatarUrl: u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+        avatarUrl: u.avatarUrl,
       }));
     }
   );
@@ -55,7 +56,7 @@ export async function userRoutes(app: FastifyInstance) {
       });
       return users.map(u => ({
         ...u,
-        avatarUrl: u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+        avatarUrl: u.avatarUrl,
       }));
     }
   );
@@ -69,19 +70,26 @@ export async function userRoutes(app: FastifyInstance) {
       // Try by username first; fall back to ID so that /users/<cuid> still resolves
       const user = await app.prisma.user.findFirst({
         where: { OR: [{ username: param }, { id: param }] },
+        include: { liveStream: { select: { isLive: true, title: true } } },
       });
       if (!user) return reply.status(404).send({ error: "User not found" });
 
-      const isFollowing = await app.prisma.follow.findUnique({
-        where: { followerId_followingId: { followerId: req.user.id, followingId: user.id } },
-      });
+      const [isFollowing, subscription] = await Promise.all([
+        app.prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.id, followingId: user.id } },
+        }),
+        user.subPrice ? app.prisma.creatorSubscription.findUnique({
+          where: { subscriberId_creatorId: { subscriberId: req.user.id, creatorId: user.id } },
+        }) : Promise.resolve(null),
+      ]);
+      const isSubscribed = subscription && (!subscription.expiresAt || subscription.expiresAt > new Date());
 
       return {
         id:            user.id,
         username:      user.username,
         displayName:   user.displayName,
         bio:           user.bio,
-        avatarUrl:     user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+        avatarUrl:     user.avatarUrl,
         coverUrl:      user.coverUrl,
         tier:          user.tier,
         isVerified:    user.isVerified,
@@ -93,6 +101,10 @@ export async function userRoutes(app: FastifyInstance) {
         createdAt:     user.createdAt,
         isFollowing:   !!isFollowing,
         isOwnProfile:  user.id === req.user.id,
+        isLive:        user.liveStream?.isLive ?? false,
+        liveStreamTitle: user.liveStream?.title ?? null,
+        subPrice:      user.subPrice ?? null,
+        isSubscribed:  !!isSubscribed,
       };
     }
   );
@@ -152,7 +164,7 @@ export async function userRoutes(app: FastifyInstance) {
         id:          f.follower.id,
         username:    f.follower.username,
         displayName: f.follower.displayName,
-        avatarUrl:   f.follower.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.follower.username}`,
+        avatarUrl:   f.follower.avatarUrl,
         bio:         f.follower.bio,
         isVerified:  f.follower.isVerified,
       }));
@@ -178,7 +190,7 @@ export async function userRoutes(app: FastifyInstance) {
         id:          f.following.id,
         username:    f.following.username,
         displayName: f.following.displayName,
-        avatarUrl:   f.following.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.following.username}`,
+        avatarUrl:   f.following.avatarUrl,
         bio:         f.following.bio,
         isVerified:  f.following.isVerified,
       }));
@@ -217,8 +229,29 @@ export async function userRoutes(app: FastifyInstance) {
         author: {
           username:    p.author.username,
           displayName: p.author.displayName,
-          avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+          avatarUrl:   p.author.avatarUrl,
         },
+      }));
+    }
+  );
+
+  // GET /users/:username/playlists
+  app.get<{ Params: { username: string } }>(
+    "/:username/playlists",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const user = await app.prisma.user.findUnique({ where: { username: req.params.username } });
+      if (!user) return reply.status(404).send({ error: "User not found" });
+      const playlists = await app.prisma.kliqPlaylist.findMany({
+        where: { userId: user.id },
+        include: { _count: { select: { items: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+      return playlists.map(pl => ({
+        id: pl.id,
+        name: pl.name,
+        itemCount: pl._count.items,
+        createdAt: pl.createdAt,
       }));
     }
   );
@@ -243,14 +276,17 @@ export async function userRoutes(app: FastifyInstance) {
       await app.prisma.user.update({ where: { id: req.user.id }, data: { followingCount: { increment: 1 } } });
       await app.prisma.user.update({ where: { id: target.id }, data: { followerCount: { increment: 1 } } });
 
-      const me = await app.prisma.user.findUnique({ where: { id: req.user.id } });
+      const [me, targetUser] = await Promise.all([
+        app.prisma.user.findUnique({ where: { id: req.user.id }, select: { displayName: true, username: true, avatarUrl: true } }),
+        app.prisma.user.findUnique({ where: { id: target.id }, select: { fcmToken: true } }),
+      ]);
       const notif = await app.prisma.notification.create({
         data: {
           userId:        target.id,
           type:          "follow",
           actorName:     me?.displayName ?? "Someone",
           actorUsername: me?.username ?? null,
-          actorAvatar:   me?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${me?.username}`,
+          actorAvatar:   me?.avatarUrl,
           message:       "started following you",
           targetId:      req.user.id,
           targetType:    "user",
@@ -259,14 +295,27 @@ export async function userRoutes(app: FastifyInstance) {
       wsHub.send(target.id, { type: "notification:new", notification: {
         id: notif.id, type: notif.type, actorName: notif.actorName,
         actorUsername: notif.actorUsername,
-        actorAvatar: notif.actorAvatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actorName}`,
+        actorAvatar: notif.actorAvatar,
         message: notif.message, targetId: notif.targetId, targetType: notif.targetType,
         readAt: null, createdAt: notif.createdAt.toISOString(),
       } });
+      if (targetUser?.fcmToken) {
+        sendPushNotification(targetUser.fcmToken, `${me?.displayName ?? "Someone"} followed you`, "").catch(() => {});
+      }
 
       return { following: true };
     }
   );
+
+  // GET /users/me — own profile settings (showWalletBalance etc.)
+  app.get("/me", { preHandler: [app.authenticate] }, async (req, reply) => {
+    const user = await app.prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { showWalletBalance: true, subPrice: true },
+    });
+    if (!user) return reply.status(404).send({ error: "User not found" });
+    return user;
+  });
 
   // POST /users/me/badge-request
   app.post<{ Body: { reason: string } }>("/me/badge-request", { preHandler: [app.authenticate] }, async (req) => {
@@ -335,7 +384,7 @@ export async function userRoutes(app: FastifyInstance) {
       ...b.blocked,
       avatarUrl:
         b.blocked.avatarUrl ??
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${b.blocked.username}`,
+        "/avatar-default.svg",
       blockedAt: (b as unknown as { createdAt: Date }).createdAt,
     }));
   });
@@ -350,7 +399,7 @@ export async function userRoutes(app: FastifyInstance) {
       ...m.muted,
       avatarUrl:
         m.muted.avatarUrl ??
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.muted.username}`,
+        "/avatar-default.svg",
     }));
   });
 
@@ -402,11 +451,15 @@ export async function userRoutes(app: FastifyInstance) {
       });
       if (!target) return reply.status(404).send({ error: "User not found" });
 
-      await app.prisma.follow.deleteMany({
+      const deleted = await app.prisma.follow.deleteMany({
         where: { followerId: req.user.id, followingId: target.id },
       });
-      await app.prisma.user.update({ where: { id: req.user.id }, data: { followingCount: { decrement: 1 } } });
-      await app.prisma.user.update({ where: { id: target.id }, data: { followerCount: { decrement: 1 } } });
+      if (deleted.count > 0) {
+        await Promise.all([
+          app.prisma.user.update({ where: { id: req.user.id }, data: { followingCount: { decrement: 1 } } }),
+          app.prisma.user.update({ where: { id: target.id }, data: { followerCount: { decrement: 1 } } }),
+        ]);
+      }
 
       return { following: false };
     }
@@ -430,7 +483,7 @@ function mapPost(p: { id: string; body: string; mediaUrl: string | null; mediaTy
     author: {
       username:    p.author.username,
       displayName: p.author.displayName,
-      avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+      avatarUrl:   p.author.avatarUrl,
     },
   };
 }

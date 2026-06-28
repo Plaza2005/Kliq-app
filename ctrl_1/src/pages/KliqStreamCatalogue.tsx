@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Film, Loader2, Star, Trash2, CheckCircle, XCircle } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface KliqTitle {
   id: string;
@@ -325,7 +325,7 @@ export function KliqStreamCatalogue() {
                   {/* Type + genre + age rating */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-0.5 rounded-md border border-gray-700">
-                      {t.type === "movie" ? "🎬 Movie" : "📺 Series"}
+                      {t.type === "movie" ? "?? Movie" : "?? Series"}
                     </span>
                     <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-md border border-gray-700">
                       {t.genre}
@@ -341,7 +341,7 @@ export function KliqStreamCatalogue() {
                   {/* Author */}
                   <div className="flex items-center gap-2">
                     <img
-                      src={resolveMediaUrl(t.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.author.username}`}
+                      src={resolveAvatarUrl(t.author.avatarUrl)}
                       alt={t.author.username}
                       className="w-6 h-6 rounded-full object-cover bg-gray-700"
                     />

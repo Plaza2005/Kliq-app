@@ -28,7 +28,7 @@ function serializeMessage(m: {
       id:          m.sender.id,
       username:    m.sender.username,
       displayName: m.sender.displayName,
-      avatarUrl:   m.sender.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender.username}`,
+      avatarUrl:   m.sender.avatarUrl,
     },
   };
 }
@@ -65,7 +65,7 @@ export async function messageRoutes(app: FastifyInstance) {
             id:          other.user.id,
             username:    other.user.username,
             displayName: other.user.displayName,
-            avatarUrl:   other.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${other.user.username}`,
+            avatarUrl:   other.user.avatarUrl,
           } : null,
           lastMessage: lastMsg ? { body: lastMsg.body, createdAt: lastMsg.createdAt } : null,
         };

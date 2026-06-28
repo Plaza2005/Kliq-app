@@ -41,8 +41,8 @@ const CONTENT_CATEGORIES = [
 ];
 
 const BLOCKED_USERS = [
-  { user: "spam_acc99", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=spam" },
-  { user: "troll_hater", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=troll" },
+  { user: "spam_acc99", avatar: "/avatar-default.svg" },
+  { user: "troll_hater", avatar: "/avatar-default.svg" },
 ];
 
 const FAQ = [
@@ -987,9 +987,21 @@ export function Settings() {
               </div>
               {!plan.current && plan.tier > tier && (
                 <button
-                  onClick={() => { setTier(plan.tier as 1|2|3); setShowUpgrade(false); showToast(`Upgraded to Tier ${plan.tier} ${plan.name}! ✨`); }}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition">
-                  Upgrade to {plan.name}
+                  disabled={upgrading}
+                  onClick={async () => {
+                    setUpgrading(true);
+                    try {
+                      const tierStr = plan.tier === 2 ? "plus" : "pro";
+                      await api.post("/users/me/tier-upgrade", { tier: tierStr });
+                      await refreshUser();
+                      setTier(plan.tier as 1|2|3);
+                      setShowUpgrade(false);
+                      showToast(`Upgraded to ${plan.name}! ✨`);
+                    } catch { showToast("Upgrade failed, please try again."); }
+                    finally { setUpgrading(false); }
+                  }}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition disabled:opacity-50">
+                  {upgrading ? "Upgrading…" : `Upgrade to ${plan.name}`}
                 </button>
               )}
               {plan.current && plan.tier < 3 && (

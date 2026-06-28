@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Shield, Ban, AlertTriangle, Users, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface Stats {
   totalUsers: number;
@@ -115,7 +115,7 @@ export function AnalyticsTrustSafety() {
                 {reports.slice(0, 10).map(r => (
                   <div key={r.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                     {r.post?.author ? (
-                      <img src={resolveMediaUrl(r.post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.post.author.username}`} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
+                      <img src={resolveAvatarUrl(r.post.author.avatarUrl)} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" />
                     )}

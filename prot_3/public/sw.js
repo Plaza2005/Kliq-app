@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kliq-v1';
+const CACHE_NAME = 'kliq-v3';
 const STATIC_ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {
@@ -26,14 +26,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   // Cache first for static assets
+  const url = event.request.url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+
   event.respondWith(
     caches.match(event.request).then(cached => cached ?? fetch(event.request).then(resp => {
-      if (resp.ok && event.request.method === 'GET') {
+      if (resp.ok && resp.status !== 0 && event.request.method === 'GET') {
         const clone = resp.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone).catch(() => {}));
       }
       return resp;
-    }))
+    }).catch(() => new Response('', { status: 408 })))
   );
 });
 

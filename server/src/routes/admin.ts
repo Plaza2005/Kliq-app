@@ -123,7 +123,7 @@ export async function adminRoutes(app: FastifyInstance) {
       return {
         users: users.map(u => ({
           ...u,
-          avatarUrl: u.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+          avatarUrl: u.avatarUrl,
         })),
         total,
         page,
@@ -234,7 +234,7 @@ export async function adminRoutes(app: FastifyInstance) {
           author: {
             username:    p.author.username,
             displayName: p.author.displayName,
-            avatarUrl:   p.author.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author.username}`,
+            avatarUrl:   p.author.avatarUrl,
           },
         })),
         total,
@@ -252,20 +252,11 @@ export async function adminRoutes(app: FastifyInstance) {
       const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
       if (!post) return reply.status(404).send({ error: "Post not found" });
 
-      // Hard-delete from DB
-      await app.prisma.post.delete({ where: { id: req.params.id } });
-
-      // Remove media files from disk
-      const uploadsDir = path.join(process.cwd(), "uploads");
-      const tryDelete = (url: string | null) => {
-        if (!url) return;
-        const filename = url.split("/uploads/").pop();
-        if (!filename) return;
-        const filepath = path.join(uploadsDir, filename);
-        try { fs.unlinkSync(filepath); } catch { /* file may not exist */ }
-      };
-      tryDelete(post.mediaUrl);
-      tryDelete(post.thumbUrl);
+      // Soft-delete: mark as deleted so it disappears from feeds but the record is preserved
+      await app.prisma.post.update({
+        where: { id: req.params.id },
+        data: { deletedAt: new Date() },
+      });
 
       await app.prisma.activityLog.create({
         data: { actorId: req.user.id, action: "admin.remove_content", target: req.params.id },
@@ -434,7 +425,7 @@ export async function adminRoutes(app: FastifyInstance) {
         }));
 
       return {
-        user: { ...user, avatarUrl: user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}` },
+        user: { ...user, avatarUrl: user.avatarUrl },
         totalViews, totalLikes, totalComments, totalShares,
         totalPosts: posts.length,
         byDay,
@@ -474,8 +465,29 @@ export async function adminRoutes(app: FastifyInstance) {
         actor: l.actor ? {
           username:    l.actor.username,
           displayName: l.actor.displayName,
-          avatarUrl:   l.actor.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${l.actor.username}`,
+          avatarUrl:   l.actor.avatarUrl,
         } : null,
+      }));
+    }
+  );
+
+  // GET /admin/media-failures
+  app.get(
+    "/media-failures",
+    { preHandler: [app.authenticateAdmin] },
+    async () => {
+      const logs = await app.prisma.activityLog.findMany({
+        where:   { action: "media.failure" },
+        orderBy: { createdAt: "desc" },
+        take:    100,
+        include: { actor: { select: { username: true } } },
+      });
+      return logs.map(l => ({
+        id:        l.id,
+        target:    l.target,
+        details:   l.details,
+        createdAt: l.createdAt,
+        actor:     l.actor ? { username: l.actor.username } : null,
       }));
     }
   );
@@ -845,7 +857,7 @@ export async function adminRoutes(app: FastifyInstance) {
         return {
           userId:             s.userId,
           username:           u?.username ?? "Unknown",
-          avatarUrl:          u?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u?.username ?? s.userId}`,
+          avatarUrl:          u?.avatarUrl,
           tier:               u?.tier ?? "free",
           tokensSpent:        s.tokensSpent,
           campaignsRun:       s.campaignsRun,

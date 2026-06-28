@@ -160,7 +160,7 @@ export async function communityRoutes(app: FastifyInstance) {
       return members.map(m => ({
         username:    m.user.username,
         displayName: m.user.displayName,
-        avatarUrl:   m.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user.username}`,
+        avatarUrl:   m.user.avatarUrl,
         isVerified:  m.user.isVerified ?? false,
         role:        m.role,
         joinedAt:    m.joinedAt,
@@ -268,7 +268,7 @@ function mapMessage(m: RawMessage) {
       id:          m.user.id,
       username:    m.user.username,
       displayName: m.user.displayName,
-      avatarUrl:   m.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user.username}`,
+      avatarUrl:   m.user.avatarUrl,
       isVerified:  m.user.isVerified ?? false,
     },
     ...(m.replyTo ? {
@@ -280,7 +280,7 @@ function mapMessage(m: RawMessage) {
           id:          m.replyTo.user.id,
           username:    m.replyTo.user.username,
           displayName: m.replyTo.user.displayName,
-          avatarUrl:   m.replyTo.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.replyTo.user.username}`,
+          avatarUrl:   m.replyTo.user.avatarUrl,
         },
       },
     } : {}),

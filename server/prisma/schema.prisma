@@ -26,6 +26,12 @@ model User {
   postCount   Int      @default(0)
   showWalletBalance Boolean @default(false)
   isOnboarded  Boolean  @default(false)
+  emailVerified      Boolean  @default(false)
+  emailVerifyToken   String?
+  emailVerifyExpiry  DateTime?
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  dateOfBirth        DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -67,6 +73,8 @@ model User {
   communityMemberships CommunityMember[]
   notifPrefs          String?
   privacySettings     String?
+  subPrice            Int?
+  fcmToken            String?
 }
 
 model Follow {

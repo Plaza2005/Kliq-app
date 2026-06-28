@@ -8,8 +8,10 @@ import { CommentSheet } from "../components/CommentSheet";
 import { ShareSheet } from "../components/ShareSheet";
 import { MoreMenuSheet } from "../components/MoreMenuSheet";
 import { StoryCreate } from "../components/StoryCreate";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { toast } from "sonner";
+import { MediaImg } from "../components/media/MediaImg";
+import { MediaVideo } from "../components/media/MediaVideo";
 
 interface FeedPost {
   id: string;
@@ -82,7 +84,7 @@ function CarouselSlider({ media }: { media: string[] }) {
   };
   return (
     <div className="absolute inset-0" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      <img src={resolveMediaUrl(media[idx]) ?? media[idx]} alt={`Slide ${idx + 1}`} className="w-full h-full object-contain" />
+      <MediaImg src={resolveMediaUrl(media[idx]) ?? media[idx]} alt={`Slide ${idx + 1}`} className="w-full h-full object-contain" context="Home/carousel" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90 pointer-events-none" />
       {/* Dots */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
@@ -422,7 +424,7 @@ export function Home() {
               >
                 <div className={`w-14 h-14 rounded-full p-0.5 ${item.hasViewed ? "bg-gray-600" : "bg-gradient-to-tr from-purple-600 to-pink-500"}`}>
                   <img
-                    src={resolveMediaUrl(item.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.author.username}`}
+                    src={resolveAvatarUrl(item.author.avatarUrl)}
                     alt={item.author.username}
                     className="w-full h-full rounded-full object-cover border-2 border-black"
                   />
@@ -490,7 +492,7 @@ export function Home() {
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         <Users size={11} className="text-gray-500" />
-                        <span className="text-gray-500 text-xs">{stream.viewerCount.toLocaleString()} watching</span>
+                        <span className="text-gray-500 text-xs">{(stream.viewerCount ?? 0).toLocaleString()} watching</span>
                       </div>
                     </div>
                   </div>
@@ -560,7 +562,7 @@ export function Home() {
                   ) : item.mediaUrl ? (
                     <>
                       {item.mediaType === "video" ? (
-                        <video
+                        <MediaVideo
                           ref={el => { if (el) videoRefs.current.set(item.id, el); else videoRefs.current.delete(item.id); }}
                           src={resolveMediaUrl(item.mediaUrl) ?? ""}
                           className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
@@ -568,6 +570,7 @@ export function Home() {
                           loop
                           playsInline
                           preload="metadata"
+                          context={`Home/feed/post:${item.id}`}
                           onClick={e => e.stopPropagation()}
                           onTimeUpdate={e => {
                             const v = e.currentTarget;
@@ -579,10 +582,11 @@ export function Home() {
                           }}
                         />
                       ) : (
-                        <img
+                        <MediaImg
                           src={resolveMediaUrl(item.mediaUrl) ?? ""}
                           alt="Post"
                           className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity"
+                          context={`Home/feed/post:${item.id}`}
                         />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90 pointer-events-none" />
@@ -635,7 +639,7 @@ export function Home() {
                         onClick={(e) => { e.stopPropagation(); navigate(`/user/${item.author.username}`); }}
                         className="w-11 h-11 rounded-full border-2 border-white overflow-hidden block"
                       >
-                        <img src={resolveMediaUrl(item.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.author.username}`} alt={item.author.username} className="w-full h-full bg-gray-800 object-cover" />
+                        <img src={resolveAvatarUrl(item.author.avatarUrl)} alt={item.author.username} className="w-full h-full bg-gray-800 object-cover" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFollow(item.author.username); }}
@@ -686,7 +690,7 @@ export function Home() {
                         {suggestedUsers.map(u => (
                           <div key={u.username} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16">
                             <img
-                              src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+                              src={resolveAvatarUrl(u.avatarUrl)}
                               alt={u.username}
                               className="w-12 h-12 rounded-full bg-gray-800 object-cover border border-gray-700"
                             />

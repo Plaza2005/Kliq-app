@@ -88,7 +88,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             {
               ...mapApiNotif(n),
               time: "now",
-              img: n.actorAvatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${n.actorName}`,
+              img: n.actorAvatar ?? "/avatar-default.svg",
             },
             ...prev,
           ]);
@@ -107,7 +107,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       actorUsername: null,
       msg,
       time:          "now",
-      img:           `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`,
+      img:           "/avatar-default.svg",
       readAt:        null,
       targetId:      null,
       targetType:    null,

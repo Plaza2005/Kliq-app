@@ -1,7 +1,7 @@
-ï»¿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Shield, Ban, Trash2, ExternalLink, CheckCircle, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 const KLIQ_APP_URL = "http://localhost:5174";
 
@@ -107,7 +107,7 @@ export function Users() {
           Ban:      "ban",
         };
         await adminApi.patch(`/admin/users/${userId}`, { action: actionMap[action] });
-        showToast(`@${username} â€” ${action} applied.`);
+        showToast(`@${username} — ${action} applied.`);
       }
       load(page, filterStatus, query);
     } catch (err) {
@@ -153,7 +153,7 @@ export function Users() {
           <p className="text-gray-500 text-sm mt-0.5">{total} total users</p>
         </div>
         <button
-          onClick={() => showToast("Export as CSV â€” coming soon")}
+          onClick={() => showToast("Export as CSV — coming soon")}
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition"
         >
           Export CSV
@@ -207,7 +207,7 @@ export function Users() {
                       className="flex items-center gap-3 text-left hover:opacity-80 transition group"
                       title="View Analytics"
                     >
-                      <img src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username}
+                      <img src={resolveAvatarUrl(u.avatarUrl)} alt={u.username}
                         className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" />
                       <div>
                         <div className="flex items-center gap-1.5">
@@ -297,7 +297,7 @@ export function Users() {
       {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-gray-500 text-sm">Page {page} of {pages} Â· {total} users</p>
+          <p className="text-gray-500 text-sm">Page {page} of {pages} · {total} users</p>
           <div className="flex gap-2">
             <button onClick={() => load(page - 1, filterStatus, query)} disabled={page <= 1}
               className="p-2 bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 rounded-lg transition">

@@ -94,7 +94,7 @@ export async function liveRoutes(app: FastifyInstance) {
           id:          s.user.id,
           username:    s.user.username,
           displayName: s.user.displayName,
-          avatarUrl:   s.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.user.username}`,
+          avatarUrl:   s.user.avatarUrl,
           isVerified:  s.user.isVerified,
         },
       }));
@@ -148,15 +148,17 @@ export async function liveRoutes(app: FastifyInstance) {
 
       const sender = await app.prisma.user.findUnique({ where: { id: req.user.id }, select: { username: true, displayName: true, avatarUrl: true } });
 
-      // Broadcast gift to the streamer via websocket
-      const { wsHub } = await import("../ws");
-      wsHub.send(stream.userId, {
+      // Broadcast gift to all viewers + the streamer
+      const { wsHub, broadcastToStream } = await import("../ws");
+      const giftEvent = {
         type: "live:gift",
         streamId: req.params.streamId,
         giftType,
         coins,
         sender: { username: sender?.username, displayName: sender?.displayName, avatarUrl: sender?.avatarUrl },
-      });
+      };
+      broadcastToStream(req.params.streamId, giftEvent);
+      wsHub.send(stream.userId, giftEvent);
 
       return { ok: true, coins };
     }

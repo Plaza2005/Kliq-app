@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { MediaImg } from "../components/media/MediaImg";
+import { MediaVideo } from "../components/media/MediaVideo";
 
 function useVideoFirstFrame(videoUrl: string | null): string | null {
   const [frame, setFrame] = useState<string | null>(null);
@@ -41,6 +43,7 @@ function useVideoFirstFrame(videoUrl: string | null): string | null {
   return frame;
 }
 
+const TABS = ["All", "Trending", "Subscriptions"];
 const CATEGORIES = ["All", "Music", "Gaming", "Education", "Comedy", "Tech", "Sports", "News", "Cooking"];
 
 interface TubePost {
@@ -146,14 +149,15 @@ function TubeCard({ post }: { post: TubePost }) {
       {/* 16:9 thumbnail/preview container */}
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-900 mb-3">
         {/* Thumbnail image */}
-        <img
+        <MediaImg
           src={thumbSrc}
           alt={post.title ?? post.body}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hovered ? "opacity-0" : "opacity-100"}`}
+          context={`KliqTube/thumb:${post.id}`}
         />
         {/* Video preview */}
         {post.mediaUrl && (
-          <video
+          <MediaVideo
             ref={videoRef}
             src={resolveMediaUrl(post.mediaUrl) ?? ""}
             muted
@@ -161,6 +165,7 @@ function TubeCard({ post }: { post: TubePost }) {
             preload="none"
             loop
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}
+            context={`KliqTube/preview:${post.id}`}
           />
         )}
         {/* Duration badge */}
@@ -175,7 +180,7 @@ function TubeCard({ post }: { post: TubePost }) {
       <div className="flex gap-3 px-1">
         {/* Channel avatar */}
         <img
-          src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`}
+          src={resolveAvatarUrl(post.author.avatarUrl)}
           alt={post.author.displayName}
           className="w-9 h-9 rounded-full object-cover bg-gray-800 flex-shrink-0 mt-0.5 cursor-pointer"
           onClick={e => { e.stopPropagation(); navigate(`/klixtube/channel/${post.author.username}`); }}
@@ -207,25 +212,33 @@ export function KliqTube() {
   const [posts, setPosts] = useState<TubePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("All");
   const [activeCategory, setActiveCategory] = useState("All");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    api
-      .get<TubePost[]>("/posts/tube")
+  const fetchPosts = (tab: string, category: string, q: string) => {
+    setLoading(true);
+    const params = new URLSearchParams({ tab: tab.toLowerCase() });
+    if (category !== "All") params.set("category", category.toLowerCase());
+    if (q.trim()) params.set("q", q.trim());
+    api.get<TubePost[]>(`/posts/tube?${params}`)
       .then(data => setPosts(Array.isArray(data) ? data : []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, []);
+  };
 
-  const filtered = posts.filter(p => {
-    const matchesSearch = search
-      ? (p.body + (p.title ?? "")).toLowerCase().includes(search.toLowerCase())
-      : true;
-    const matchesCategory = activeCategory === "All"
-      ? true
-      : (p.body + (p.title ?? "")).toLowerCase().includes(activeCategory.toLowerCase());
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => { fetchPosts(activeTab, activeCategory, search); }, [activeTab, activeCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => fetchPosts(activeTab, activeCategory, q), 400);
+  };
+
+  const handleTabChange = (tab: string) => { setActiveTab(tab); setActiveCategory("All"); setSearch(""); };
+  const handleCategoryChange = (cat: string) => { setActiveCategory(cat); };
+
+  const filtered = posts;
 
   return (
     <div className="min-h-full bg-[#0f0f0f] pb-24">
@@ -241,11 +254,28 @@ export function KliqTube() {
           <Search size={14} className="text-gray-500 flex-shrink-0" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             placeholder="Search videos"
             className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-gray-600"
           />
         </div>
+      </div>
+
+      {/* Feed tabs */}
+      <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-0 scrollbar-hide">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
+            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition ${
+              activeTab === tab
+                ? "bg-purple-600 text-white border-purple-600"
+                : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Category chips */}
@@ -253,7 +283,7 @@ export function KliqTube() {
         {CATEGORIES.map(cat => (
           <button
             key={cat}
-            onClick={() => setActiveCategory(cat)}
+            onClick={() => handleCategoryChange(cat)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
               activeCategory === cat
                 ? "bg-white text-black"

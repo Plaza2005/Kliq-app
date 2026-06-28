@@ -1,11 +1,11 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Users, FileText, TrendingUp, Loader2, RefreshCw, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface UserAnalytics {
   user: {
@@ -138,7 +138,7 @@ export function UserAnalytics() {
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <p className="text-gray-400">User not found.</p>
         <button onClick={() => navigate("/users")} className="text-indigo-400 hover:text-indigo-300 text-sm">
-          ← Back to Users
+          ? Back to Users
         </button>
       </div>
     );
@@ -167,7 +167,7 @@ export function UserAnalytics() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-white">User Analytics</h1>
           <p className="text-gray-500 text-xs mt-0.5">
-            Last updated {lastRefresh.toLocaleTimeString()} · auto-refreshes every 30s
+            Last updated {lastRefresh.toLocaleTimeString()} � auto-refreshes every 30s
           </p>
         </div>
         <button
@@ -180,7 +180,7 @@ export function UserAnalytics() {
 
       {/* User profile card */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-start gap-5">
-        <img src={resolveMediaUrl(user.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-16 h-16 rounded-full bg-gray-700 flex-shrink-0" />
+        <img src={resolveAvatarUrl(user.avatarUrl)} alt={user.username} className="w-16 h-16 rounded-full bg-gray-700 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-white font-bold text-lg">@{user.username}</h2>
@@ -336,7 +336,7 @@ export function UserAnalytics() {
                       <td className="py-2.5 text-gray-500 text-xs">
                         {s.endedAt
                           ? new Date(s.endedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-                          : <span className="text-green-400 text-[10px]">—</span>
+                          : <span className="text-green-400 text-[10px]">�</span>
                         }
                       </td>
                     </tr>

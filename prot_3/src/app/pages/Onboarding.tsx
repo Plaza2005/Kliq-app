@@ -20,12 +20,12 @@ const INTERESTS = [
 ];
 
 const SUGGESTIONS = [
-  { user: "alex_creates",  name: "Alex Creates",   bio: "Studio setups & gear",   followers: "124K", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex"    },
-  { user: "mia_arts",      name: "Mia Arts",       bio: "Digital art & painting",  followers: "89K",  img: "https://api.dicebear.com/7.x/avataaars/svg?seed=mia"     },
-  { user: "dj_kryptonite", name: "DJ Kryptonite",  bio: "Producer & beatmaker",    followers: "212K", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=dj"      },
-  { user: "sarah_vlogs",   name: "Sarah Vlogs",    bio: "Travel & lifestyle",      followers: "78K",  img: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah"   },
-  { user: "fitness_pro",   name: "Fitness Pro",    bio: "Daily workouts & tips",   followers: "340K", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=fitness" },
-  { user: "travel_kai",    name: "Travel Kai",     bio: "World explorer 🌍",       followers: "55K",  img: "https://api.dicebear.com/7.x/avataaars/svg?seed=travel"  },
+  { user: "alex_creates",  name: "Alex Creates",   bio: "Studio setups & gear",   followers: "124K", img: "/avatar-default.svg"    },
+  { user: "mia_arts",      name: "Mia Arts",       bio: "Digital art & painting",  followers: "89K",  img: "/avatar-default.svg"     },
+  { user: "dj_kryptonite", name: "DJ Kryptonite",  bio: "Producer & beatmaker",    followers: "212K", img: "/avatar-default.svg"      },
+  { user: "sarah_vlogs",   name: "Sarah Vlogs",    bio: "Travel & lifestyle",      followers: "78K",  img: "/avatar-default.svg"   },
+  { user: "fitness_pro",   name: "Fitness Pro",    bio: "Daily workouts & tips",   followers: "340K", img: "/avatar-default.svg" },
+  { user: "travel_kai",    name: "Travel Kai",     bio: "World explorer 🌍",       followers: "55K",  img: "/avatar-default.svg"  },
 ];
 
 const AVATAR_SEEDS = ["default", "creator", "artist", "gamer", "traveler", "foodie", "techie", "fitness"];
@@ -83,7 +83,7 @@ export function Onboarding() {
     setUsernameError("");
     setSubmitting(true);
     try {
-      const avatarUrl = avatarObjectUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatar}`;
+      const avatarUrl = avatarObjectUrl ?? "/avatar-default.svg";
       await api.patch("/auth/me", { username, displayName: displayName || undefined, avatarUrl });
       setStep("done");
     } catch (err: unknown) {
@@ -150,7 +150,7 @@ export function Onboarding() {
                   }`}
                 >
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
+                    src={"/avatar-default.svg"}
                     alt={seed}
                     className="w-full h-full bg-gray-900"
                   />
@@ -221,7 +221,7 @@ export function Onboarding() {
           {(username.length >= 3 || displayName) && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center gap-4">
               <img
-                src={avatarObjectUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatar}`}
+                src={avatarObjectUrl ?? "/avatar-default.svg"}
                 alt="preview"
                 className="w-14 h-14 rounded-full bg-gray-800 object-cover"
               />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Play, Lock, Loader2 } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface KliqEpisode {
   id: string;
@@ -182,7 +182,7 @@ export function KliqStreamShow() {
           {/* Author */}
           <div className="flex items-center gap-2 mt-5">
             <img
-              src={resolveMediaUrl(title.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${title.author.username}`}
+              src={resolveAvatarUrl(title.author.avatarUrl)}
               alt={title.author.displayName}
               className="w-7 h-7 rounded-full object-cover border border-white/20"
             />

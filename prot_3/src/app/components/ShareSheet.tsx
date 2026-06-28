@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Search, Link, Copy, Check } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface Friend {
   username: string;
@@ -136,7 +136,7 @@ export function ShareSheet({ isOpen, onClose, url, onRepost }: Props) {
             {filteredFriends.map(f => (
               <button key={f.username} onClick={() => sendToFriend(f.username)} className="flex flex-col items-center gap-1.5 flex-shrink-0">
                 <div className={`relative w-14 h-14 rounded-full overflow-hidden bg-gray-800 border-2 transition ${sent.has(f.username) ? "border-purple-500" : "border-transparent"}`}>
-                  <img src={resolveMediaUrl(f.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.username}`} alt={f.username} className="w-full h-full object-cover" />
+                  <img src={resolveAvatarUrl(f.avatarUrl)} alt={f.username} className="w-full h-full object-cover" />
                   {sent.has(f.username) && (
                     <div className="absolute inset-0 bg-purple-600/60 flex items-center justify-center">
                       <Check size={20} className="text-white" />

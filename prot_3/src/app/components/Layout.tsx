@@ -4,8 +4,8 @@ import {
   Youtube, Tv, Store, BarChart2, Wallet, Megaphone,
   Bell, Settings, Loader2, Plus, Compass, Sun, Moon
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { AUTH_EXPIRED_EVENT, resolveMediaUrl, api } from "../api/client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { AUTH_EXPIRED_EVENT, resolveAvatarUrl, resolveMediaUrl, api } from "../api/client";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import kliqLogo from "../../imports/Kliq_logo.jpeg";
 import { useUser } from "../context/UserContext";
@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { ActionPanel } from "./ActionPanel";
 import { useNotifications } from "../context/NotificationContext";
+import { initMessaging } from "../../firebase";
 
 const SIDEBAR_SECTIONS = [
   {
@@ -78,15 +79,25 @@ export function Layout() {
   const { unreadCount } = useNotifications();
   const { effective: themeEff, setMode: setThemeMode } = useTheme();
   const navigate = useNavigate();
+  const fcmRegistered = useRef(false);
 
   useEffect(() => {
     if (user) setTier(tierNum(user.tier));
   }, [user, setTier]);
 
+  // Register FCM token once after login
+  useEffect(() => {
+    if (!user || fcmRegistered.current) return;
+    fcmRegistered.current = true;
+    initMessaging().then(token => {
+      if (token) api.post("/notifications/token", { token }).catch(() => {});
+    }).catch(() => {});
+  }, [user]);
+
   const fetchSidebarBalance = useCallback(async () => {
     try {
       const data = await api.get<{ balance: number }>("/wallet/me");
-      setSidebarBalance(data.balance);
+      setSidebarBalance(data.balance ?? null);
     } catch { /* silently ignore */ }
   }, []);
 
@@ -242,7 +253,7 @@ export function Layout() {
               title="Open menu"
             >
               <img
-                src={resolveMediaUrl(user.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                src={resolveAvatarUrl(user.avatarUrl)}
                 alt={user.displayName}
                 className="w-full h-full rounded-full object-cover"
               />

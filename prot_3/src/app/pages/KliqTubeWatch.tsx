@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft, ThumbsUp, ThumbsDown, Share2, Bookmark,
-  Play, ChevronDown, ChevronUp, Send
+  Play, ChevronDown, ChevronUp, Send, PictureInPicture2, Maximize2
 } from "lucide-react";
 import { useSocial } from "../context/SocialContext";
 import { ShareSheet } from "../components/ShareSheet";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { MediaVideo } from "../components/media/MediaVideo";
+import { MediaImg } from "../components/media/MediaImg";
 
 interface TubePost {
   id: string;
@@ -20,6 +22,8 @@ interface TubePost {
   commentCount: number;
   createdAt: string;
   liked: boolean;
+  disliked?: boolean;
+  bookmarked?: boolean;
   author: { username: string; displayName: string; avatarUrl: string; isVerified: boolean };
 }
 
@@ -72,6 +76,8 @@ export function KliqTubeWatch() {
   const [saved, setSaved] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   // Comments
   const [comments, setComments] = useState<Comment[]>([]);
@@ -86,14 +92,14 @@ export function KliqTubeWatch() {
     setCommentsExpanded(false);
 
     api.get<TubePost>(`/posts/${id}`)
-      .then(p => { setVideo(p); setLiked(p.liked); })
+      .then(p => { setVideo(p); setLiked(p.liked); setDisliked(p.disliked ?? false); setSaved(p.bookmarked ?? false); })
       .catch(() => {});
 
     // Record a view when the post is opened
     api.post(`/posts/${id}/view`, {}).catch(() => {});
 
-    api.get<TubePost[]>("/posts?type=tube&limit=10")
-      .then(posts => setRelated(posts.filter(p => p.id !== id).slice(0, 10)))
+    api.get<TubePost[]>(`/posts/tube/related/${id}`)
+      .then(posts => setRelated(posts))
       .catch(() => {});
 
     api.get<Comment[]>(`/posts/${id}/comments`)
@@ -136,6 +142,33 @@ export function KliqTubeWatch() {
         : api.post(`/posts/${id}/like`, {}));
     } catch {
       setLiked(wasLiked);
+    }
+  };
+
+  const handleDislike = async () => {
+    if (!id) return;
+    const wasDisliked = disliked;
+    setDisliked(d => !d);
+    if (liked) { setLiked(false); await api.delete(`/posts/${id}/like`).catch(() => {}); }
+    try {
+      await (wasDisliked
+        ? api.delete(`/posts/${id}/dislike`)
+        : api.post(`/posts/${id}/dislike`, {}));
+    } catch {
+      setDisliked(wasDisliked);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!id) return;
+    const wasSaved = saved;
+    setSaved(s => !s);
+    try {
+      await (wasSaved
+        ? api.delete(`/bookmarks/${id}`)
+        : api.post(`/bookmarks/${id}`, {}));
+    } catch {
+      setSaved(wasSaved);
     }
   };
 
@@ -190,7 +223,7 @@ export function KliqTubeWatch() {
           {/* Video player — full width, 16:9, native controls, autoplay */}
           <div className="bg-black w-full">
             {video.mediaUrl ? (
-              <video
+              <MediaVideo
                 ref={videoRef}
                 key={video.id}
                 src={resolveMediaUrl(video.mediaUrl) ?? ""}
@@ -198,6 +231,7 @@ export function KliqTubeWatch() {
                 autoPlay
                 playsInline
                 className="w-full aspect-video bg-black lg:rounded-xl"
+                context={`KliqTubeWatch/post:${video.id}`}
               />
             ) : (
               <div className="w-full aspect-video bg-gray-900 flex items-center justify-center lg:rounded-xl">
@@ -205,6 +239,44 @@ export function KliqTubeWatch() {
               </div>
             )}
           </div>
+
+          {/* Custom control row: speed + PiP + fullscreen */}
+          {video.mediaUrl && (
+            <div className="flex items-center gap-2 px-4 lg:px-0 py-2 bg-[#0f0f0f]">
+              <span className="text-gray-500 text-xs mr-1">Speed</span>
+              {SPEEDS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setPlaybackSpeed(s);
+                    if (videoRef.current) videoRef.current.playbackRate = s;
+                  }}
+                  className={`px-2 py-0.5 rounded text-xs font-mono transition ${
+                    playbackSpeed === s ? "bg-white text-black font-bold" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {s === 1 ? "1×" : `${s}×`}
+                </button>
+              ))}
+              <div className="flex-1" />
+              {"pictureInPictureEnabled" in document && (
+                <button
+                  onClick={() => videoRef.current?.requestPictureInPicture?.().catch(() => {})}
+                  className="p-1.5 text-gray-400 hover:text-white transition"
+                  title="Picture in Picture"
+                >
+                  <PictureInPicture2 size={16} />
+                </button>
+              )}
+              <button
+                onClick={() => videoRef.current?.requestFullscreen?.().catch(() => {})}
+                className="p-1.5 text-gray-400 hover:text-white transition"
+                title="Fullscreen"
+              >
+                <Maximize2 size={16} />
+              </button>
+            </div>
+          )}
 
           <div className="px-4 lg:px-0 pt-4">
             {/* Title */}
@@ -231,7 +303,7 @@ export function KliqTubeWatch() {
               </button>
 
               <button
-                onClick={() => { setDisliked(p => !p); if (liked) setLiked(false); }}
+                onClick={handleDislike}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition ${
                   disliked ? "bg-white text-black border-white" : "border-gray-700 text-gray-300 hover:border-gray-500"
                 }`}
@@ -247,7 +319,7 @@ export function KliqTubeWatch() {
               </button>
 
               <button
-                onClick={() => setSaved(p => !p)}
+                onClick={handleSave}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition ${
                   saved ? "border-red-500 text-red-400" : "border-gray-700 text-gray-400 hover:border-gray-500"
                 }`}
@@ -263,7 +335,7 @@ export function KliqTubeWatch() {
                 className="flex items-center gap-3 flex-1 min-w-0"
               >
                 <img
-                  src={resolveMediaUrl(video.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${video.author.username}`}
+                  src={resolveAvatarUrl(video.author.avatarUrl)}
                   alt={video.author.displayName}
                   className="w-11 h-11 rounded-full bg-gray-800 object-cover"
                 />
@@ -345,7 +417,7 @@ export function KliqTubeWatch() {
                       {comments.map(c => (
                         <div key={c.id} className="flex gap-3">
                           <img
-                            src={resolveMediaUrl(c.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author.username}`}
+                            src={resolveAvatarUrl(c.author.avatarUrl)}
                             alt={c.author.displayName}
                             className="w-8 h-8 rounded-full bg-gray-800 object-cover flex-shrink-0"
                           />
@@ -382,10 +454,11 @@ export function KliqTubeWatch() {
                 >
                   {/* Thumbnail */}
                   <div className="relative w-40 flex-shrink-0 aspect-video rounded-xl overflow-hidden bg-gray-900">
-                    <img
+                    <MediaImg
                       src={vThumb}
                       alt={v.title ?? v.body}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      context={`KliqTubeWatch/related:${v.id}`}
                     />
                     {v.duration != null && (
                       <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 py-0.5 rounded font-mono">

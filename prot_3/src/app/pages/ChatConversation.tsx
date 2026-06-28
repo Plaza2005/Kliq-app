@@ -7,7 +7,7 @@ import {
   Flag, Trash2, Check, Copy, Star, Share2, Loader2, Play, Pause,
 } from "lucide-react";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useRealtime } from "../context/RealtimeContext";
 
@@ -674,7 +674,7 @@ export function ChatConversation() {
 
   const ownBubble = `bg-gradient-to-r ${accent.from} ${accent.to}`;
 
-  const avatar = otherUser?.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherUser?.username ?? "x"}`;
+  const avatar = resolveAvatarUrl(otherUser?.avatarUrl);
   const displayName = otherUser?.displayName ?? otherUser?.username ?? id ?? "Chat";
 
   return (
@@ -700,7 +700,7 @@ export function ChatConversation() {
           </div>
           {callType === "video" && !camOff && (
             <div className="absolute bottom-48 right-6 w-28 h-40 rounded-2xl overflow-hidden border-2 border-gray-700 z-10">
-              <img src={resolveMediaUrl(me?.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${me?.username}`} alt="me" className="w-full h-full object-cover" />
+              <img src={resolveAvatarUrl(me?.avatarUrl)} alt="me" className="w-full h-full object-cover" />
             </div>
           )}
           <div className="relative z-10 flex items-center gap-6">

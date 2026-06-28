@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { X, Heart, Send, Upload, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useSocial } from "../context/SocialContext";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface StorySlide {
   id: string;
@@ -189,7 +189,7 @@ export function StoryViewer() {
 
   const isOwn = false; // adjust if you have a "Your Story" concept
   const avatarUrl = resolveMediaUrl(storyData.author.avatarUrl)
-    ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${storyData.author.username}`;
+    ?? "/avatar-default.svg";
 
   return (
     <div
@@ -214,7 +214,7 @@ export function StoryViewer() {
               className={`flex-shrink-0 w-8 h-8 rounded-full border-2 transition ${i === currentUser ? "border-white scale-110" : "border-white/40 opacity-60"}`}
             >
               <img
-                src={resolveMediaUrl(u.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.author.username}`}
+                src={resolveAvatarUrl(u.author.avatarUrl)}
                 alt={u.author.username}
                 className="w-full h-full rounded-full bg-gray-800 object-cover"
               />

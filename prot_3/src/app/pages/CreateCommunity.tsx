@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Users, Search, Check, Globe, Lock, Image as ImageIcon, Sparkles, MessageSquare, Loader2, Camera } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
 type Step = 1 | 2 | 3;
@@ -235,7 +235,7 @@ export function CreateCommunity() {
                 {Array.from(selected).map(u => (
                   <button key={u} onClick={() => toggleMember(u)} className="flex flex-col items-center gap-1 flex-shrink-0">
                     <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-purple-500 overflow-hidden relative">
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u}`} alt={u} className="w-full h-full" />
+                      <img src={"/avatar-default.svg"} alt={u} className="w-full h-full" />
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Check size={16} className="text-white" />
                       </div>
@@ -257,7 +257,7 @@ export function CreateCommunity() {
                 {filtered.map(s => (
                   <button key={s.username} onClick={() => toggleMember(s.username)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-900 transition">
-                    <img src={resolveMediaUrl(s.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.username}`}
+                    <img src={resolveAvatarUrl(s.avatarUrl)}
                       alt={s.username} className="w-10 h-10 rounded-full bg-gray-800 object-cover" />
                     <div className="flex-1 text-left">
                       <p className="text-white text-sm font-medium">@{s.username}</p>

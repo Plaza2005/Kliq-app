@@ -4,6 +4,7 @@ import fjwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import staticPlugin from "@fastify/static";
 import websocket from "@fastify/websocket";
+import rateLimit from "@fastify/rate-limit";
 import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
@@ -30,7 +31,10 @@ import { hashtagRoutes } from "./routes/hashtags";
 import { soundRoutes } from "./routes/sounds";
 import { pollRoutes } from "./routes/polls";
 import { groupRoutes } from "./routes/groups";
+import { subscriptionRoutes } from "./routes/subscriptions";
 import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream } from "./ws";
+import { startBackgroundJobs } from "./jobs";
+import { getPresignedUploadUrl, R2_PUBLIC_URL } from "./storage";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -50,6 +54,12 @@ const prisma = new PrismaClient();
 const app = Fastify({ logger: { level: "warn" } });
 
 // ── Plugins ────────────────────────────────────────────────────────────────
+app.register(rateLimit, {
+  max: 120,           // 120 requests per minute globally
+  timeWindow: "1 minute",
+  errorResponseBuilder: () => ({ error: "Too many requests, slow down." }),
+});
+
 app.register(cors, {
   origin: true,
   credentials: true,
@@ -99,7 +109,9 @@ app.decorate("authenticateAdmin", async (req: FastifyRequest, reply: FastifyRepl
 app.get<{ Querystring: { token?: string } }>(
   "/ws",
   { websocket: true },
-  (socket, req) => {
+  (connection, req) => {
+    const ws = connection.socket; // raw ws.WebSocket — has .send(), .readyState, .terminate()
+
     let userId: string | null = null;
     try {
       const token = req.query.token;
@@ -107,14 +119,14 @@ app.get<{ Querystring: { token?: string } }>(
       const payload = app.jwt.verify<{ id: string }>(token);
       userId = payload.id;
     } catch {
-      socket.close(1008, "Unauthorized");
+      try { ws.terminate(); } catch { /* ignore */ }
       return;
     }
 
-    wsHub.register(userId, socket);
-    socket.send(JSON.stringify({ type: "connected", userId }));
+    wsHub.register(userId, ws);
+    ws.send(JSON.stringify({ type: "connected", userId }));
 
-    socket.on("message", (raw: Buffer | string) => {
+    ws.on("message", (raw: Buffer | string) => {
       try {
         const msg = JSON.parse(raw.toString()) as { type: string; streamId?: string; chunk?: unknown; body?: string; fromUsername?: string };
         if (msg.type === "stream:subscribe" && msg.streamId && userId) {
@@ -133,8 +145,8 @@ app.get<{ Querystring: { token?: string } }>(
       }
     });
 
-    socket.on("close", () => { if (userId) wsHub.unregister(userId); });
-    socket.on("error", () => { if (userId) wsHub.unregister(userId); });
+    ws.on("close", () => { if (userId) wsHub.unregister(userId); });
+    ws.on("error", () => { if (userId) wsHub.unregister(userId); });
   }
 );
 
@@ -156,8 +168,10 @@ app.post("/upload", { preHandler: [app.authenticate] }, async (req, reply) => {
   for await (const chunk of data.file) chunks.push(chunk);
   fs.writeFileSync(filepath, Buffer.concat(chunks));
 
-  const origin = process.env.ORIGIN?.replace(/\/$/, "") ?? `http://localhost:${port}`;
-  const url = `${origin}/uploads/${filename}`;
+  // Return a root-relative path so clients resolve it against their own origin.
+  // When the frontend proxies through Vite (dev) or a reverse proxy (prod),
+  // this avoids mixed-content blocks from absolute http:// URLs.
+  const url = `/uploads/${filename}`;
   return { url, filename };
 });
 
@@ -183,9 +197,44 @@ app.register(hashtagRoutes,      { prefix: "/hashtags" });
 app.register(soundRoutes,        { prefix: "/sounds" });
 app.register(pollRoutes,         { prefix: "/polls" });
 app.register(groupRoutes,        { prefix: "/groups" });
+app.register(subscriptionRoutes, { prefix: "/subscriptions" });
 
 app.get("/", () => ({ name: "KLIQ API", status: "ok", version: "1.0.0" }));
 app.get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }));
+
+// ── Cloudflare R2 presigned upload URL ────────────────────────────────────
+app.post<{ Body: { filename: string; contentType: string } }>(
+  "/media/upload-url",
+  { preHandler: [app.authenticate] },
+  async (req, reply) => {
+    const { filename, contentType } = req.body;
+    if (!filename || !contentType) return reply.status(400).send({ error: "filename and contentType required" });
+    try {
+      const { uploadUrl, publicUrl } = await getPresignedUploadUrl(filename, contentType);
+      return { uploadUrl, publicUrl };
+    } catch {
+      return reply.status(503).send({ error: "Storage not configured — using local uploads" });
+    }
+  }
+);
+
+// ── Media failure reporting ────────────────────────────────────────────────
+app.post<{ Body: { url: string; context?: string } }>(
+  "/media/report-failure",
+  { preHandler: [app.authenticate] },
+  async (req) => {
+    const { url, context } = req.body;
+    await app.prisma.activityLog.create({
+      data: {
+        actorId: req.user.id,
+        action:  "media.failure",
+        target:  url,
+        details: context ?? null,
+      },
+    });
+    return { ok: true };
+  }
+);
 
 // ── Region / locale detection ──────────────────────────────────────────────
 const TZ_CURRENCY: Record<string, { currency: string; symbol: string; locale: string; country: string }> = {
@@ -225,6 +274,7 @@ app.get("/region", () => {
 const start = async () => {
   const port = parseInt(process.env.PORT || "4000");
   await app.listen({ port, host: "0.0.0.0" });
+  startBackgroundJobs(prisma);
   console.log(`\n🚀  KLIQ API running on http://localhost:${port}`);
   console.log(`   WS:     ws://localhost:${port}/ws?token=<jwt>`);
   console.log(`   Admin:  POST /auth/login  { email: "admin@kliq.app", password: "Admin1234!" }`);

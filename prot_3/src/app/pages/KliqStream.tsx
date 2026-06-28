@@ -37,6 +37,24 @@ interface KliqTitle {
 interface BrowseResponse {
   featured: KliqTitle[];
   genres: { name: string; titles: KliqTitle[] }[];
+  trending: KliqTitle[];
+  newReleases: KliqTitle[];
+  top10: KliqTitle[];
+  recommended: KliqTitle[];
+}
+
+interface ContinueItem {
+  contentId: string;
+  contentType: string;
+  progressS: number;
+  durationS: number | null;
+  progressPct: number;
+  title: string;
+  titleId: string | null;
+  thumbUrl: string | null;
+  episodeTitle: string | null;
+  episodeNumber: number | null;
+  seasonNumber: number | null;
 }
 
 function SkeletonCard() {
@@ -51,6 +69,14 @@ function SkeletonCard() {
 
 function TitleCard({ title, onClick }: { title: KliqTitle; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
+  const trailerRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const v = trailerRef.current;
+    if (!v) return;
+    if (hovered) { v.currentTime = 0; v.play().catch(() => {}); }
+    else v.pause();
+  }, [hovered]);
 
   return (
     <button
@@ -60,6 +86,7 @@ function TitleCard({ title, onClick }: { title: KliqTitle; onClick: () => void }
       onMouseLeave={() => setHovered(false)}
     >
       <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 mb-2 relative transition-transform duration-200 group-hover:scale-105">
+        {/* Poster image */}
         {title.posterUrl ? (
           <img
             src={resolveMediaUrl(title.posterUrl) ?? ""}
@@ -71,21 +98,34 @@ function TitleCard({ title, onClick }: { title: KliqTitle; onClick: () => void }
             <Play size={28} className="text-white/40" />
           </div>
         )}
+        {/* Trailer video overlay (plays on hover, muted) */}
+        {title.trailerUrl && (
+          <video
+            ref={trailerRef}
+            src={resolveMediaUrl(title.trailerUrl) ?? ""}
+            muted
+            playsInline
+            loop
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}
+          />
+        )}
         {/* Age rating badge */}
-        <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/20">
+        <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/20 z-10">
           {title.ageRating}
         </span>
         {/* Tier lock overlay */}
         {title.locked && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1">
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1 z-10">
             <Lock size={20} className="text-white" />
             <span className="text-white text-[10px] font-bold">Plus</span>
           </div>
         )}
         {/* Hover quick info */}
         {hovered && !title.locked && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-end justify-end p-3 gap-2">
-            <p className="text-white text-xs line-clamp-3 self-start">{title.synopsis ?? ""}</p>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 z-10">
+            {!title.trailerUrl && (
+              <p className="text-white text-xs line-clamp-2 mb-2">{title.synopsis ?? ""}</p>
+            )}
             <button
               onClick={e => { e.stopPropagation(); onClick(); }}
               className="w-full bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition"
@@ -113,12 +153,19 @@ export function KliqStream() {
   const [searchQuery, setSearchQuery] = useState("");
   const rotateRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [continueWatching, setContinueWatching] = useState<ContinueItem[]>([]);
 
   useEffect(() => {
     api.get<BrowseResponse>("/kliqstream/browse")
       .then(d => setData(d))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get<ContinueItem[]>("/kliqstream/continue-watching")
+      .then(items => setContinueWatching(items))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -276,7 +323,7 @@ export function KliqStream() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => hero.locked ? navigate("/settings") : navigate(`/kliqstream/watch/${hero.id}?type=${hero.type}`)}
+                    onClick={() => hero.locked ? navigate("/settings") : (hero.type === "movie" ? navigate(`/kliqstream/watch/${hero.id}?type=movie`) : navigate(`/kliqstream/${hero.id}`))}
                     className="bg-white text-black px-7 py-2.5 rounded-md font-bold flex items-center gap-2 hover:bg-gray-200 transition text-sm"
                   >
                     <Play size={16} fill="currentColor" /> Play
@@ -295,6 +342,103 @@ export function KliqStream() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Continue Watching row */}
+          {continueWatching.length > 0 && !searchQuery && (
+            <div className="px-4 mb-8">
+              <h2 className="text-white font-bold text-lg mb-3">Continue Watching</h2>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {continueWatching.map(item => (
+                  <button
+                    key={item.contentId}
+                    onClick={() => item.titleId ? navigate(`/kliqstream/${item.titleId}`) : undefined}
+                    className="flex-shrink-0 w-44 text-left relative group"
+                  >
+                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-900 mb-2 relative transition-transform duration-200 group-hover:scale-105">
+                      {item.thumbUrl ? (
+                        <img src={resolveMediaUrl(item.thumbUrl) ?? ""} alt={item.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                          <Play size={24} className="text-white/30" />
+                        </div>
+                      )}
+                      {/* Progress bar */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                        <div className="h-full bg-red-500" style={{ width: `${item.progressPct}%` }} />
+                      </div>
+                    </div>
+                    <p className="text-gray-200 text-xs font-semibold line-clamp-1">{item.title}</p>
+                    {item.episodeNumber && (
+                      <p className="text-gray-500 text-[10px]">
+                        S{item.seasonNumber}:E{item.episodeNumber} {item.episodeTitle ? `· ${item.episodeTitle}` : ""}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Discovery rows (hidden during search) */}
+          {!searchQuery && (
+            <div className="space-y-8 px-4 mb-8">
+              {/* Recommended — only if user has watch history */}
+              {(data.recommended ?? []).length > 0 && (
+                <div>
+                  <h2 className="text-white font-bold text-lg mb-3">Recommended For You</h2>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {data.recommended.map(title => (
+                      <TitleCard key={title.id} title={title} onClick={() => navigate(`/kliqstream/${title.id}`)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trending Now */}
+              {(data.trending ?? []).length > 0 && (
+                <div>
+                  <h2 className="text-white font-bold text-lg mb-3">Trending Now 🔥</h2>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {data.trending.map(title => (
+                      <TitleCard key={title.id} title={title} onClick={() => navigate(`/kliqstream/${title.id}`)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top 10 */}
+              {(data.top10 ?? []).length > 0 && (
+                <div>
+                  <h2 className="text-white font-bold text-lg mb-1">Top 10 Today</h2>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {data.top10.map((title, i) => (
+                      <div key={title.id} className="relative flex-shrink-0">
+                        <span className="absolute -left-1 bottom-10 text-[64px] font-extrabold text-gray-800/90 leading-none select-none z-0 pointer-events-none"
+                          style={{ WebkitTextStroke: "2px #374151" }}>
+                          {i + 1}
+                        </span>
+                        <div className="relative z-10 pl-5">
+                          <TitleCard title={title} onClick={() => navigate(`/kliqstream/${title.id}`)} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* New Releases */}
+              {(data.newReleases ?? []).length > 0 && (
+                <div>
+                  <h2 className="text-white font-bold text-lg mb-3">New Releases</h2>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {data.newReleases.map(title => (
+                      <TitleCard key={title.id} title={title} onClick={() => navigate(`/kliqstream/${title.id}`)} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

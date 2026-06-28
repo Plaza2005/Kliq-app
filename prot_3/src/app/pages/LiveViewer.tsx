@@ -46,7 +46,7 @@ export function LiveViewer() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [showGifts, setShowGifts] = useState(false);
-  const [giftAnim, setGiftAnim] = useState<{ emoji: string; id: number } | null>(null);
+  const [giftAnims, setGiftAnims] = useState<{ emoji: string; id: number; sender: string; x: number }[]>([]);
   const giftAnimId = useRef(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -116,6 +116,14 @@ export function LiveViewer() {
           tryAppend();
         } catch {}
       }
+      if (event.type === "live:gift" && event.streamId === streamId) {
+        const GIFT_EMOJIS: Record<string, string> = { rose: "🌹", heart: "❤️", star: "⭐", diamond: "💎", crown: "👑", rocket: "🚀" };
+        const emoji = GIFT_EMOJIS[event.giftType] ?? "🎁";
+        const id = ++giftAnimId.current;
+        const x = 20 + Math.random() * 60; // random horizontal position 20-80%
+        setGiftAnims(prev => [...prev, { emoji, id, sender: event.sender?.username ?? "someone", x }]);
+        setTimeout(() => setGiftAnims(prev => prev.filter(a => a.id !== id)), 2500);
+      }
       if (event.type === "live:chat" && event.streamId === streamId) {
         setChatMessages((prev) => [
           ...prev,
@@ -159,17 +167,15 @@ export function LiveViewer() {
     setChatInput("");
   };
 
-  const sendGift = async (giftType: string, emoji: string) => {
+  const sendGift = async (giftType: string, _emoji: string) => {
     if (!streamId) return;
     setShowGifts(false);
-    const id = ++giftAnimId.current;
-    setGiftAnim({ emoji, id });
-    setTimeout(() => setGiftAnim(a => a?.id === id ? null : a), 2200);
     try {
       await api.post(`/live/${streamId}/gift`, { giftType });
+      // animation will show via the WS event broadcast
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      toast(msg.includes("coins") ? "Not enough coins" : "Gift failed");
+      toast(msg.includes("tokens") || msg.includes("coins") ? "Not enough coins" : "Gift failed");
     }
   };
 
@@ -246,17 +252,19 @@ export function LiveViewer() {
         <p className="text-gray-400 text-xs">{stream.category}</p>
       </div>
 
-      {/* Gift animation overlay */}
-      {giftAnim && (
+      {/* Gift animation overlays */}
+      {giftAnims.map(anim => (
         <div
-          key={giftAnim.id}
-          className="absolute right-4 bottom-36 z-20 flex flex-col items-center gap-1 pointer-events-none"
-          style={{ animation: "giftFloat 2.2s ease-out forwards" }}
+          key={anim.id}
+          className="absolute bottom-36 z-20 flex flex-col items-center gap-1 pointer-events-none"
+          style={{ left: `${anim.x}%`, animation: "giftFloat 2.4s ease-out forwards" }}
         >
-          <span className="text-5xl drop-shadow-lg">{giftAnim.emoji}</span>
-          <span className="text-white text-xs font-bold bg-black/50 px-2 py-0.5 rounded-full">Sent!</span>
+          <span className="text-5xl drop-shadow-lg filter drop-shadow">{anim.emoji}</span>
+          <span className="text-white text-[10px] font-bold bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap">
+            @{anim.sender}
+          </span>
         </div>
-      )}
+      ))}
 
       {/* Chat panel — pinned to bottom */}
       <div className="relative z-10 mt-auto flex flex-col max-h-[45%] mx-4 mb-4">

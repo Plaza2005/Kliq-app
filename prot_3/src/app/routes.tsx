@@ -51,10 +51,17 @@ import { MutedUsers } from "./pages/MutedUsers";
 import { PrivacySettings } from "./pages/PrivacySettings";
 import { NotificationPrefs } from "./pages/NotificationPrefs";
 import { SoundsPage } from "./pages/SoundsPage";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
+import { VerifyEmail } from "./pages/VerifyEmail";
+import { GroupChatPage } from "./pages/GroupChatPage";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: Login, errorElement: <ErrorPage /> },
   { path: "/onboarding", Component: Onboarding, errorElement: <ErrorPage /> },
+  { path: "/forgot-password", Component: ForgotPassword, errorElement: <ErrorPage /> },
+  { path: "/reset-password", Component: ResetPassword, errorElement: <ErrorPage /> },
+  { path: "/verify-email", Component: VerifyEmail, errorElement: <ErrorPage /> },
   { path: "/story/:username", Component: StoryViewer, errorElement: <ErrorPage /> },
   { path: "/stream/watch/:id", Component: KliqStreamWatch, errorElement: <ErrorPage /> },
   { path: "/kliqstream/watch/:id", Component: KliqStreamPlayer, errorElement: <ErrorPage /> },
@@ -108,6 +115,7 @@ export const router = createBrowserRouter([
       { path: "privacy-settings", Component: PrivacySettings },
       { path: "notification-prefs", Component: NotificationPrefs },
       { path: "sounds", Component: SoundsPage },
+      { path: "groups/:id", Component: GroupChatPage },
     ],
   },
 ]);

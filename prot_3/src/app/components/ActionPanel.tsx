@@ -1,7 +1,7 @@
 import { X, Wallet, BarChart2, Download, Tv, Briefcase, Settings, TrendingUp, Video, Youtube, ChevronRight, Users, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
-import { resolveMediaUrl } from "../api/client";
+import { resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface ActionPanelProps {
   isOpen: boolean;
@@ -51,7 +51,7 @@ export function ActionPanel({ isOpen, onClose }: ActionPanelProps) {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 overflow-hidden p-[2px]">
               <img
-                src={resolveMediaUrl(user?.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
+                src={resolveAvatarUrl(user?.avatarUrl)}
                 alt={user?.displayName}
                 className="w-full h-full rounded-full object-cover"
               />

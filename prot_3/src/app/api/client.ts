@@ -1,6 +1,9 @@
 function getApiBase(): string {
   const env = import.meta.env.VITE_API_URL as string | undefined;
   if (env) return env;
+  // In dev, use relative paths so Vite's HTTPS proxy forwards them to the backend.
+  // This avoids mixed-content blocks when the phone accesses over https://LAN-IP:5173.
+  if (import.meta.env.DEV) return "";
   const h = window.location.hostname;
   if (h === "localhost" || h === "127.0.0.1") return "http://localhost:4000";
   return `http://${h}:4000`;
@@ -8,6 +11,10 @@ function getApiBase(): string {
 export const BASE = getApiBase();
 
 export function getWsUrl(): string {
+  if (!BASE) {
+    // Relative WS URL — browser resolves it against current page's wss:// or ws:// origin.
+    return "/ws";
+  }
   return BASE.replace(/^http/, "ws") + "/ws";
 }
 
@@ -15,6 +22,12 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("http")) return url;
   return `${BASE}${url}`;
+}
+
+export function resolveAvatarUrl(url: string | null | undefined): string {
+  if (!url) return "/avatar-default.svg";
+  if (url.startsWith("http") || url.startsWith("blob:") || url.startsWith("/")) return url;
+  return `${BASE}/${url}`;
 }
 
 function getToken(): string | null {
@@ -47,7 +60,8 @@ async function request<T>(
   body?: unknown,
   auth = true
 ): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
   if (auth) {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;

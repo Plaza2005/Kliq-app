@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BadgeCheck, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 type StatusFilter = "pending" | "approved" | "rejected";
 
@@ -60,11 +60,11 @@ export function BadgeRequests() {
             return (
               <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <div className="flex items-start gap-4">
-                  <img src={resolveMediaUrl(r.user.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user.username}`} className="w-12 h-12 rounded-full flex-shrink-0" />
+                  <img src={resolveAvatarUrl(r.user.avatarUrl)} className="w-12 h-12 rounded-full flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-white font-bold">{r.user.displayName}</span>
-                      {r.user.isVerified && <span className="text-blue-400 text-sm">✓ Already verified</span>}
+                      {r.user.isVerified && <span className="text-blue-400 text-sm">? Already verified</span>}
                       {status === "approved" && <span className="bg-green-900/50 text-green-400 text-xs px-2 py-0.5 rounded-full font-semibold">Approved</span>}
                       {status === "rejected" && <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full font-semibold">Rejected</span>}
                     </div>
@@ -81,7 +81,7 @@ export function BadgeRequests() {
                     </button>
                     <button onClick={() => act(r.id, "approved")}
                       className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition">
-                      <CheckCircle size={15} />Approve ✓
+                      <CheckCircle size={15} />Approve ?
                     </button>
                   </div>
                 )}

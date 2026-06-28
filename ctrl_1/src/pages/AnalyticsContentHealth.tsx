@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Globe, Youtube, Tv, Store, FileText, Eye, Heart, MessageCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 const TOOLTIP_STYLE = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#fff", fontSize: 12 };
 const PIE_COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981"];
@@ -124,7 +124,7 @@ export function AnalyticsContentHealth() {
                 {data.topCreators.map((c, i) => (
                   <div key={c.username} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                     <span className="text-gray-500 text-xs font-bold w-5 text-center">#{i + 1}</span>
-                    <img src={resolveMediaUrl(c.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username}`} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
+                    <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold">{c.displayName}</p>
                       <p className="text-gray-500 text-xs">@{c.username}</p>

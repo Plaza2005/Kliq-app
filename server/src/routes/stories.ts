@@ -47,7 +47,7 @@ export async function storyRoutes(app: FastifyInstance) {
             author: {
               username:    story.user.username,
               displayName: story.user.displayName,
-              avatarUrl:   story.user.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${story.user.username}`,
+              avatarUrl:   story.user.avatarUrl,
             },
             stories:   [],
             hasViewed: false,

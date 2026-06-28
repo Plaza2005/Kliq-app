@@ -50,6 +50,6 @@ export async function blockRoutes(app: FastifyInstance) {
       where: { blockerId: req.user.id },
       include: { blocked: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
     });
-    return blocks.map(b => ({ ...b.blocked, avatarUrl: b.blocked.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${b.blocked.username}` }));
+    return blocks.map(b => ({ ...b.blocked, avatarUrl: b.blocked.avatarUrl }));
   });
 }

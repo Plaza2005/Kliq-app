@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Flag, ShieldX, Trash2, Loader2, AlertTriangle } from "lucide-react";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 type ReportAction = "dismiss" | "remove_post" | "ban_user";
 type FilterTab = "all" | "pending" | "actioned";
@@ -87,7 +87,7 @@ export function ReportsManagement() {
 
               <div className="bg-gray-800 rounded-xl p-3 mb-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <img src={resolveMediaUrl(r.post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.post.author.username}`} className="w-7 h-7 rounded-full" />
+                  <img src={resolveAvatarUrl(r.post.author.avatarUrl)} className="w-7 h-7 rounded-full" />
                   <span className="text-white text-sm font-semibold">{r.post.author.displayName}</span>
                   <span className="text-gray-500 text-xs">@{r.post.author.username}</span>
                 </div>
@@ -106,7 +106,7 @@ export function ReportsManagement() {
                     className="px-3 py-1.5 bg-red-800/50 hover:bg-red-800/80 text-red-400 text-xs font-semibold rounded-lg transition">Ban User</button>
                 </div>
               )}
-              {actioned.has(r.id) && <span className="text-green-500 text-xs font-semibold">✓ Actioned</span>}
+              {actioned.has(r.id) && <span className="text-green-500 text-xs font-semibold">? Actioned</span>}
             </div>
           ))}
         </div>

@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, Upload, ChevronRight, X, Shield, Star, Shopp
 import { useNavigate } from "react-router";
 import { useUser } from "../context/UserContext";
 import { api } from "../api/client";
+import { MediaImg } from "../components/media/MediaImg";
 
 type Category = "All" | "Digital" | "Physical" | "Services";
 
@@ -27,6 +28,8 @@ interface MarketPost {
   body: string;
   mediaUrl: string | null;
   likeCount: number;
+  isPaylocked: boolean;
+  payPrice: number | null;
   author: { username: string; avatarUrl: string; isVerified: boolean; displayName: string };
 }
 
@@ -246,10 +249,10 @@ export function Marketplace() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((item) => (
-              <div key={item.id} className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden cursor-pointer group hover:border-gray-600 transition-all">
+              <div key={item.id} onClick={() => navigate(`/post/${item.id}`)} className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden cursor-pointer group hover:border-gray-600 transition-all">
                 <div className="aspect-square relative overflow-hidden bg-gray-900">
                   {item.mediaUrl ? (
-                    <img src={item.mediaUrl} alt={item.body} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <MediaImg src={item.mediaUrl} alt={item.body} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" context={`Marketplace/item:${item.id}`} />
                   ) : (
                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                       <ShoppingBag size={32} className="text-gray-600" />
@@ -263,23 +266,24 @@ export function Marketplace() {
                 </div>
                 <div className="p-3">
                   <p className="text-white font-semibold text-sm truncate mb-0.5">{item.body || "Untitled listing"}</p>
-                  <div className="flex items-center gap-1 mb-2">
+                  <div className="flex items-center justify-between mb-2">
                     <button
-                      onClick={() => navigate(`/user/${item.author.username}`)}
-                      className="text-gray-500 text-xs hover:text-purple-400 transition"
+                      onClick={e => { e.stopPropagation(); navigate(`/user/${item.author.username}`); }}
+                      className="text-gray-500 text-xs hover:text-purple-400 transition flex items-center gap-0.5"
                     >
                       @{item.author.username}
+                      {item.author.isVerified && <Shield size={10} className="text-purple-400 ml-0.5" />}
                     </button>
-                    {item.author.isVerified && <Shield size={10} className="text-purple-400" />}
+                    {item.isPaylocked && item.payPrice && (
+                      <span className="text-yellow-400 text-xs font-bold">🪙 {item.payPrice}</span>
+                    )}
                   </div>
-                  <div className="flex gap-1.5">
-                    <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold py-1.5 rounded-lg hover:opacity-90 transition">
-                      View
-                    </button>
-                    <button className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 text-xs font-medium py-1.5 rounded-lg hover:bg-gray-700 transition">
-                      Offer
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigate(`/post/${item.id}`)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold py-1.5 rounded-lg hover:opacity-90 transition"
+                  >
+                    {item.isPaylocked ? "View & Buy" : "View"}
+                  </button>
                 </div>
               </div>
             ))}

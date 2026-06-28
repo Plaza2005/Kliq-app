@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Heart, MessageCircle, Share2, Loader2, Pencil, X, Bookmark, Repeat2, Send } from "lucide-react";
-import { api, resolveMediaUrl } from "../api/client";
+import { ArrowLeft, Heart, MessageCircle, Share2, Loader2, Pencil, X, Bookmark, Repeat2, Send, Scissors, Copy } from "lucide-react";
+import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { MediaImg } from "../components/media/MediaImg";
+import { MediaVideo } from "../components/media/MediaVideo";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -9,7 +11,7 @@ interface PostData {
   id: string; body: string; mediaUrl: string | null; mediaType: string | null;
   postType: string; likeCount: number; commentCount: number; shareCount: number;
   viewCount: number; createdAt: string; liked: boolean;
-  isPaylocked?: boolean; payPrice?: number;
+  isPaylocked?: boolean; payPrice?: number | null; purchased?: boolean;
   author: { username: string; displayName: string; avatarUrl: string };
   comments?: CommentItem[];
 }
@@ -48,6 +50,9 @@ export function PostDetail() {
   // Post analytics state (own posts only)
   const [postStats, setPostStats] = useState<{ earnings: number } | null>(null);
 
+  // Purchase state (marketplace items)
+  const [purchasing, setPurchasing] = useState(false);
+
   // Share to DM state
   const [showShareDM, setShowShareDM] = useState(false);
   const [dmSearch, setDmSearch] = useState("");
@@ -76,6 +81,20 @@ export function PostDetail() {
   }, [post, user]);
 
   const isOwn = post?.author.username === user?.username;
+
+  const handlePurchase = async () => {
+    if (!post || purchasing) return;
+    setPurchasing(true);
+    try {
+      await api.post(`/posts/${post.id}/purchase`, {});
+      setPost(p => p ? { ...p, purchased: true } : p);
+      toast("Purchase successful! You now have access to this item.");
+    } catch (e: unknown) {
+      toast((e as Error).message ?? "Purchase failed");
+    } finally {
+      setPurchasing(false);
+    }
+  };
 
   const toggleBookmark = async () => {
     if (!post) return;
@@ -166,7 +185,7 @@ export function PostDetail() {
       <div className="max-w-xl mx-auto px-4 pt-4">
         {/* Author */}
         <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => navigate(`/user/${post.author.username}`)}>
-          <img src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} className="w-10 h-10 rounded-full object-cover bg-gray-800" />
+          <img src={resolveAvatarUrl(post.author.avatarUrl)} className="w-10 h-10 rounded-full object-cover bg-gray-800" />
           <div>
             <p className="text-white font-semibold text-sm">{post.author.displayName}</p>
             <p className="text-gray-500 text-xs">@{post.author.username}</p>
@@ -205,9 +224,9 @@ export function PostDetail() {
         {post.mediaUrl && (
           <div className="rounded-2xl overflow-hidden mb-4 bg-gray-900">
             {post.mediaType?.startsWith("video") || post.postType === "reel" ? (
-              <video src={resolveMediaUrl(post.mediaUrl) ?? ""} controls className="w-full max-h-96 object-contain" />
+              <MediaVideo src={resolveMediaUrl(post.mediaUrl) ?? ""} controls className="w-full max-h-96 object-contain" context={`PostDetail/post:${post.id}`} />
             ) : (
-              <img src={resolveMediaUrl(post.mediaUrl) ?? ""} className="w-full object-cover" />
+              <MediaImg src={resolveMediaUrl(post.mediaUrl) ?? ""} className="w-full object-cover" context={`PostDetail/post:${post.id}`} />
             )}
           </div>
         )}
@@ -240,13 +259,13 @@ export function PostDetail() {
         {/* Action row */}
         <div className="flex items-center gap-5 py-3 border-t border-gray-900 mb-4">
           <span className="flex items-center gap-1.5 text-gray-400 text-sm">
-            <Heart size={16} /> {post.likeCount.toLocaleString()}
+            <Heart size={16} /> {(post.likeCount ?? 0).toLocaleString()}
           </span>
           <span className="flex items-center gap-1.5 text-gray-400 text-sm">
-            <MessageCircle size={16} /> {post.commentCount.toLocaleString()}
+            <MessageCircle size={16} /> {(post.commentCount ?? 0).toLocaleString()}
           </span>
           <span className="flex items-center gap-1.5 text-gray-400 text-sm">
-            <Share2 size={16} /> {post.shareCount.toLocaleString()}
+            <Share2 size={16} /> {(post.shareCount ?? 0).toLocaleString()}
           </span>
           <button
             onClick={() => setShowShareDM(true)}
@@ -266,15 +285,60 @@ export function PostDetail() {
           </button>
         </div>
 
+        {/* Duet / Stitch row — only for video posts by others */}
+        {!isOwn && (post.mediaType?.startsWith("video") || post.postType === "reel" || post.postType === "tube") && (
+          <div className="flex items-center gap-3 py-3 border-t border-gray-900 mb-4">
+            <button
+              onClick={() => navigate(`/create?mode=duet&postId=${post.id}`)}
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs font-medium px-3 py-2 bg-gray-900 rounded-full transition"
+            >
+              <Copy size={14} /> Duet
+            </button>
+            <button
+              onClick={() => navigate(`/create?mode=stitch&postId=${post.id}`)}
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs font-medium px-3 py-2 bg-gray-900 rounded-full transition"
+            >
+              <Scissors size={14} /> Stitch
+            </button>
+          </div>
+        )}
+
+        {/* Marketplace purchase row */}
+        {post.postType === "marketplace" && post.isPaylocked && post.payPrice && !isOwn && (
+          <div className="py-4 border-t border-gray-900 mb-4">
+            {post.purchased ? (
+              <div className="flex items-center gap-2 px-4 py-3 bg-green-900/30 border border-green-700/50 rounded-xl">
+                <span className="text-green-400 text-sm font-semibold">✓ Purchased</span>
+                <span className="text-gray-500 text-xs">You own this item</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between bg-gray-900 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-white font-semibold text-sm">Marketplace Item</p>
+                  <p className="text-gray-400 text-xs mt-0.5">Purchase to unlock this item</p>
+                </div>
+                <button
+                  onClick={handlePurchase}
+                  disabled={purchasing}
+                  className="flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-60 text-black font-bold text-sm px-4 py-2 rounded-xl transition"
+                >
+                  {purchasing ? <Loader2 size={14} className="animate-spin" /> : "🪙"}
+                  {purchasing ? "Buying..." : `Buy for ${post.payPrice} tokens`}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Analytics row — own posts only */}
         {isOwn && post.viewCount > 0 && (
           <div className="flex items-center gap-4 py-3 border-t border-gray-900 mb-2 overflow-x-auto">
             <div className="text-center flex-shrink-0">
-              <p className="text-white font-bold text-sm">{post.viewCount.toLocaleString()}</p>
+              <p className="text-white font-bold text-sm">{(post.viewCount ?? 0).toLocaleString()}</p>
               <p className="text-gray-600 text-xs">Views</p>
             </div>
             <div className="text-center flex-shrink-0">
-              <p className="text-white font-bold text-sm">{post.likeCount.toLocaleString()}</p>
+              <p className="text-white font-bold text-sm">{(post.likeCount ?? 0).toLocaleString()}</p>
               <p className="text-gray-600 text-xs">Likes</p>
             </div>
             <div className="text-center flex-shrink-0">
@@ -296,7 +360,7 @@ export function PostDetail() {
         <div className="space-y-4 mb-6">
           {post.comments?.map(c => (
             <div key={c.id} className="flex gap-3">
-              <img src={resolveMediaUrl(c.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author.username}`} className="w-8 h-8 rounded-full object-cover bg-gray-800 flex-shrink-0" />
+              <img src={resolveAvatarUrl(c.author.avatarUrl)} className="w-8 h-8 rounded-full object-cover bg-gray-800 flex-shrink-0" />
               <div>
                 <span className="text-white text-sm font-semibold">{c.author.displayName} </span>
                 <span className="text-gray-400 text-sm">{c.body}</span>
@@ -395,7 +459,7 @@ export function PostDetail() {
                     className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-900 rounded-xl transition"
                   >
                     <img
-                      src={resolveMediaUrl(u.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+                      src={resolveAvatarUrl(u.avatarUrl)}
                       className="w-9 h-9 rounded-full object-cover bg-gray-800"
                       alt={u.username}
                     />

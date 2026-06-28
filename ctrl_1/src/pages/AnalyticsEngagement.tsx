@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Eye, Heart, MessageCircle, FileText, Users, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { adminApi, resolveMediaUrl } from "../api/client";
+import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
 interface AdminOverview {
   totalViews: number;
@@ -75,7 +75,7 @@ export function AnalyticsEngagement() {
               ) : data.topPosts.map((post, i) => (
                 <div key={post.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                   <span className="text-gray-500 text-xs font-bold w-5 text-center">#{i + 1}</span>
-                  <img src={resolveMediaUrl(post.author.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
+                  <img src={resolveAvatarUrl(post.author.avatarUrl)} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{post.body || "(No caption)"}</p>
                     <p className="text-gray-500 text-xs">@{post.author.username} · <span className="capitalize text-gray-400">{post.postType}</span></p>
@@ -98,7 +98,7 @@ export function AnalyticsEngagement() {
               ) : data.topCreators.map((c, i) => (
                 <div key={c.username} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
                   <span className="text-gray-500 text-xs font-bold w-5 text-center">#{i + 1}</span>
-                  <img src={resolveMediaUrl(c.avatarUrl) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username}`} alt="" className="w-9 h-9 rounded-full flex-shrink-0" />
+                  <img src={resolveAvatarUrl(c.avatarUrl)} alt="" className="w-9 h-9 rounded-full flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-semibold truncate">{c.displayName}</p>
                     <p className="text-gray-500 text-xs">@{c.username}</p>
