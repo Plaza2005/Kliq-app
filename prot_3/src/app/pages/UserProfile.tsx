@@ -53,6 +53,16 @@ interface PostItem {
   viewCount: number;
 }
 
+interface CommunityItem {
+  id: string;
+  name: string;
+  description: string;
+  avatarUrl: string | null;
+  memberCount: number;
+  role: string;
+  isOwner: boolean;
+}
+
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
@@ -75,6 +85,8 @@ export function UserProfile() {
   const [tubePosts, setTubePosts]     = useState<PostItem[]>([]);
   const [streamPosts, setStreamPosts] = useState<PostItem[]>([]);
   const [marketPosts, setMarketPosts] = useState<PostItem[]>([]);
+  const [communities, setCommunities] = useState<CommunityItem[]>([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const { isFollowing, toggleFollow: toggleFollowCtx, seedFollowing } = useSocial();
   const [followLoading, setFollowLoading] = useState(false);
@@ -107,6 +119,9 @@ export function UserProfile() {
     api.get<PostItem[]>(`/users/${username}/posts?type=tube`).then(setTubePosts).catch(() => {});
     api.get<PostItem[]>(`/users/${username}/posts?type=stream`).then(setStreamPosts).catch(() => {});
     api.get<PostItem[]>(`/users/${username}/posts?type=marketplace`).then(setMarketPosts).catch(() => {});
+    setLoadingCommunities(true);
+    api.get<CommunityItem[]>(`/communities/user/${username}`)
+      .then(setCommunities).catch(() => {}).finally(() => setLoadingCommunities(false));
   }, [username, seedFollowing]);
 
   const following = username ? isFollowing(username) : false;
@@ -409,10 +424,54 @@ export function UserProfile() {
           )}
 
           {activeTab === "Community" && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Users size={32} className="text-gray-600" />
-              <p className="text-gray-400 font-semibold text-sm">Communities coming soon</p>
-            </div>
+            loadingCommunities ? (
+              <div className="flex justify-center py-16">
+                <Loader2 size={24} className="animate-spin text-purple-400" />
+              </div>
+            ) : communities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Users size={32} className="text-gray-600" />
+                <p className="text-gray-400 font-semibold text-sm">No communities yet</p>
+                <p className="text-gray-600 text-xs">@{username} hasn't joined any communities</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {communities.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => navigate(`/community/${c.id}`)}
+                    className="w-full text-left flex items-center gap-4 bg-gray-950 border border-gray-800 rounded-2xl p-4 hover:border-purple-800/60 hover:bg-gray-900/50 transition"
+                  >
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-800 flex-shrink-0">
+                      {c.avatarUrl ? (
+                        <img src={resolveMediaUrl(c.avatarUrl) ?? ""} alt={c.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-700 to-pink-700">
+                          <Users size={22} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-white font-bold text-sm truncate">{c.name}</p>
+                        {(c.isOwner || c.role === "admin") && (
+                          <span className="flex-shrink-0 text-[10px] font-bold text-purple-300 bg-purple-900/40 border border-purple-700/50 px-1.5 py-0.5 rounded-full">
+                            {c.isOwner ? "Owner" : "Admin"}
+                          </span>
+                        )}
+                      </div>
+                      {c.description && (
+                        <p className="text-gray-500 text-xs leading-snug line-clamp-2 mb-1.5">{c.description}</p>
+                      )}
+                      <div className="flex items-center gap-1 text-gray-600 text-xs">
+                        <Users size={11} />
+                        <span>{fmtNum(c.memberCount)} members</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

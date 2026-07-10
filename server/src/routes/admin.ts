@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import * as fs from "fs";
 import * as path from "path";
+import { wsHub } from "../ws";
 
 const SETTINGS_FILE = path.join(process.cwd(), "settings.json");
 
@@ -25,6 +26,62 @@ function writeSettings(data: Record<string, unknown>) {
 }
 
 export async function adminRoutes(app: FastifyInstance) {
+  // GET /admin/status — real system/service health for the status page
+  app.get(
+    "/status",
+    { preHandler: [app.authenticateAdmin] },
+    async () => {
+      // Database connectivity + latency (real round-trip to Postgres)
+      let db: { ok: boolean; latencyMs: number | null; error: string | null } = { ok: false, latencyMs: null, error: null };
+      let counts: { users: number; posts: number } | null = null;
+      try {
+        const t0 = Date.now();
+        await app.prisma.$queryRaw`SELECT 1`;
+        db = { ok: true, latencyMs: Date.now() - t0, error: null };
+        const [users, posts] = await Promise.all([
+          app.prisma.user.count(),
+          app.prisma.post.count({ where: { deletedAt: null } }),
+        ]);
+        counts = { users, posts };
+      } catch (err) {
+        db = { ok: false, latencyMs: null, error: err instanceof Error ? err.message : "Database unreachable" };
+      }
+
+      // Local uploads storage — writable check
+      const uploadsDir = path.join(process.cwd(), "uploads");
+      let storage: { ok: boolean; mode: string; error: string | null };
+      try {
+        fs.accessSync(uploadsDir, fs.constants.W_OK);
+        storage = { ok: true, mode: "local", error: null };
+      } catch (err) {
+        storage = { ok: false, mode: "local", error: err instanceof Error ? err.message : "Uploads dir not writable" };
+      }
+      const r2Configured = Boolean(process.env.CF_R2_ACCOUNT_ID && process.env.CF_R2_ACCESS_KEY && process.env.CF_R2_SECRET_KEY);
+      if (r2Configured) storage.mode = "r2 + local";
+
+      const mem = process.memoryUsage();
+
+      return {
+        timestamp: new Date().toISOString(),
+        api: {
+          ok: true,
+          uptimeS: Math.floor(process.uptime()),
+          nodeVersion: process.version,
+          pid: process.pid,
+          memory: {
+            rssMb:      Math.round(mem.rss / 1024 / 1024),
+            heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
+            heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
+          },
+        },
+        database: db,
+        websocket: { ok: true, connections: wsHub.size },
+        storage,
+        counts,
+      };
+    }
+  );
+
   // GET /admin/stats  (dashboard)
   app.get(
     "/stats",

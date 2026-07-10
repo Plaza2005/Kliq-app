@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShieldCheck, Users2,
   BarChart2, Bell, Settings, ExternalLink, MessageSquare,
   Inbox, DollarSign, SlidersHorizontal, Film,
-  Flag, Radio, BadgeCheck,
+  Flag, Radio, BadgeCheck, ShoppingBag,
 } from "lucide-react";
 
 const NAV_MAIN = [
@@ -11,6 +11,7 @@ const NAV_MAIN = [
   { to: "/users",         icon: Users,           label: "Users"        },
   { to: "/content",       icon: ShieldCheck,     label: "Content"      },
   { to: "/communities",   icon: Users2,          label: "Communities"  },
+  { to: "/marketplace",   icon: ShoppingBag,     label: "Marketplace"  },
   { to: "/analytics",     icon: BarChart2,       label: "Analytics"    },
   { to: "/messages",      icon: MessageSquare,   label: "Messages"     },
   { to: "/notifications", icon: Bell,            label: "Notifications"},

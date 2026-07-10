@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Users, Eye, TrendingUp, DollarSign, AlertTriangle, CheckCircle, Clock, Activity, ArrowUpRight, ExternalLink, X, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { adminApi } from "../api/client";
@@ -6,15 +7,6 @@ import { adminApi } from "../api/client";
 const KLIQ_APP_URL = "http://localhost:5174";
 const TOOLTIP = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#fff", fontSize: 12 };
 const TICK = { fill: "#64748b", fontSize: 11 };
-
-const SYSTEM = [
-  { name: "API Server",      status: "Operational", dot: "bg-green-400" },
-  { name: "Media CDN",       status: "Operational", dot: "bg-green-400" },
-  { name: "Database",        status: "Operational", dot: "bg-green-400" },
-  { name: "Push Service",    status: "Operational", dot: "bg-green-400" },
-  { name: "Payment Gateway", status: "Operational", dot: "bg-green-400" },
-  { name: "Stream Servers",  status: "Operational", dot: "bg-green-400" },
-];
 
 const QUICK_LINKS = [
   { label: "Home Feed",    path: "/",            desc: "Main app feed" },
@@ -42,6 +34,12 @@ interface ActivityEntry {
   target: string | null;
   createdAt: string;
   actor: { username: string; displayName: string } | null;
+}
+interface SystemStatusData {
+  api:       { ok: boolean };
+  database:  { ok: boolean; latencyMs: number | null };
+  websocket: { ok: boolean; connections: number };
+  storage:   { ok: boolean; mode: string };
 }
 
 function fmtNum(n: number): string {
@@ -72,10 +70,12 @@ function actionLabel(action: string): string {
 }
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats]           = useState<StatsData | null>(null);
   const [tiers, setTiers]           = useState<TiersData | null>(null);
   const [chartData, setChartData]   = useState<ChartPoint[]>([]);
   const [activity, setActivity]     = useState<ActivityEntry[]>([]);
+  const [system, setSystem]         = useState<SystemStatusData | null>(null);
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState<string | null>(null);
   const [drilldown, setDrilldown]   = useState<string | null>(null);
@@ -93,6 +93,7 @@ export function Dashboard() {
       setChartData(statsResp.userChart);
       setActivity(actResp.slice(0, 6));
     }).catch(console.error).finally(() => setLoading(false));
+    adminApi.get<SystemStatusData>("/admin/status").then(setSystem).catch(() => setSystem(null));
   };
 
   useEffect(() => {
@@ -295,22 +296,29 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
 
-            {/* System status */}
+            {/* System status — live from /admin/status */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
               <h3 className="text-white font-semibold mb-4">System Status</h3>
               <div className="space-y-3">
-                {SYSTEM.map(s => (
+                {(system ? [
+                  { name: "API Server",    ok: system.api.ok,       status: system.api.ok ? "Operational" : "Down" },
+                  { name: "Database",      ok: system.database.ok,  status: system.database.ok ? `Operational · ${system.database.latencyMs}ms` : "Down" },
+                  { name: "WebSocket Hub", ok: system.websocket.ok, status: `${system.websocket.connections} connected` },
+                  { name: "Media Storage", ok: system.storage.ok,   status: system.storage.ok ? "Operational" : "Down" },
+                ] : [
+                  { name: "API Server", ok: false, status: "Unreachable" },
+                ]).map(s => (
                   <div key={s.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${s.dot}`} />
+                      <div className={`w-2 h-2 rounded-full ${s.ok ? "bg-green-400" : "bg-red-400"}`} />
                       <span className="text-gray-300 text-sm">{s.name}</span>
                     </div>
-                    <span className="text-xs font-medium text-green-400">{s.status}</span>
+                    <span className={`text-xs font-medium ${s.ok ? "text-green-400" : "text-red-400"}`}>{s.status}</span>
                   </div>
                 ))}
               </div>
               <button
-                onClick={() => showToast("Full status page — coming soon")}
+                onClick={() => navigate("/status")}
                 className="w-full mt-4 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 text-xs py-2 rounded-lg transition font-medium"
               >
                 Full Status Page

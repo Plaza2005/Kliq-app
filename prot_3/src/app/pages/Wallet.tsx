@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowUpRight, ArrowDownLeft, Plus, History, CreditCard, Coins, X, Search, Send, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router";
+import { ArrowUpRight, ArrowDownLeft, Plus, History, CreditCard, Coins, X, Search, Send, Loader2, ShoppingBag } from "lucide-react";
 import { api } from "../api/client";
 
 type ModalType = "topup" | "withdraw" | "transfer" | null;
@@ -28,6 +29,7 @@ const TOKEN_RATES: Record<string, { tokens: number; bonus: number }> = {
 };
 
 export function Wallet() {
+  const navigate = useNavigate();
   const [modal, setModal] = useState<ModalType>(null);
   const [walletLoading, setWalletLoading] = useState(true);
   const [balance, setBalance] = useState(0);
@@ -403,17 +405,18 @@ export function Wallet() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Buy Tokens", icon: Coins, desc: "550 tokens = $5", action: "topup" as ModalType },
-          { label: "Add Card", icon: CreditCard, desc: "Visa / Mastercard", action: "topup" as ModalType },
-          { label: "Transfer", icon: ArrowUpRight, desc: "Send to user", action: "transfer" as ModalType },
+          { label: "Buy Tokens", icon: Coins, desc: "550 tokens = $5", onClick: () => setModal("topup") },
+          { label: "Add Card", icon: CreditCard, desc: "Visa / Mastercard", onClick: () => setModal("topup") },
+          { label: "Transfer", icon: ArrowUpRight, desc: "Send to user", onClick: () => setModal("transfer") },
+          { label: "My Orders", icon: ShoppingBag, desc: "Marketplace purchases", onClick: () => navigate("/wallet/orders") },
         ].map((action) => {
           const Icon = action.icon;
           return (
             <button
               key={action.label}
-              onClick={() => setModal(action.action)}
+              onClick={action.onClick}
               className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center hover:border-gray-600 transition group"
             >
               <div className="w-10 h-10 bg-gray-800 group-hover:bg-purple-900/30 rounded-xl flex items-center justify-center mx-auto mb-2 transition">

@@ -1,58 +1,98 @@
 import { useState, useEffect } from "react";
-import { Play, Plus, Info, X, Tv, Lock, Loader2, Eye } from "lucide-react";
+import { Play, Plus, Check, Info, X, Tv, Lock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useSocial } from "../context/SocialContext";
 import { useUser } from "../context/UserContext";
-import { api, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
-import { MediaVideo } from "../components/media/MediaVideo";
+import { api, resolveMediaUrl } from "../api/client";
 
-interface StreamPost {
+interface StreamTitle {
   id: string;
-  body: string;
+  type: "movie" | "series";
+  title: string;
+  synopsis: string | null;
+  genre: string;
+  ageRating: string;
+  posterUrl: string | null;
+  trailerUrl: string | null;
   mediaUrl: string | null;
-  viewCount: number;
-  likeCount: number;
-  createdAt: string;
-  author: { username: string; displayName: string; avatarUrl: string };
+  duration: number | null;
+  isFeatured: boolean;
+  minTier: string;
+  locked: boolean;
+  author: { id: string; username: string; displayName: string; avatarUrl: string };
 }
 
-type StreamTab = "All" | "Movies" | "Series" | "Sports" | "News";
-const TABS: StreamTab[] = ["All", "Movies", "Series", "Sports", "News"];
-
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
-  return String(n);
+interface BrowseResponse {
+  featured: StreamTitle[];
+  genres: { name: string; titles: StreamTitle[] }[];
+  trending: StreamTitle[];
+  newReleases: StreamTitle[];
+  top10: StreamTitle[];
+  recommended: StreamTitle[];
 }
 
-function matchesTab(post: StreamPost, tab: StreamTab): boolean {
-  if (tab === "All") return true;
-  const keyword = tab.toLowerCase();
-  return post.body.toLowerCase().includes(keyword);
-}
+const BASE_TABS = ["All", "Movies", "Series"] as const;
 
 export function Stream() {
   const navigate = useNavigate();
-  const { inMyList, toggleMyList } = useSocial();
   const { tier } = useUser();
 
-  const [posts, setPosts]           = useState<StreamPost[]>([]);
+  const [titles, setTitles]         = useState<StreamTitle[]>([]);
+  const [genres, setGenres]         = useState<string[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [activeTab, setActiveTab]   = useState<StreamTab>("All");
+  const [activeTab, setActiveTab]   = useState<string>("All");
   const [showInfo, setShowInfo]     = useState(false);
-  const [heroPost, setHeroPost]     = useState<StreamPost | null>(null);
+  const [heroTitle, setHeroTitle]   = useState<StreamTitle | null>(null);
+  const [watchlist, setWatchlist]   = useState<string[]>([]);
 
   useEffect(() => {
-    api.get<StreamPost[]>("/posts/stream")
+    api.get<BrowseResponse>("/kliqstream/browse")
       .then(data => {
-        setPosts(data);
-        if (data.length > 0) setHeroPost(data[0]);
+        // Flatten the genre rows into a single de-duplicated catalogue
+        const seen = new Map<string, StreamTitle>();
+        for (const g of data.genres ?? []) {
+          for (const t of g.titles) seen.set(t.id, t);
+        }
+        const all = Array.from(seen.values());
+        setTitles(all);
+        setGenres((data.genres ?? []).map(g => g.name));
+        setHeroTitle(data.featured?.[0] ?? all[0] ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = posts.filter(p => matchesTab(p, activeTab));
+  useEffect(() => {
+    api.get<{ id: string }[]>("/kliqstream/watchlist")
+      .then(items => setWatchlist(items.map(i => i.id)))
+      .catch(() => {});
+  }, []);
+
+  const toggleWatchlist = async (titleId: string) => {
+    const inList = watchlist.includes(titleId);
+    setWatchlist(prev => inList ? prev.filter(id => id !== titleId) : [...prev, titleId]);
+    if (inList) await api.delete(`/kliqstream/watchlist/${titleId}`).catch(() => {});
+    else await api.post(`/kliqstream/watchlist/${titleId}`, {}).catch(() => {});
+  };
+
+  const openTitle = (t: StreamTitle) => {
+    if (t.locked) { navigate("/settings"); return; }
+    navigate(`/kliqstream/${t.id}`);
+  };
+
+  const playTitle = (t: StreamTitle) => {
+    if (t.locked) { navigate("/settings"); return; }
+    if (t.type === "movie") navigate(`/kliqstream/watch/${t.id}?type=movie`);
+    else navigate(`/kliqstream/${t.id}`);
+  };
+
+  const tabs: string[] = [...BASE_TABS, ...genres];
+
+  const filtered = titles.filter(t => {
+    if (activeTab === "All")    return true;
+    if (activeTab === "Movies") return t.type === "movie";
+    if (activeTab === "Series") return t.type === "series";
+    return t.genre === activeTab;
+  });
 
   if (tier < 2) {
     return (
@@ -83,12 +123,12 @@ export function Stream() {
   return (
     <div className="pb-24 bg-black min-h-full">
       {/* Info Modal */}
-      {showInfo && heroPost && (
+      {showInfo && heroTitle && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-gray-950 border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden">
             <div className="relative h-48">
-              {heroPost.mediaUrl ? (
-                <MediaVideo src={resolveMediaUrl(heroPost.mediaUrl) ?? ""} className="w-full h-full object-cover" context={`Stream/hero:${heroPost.id}`} />
+              {heroTitle.posterUrl ? (
+                <img src={resolveMediaUrl(heroTitle.posterUrl) ?? ""} alt={heroTitle.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-purple-900 to-pink-900" />
               )}
@@ -98,16 +138,26 @@ export function Stream() {
               </button>
             </div>
             <div className="p-5">
-              <h2 className="text-white font-extrabold text-xl mb-1 line-clamp-2">{heroPost.body}</h2>
-              <p className="text-gray-500 text-xs mb-3">by @{heroPost.author.username}</p>
+              <h2 className="text-white font-extrabold text-xl mb-1 line-clamp-2">{heroTitle.title}</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-400 text-xs capitalize">{heroTitle.type}</span>
+                <span className="w-1 h-1 rounded-full bg-gray-600" />
+                <span className="text-gray-400 text-xs">{heroTitle.genre}</span>
+                <span className="w-1 h-1 rounded-full bg-gray-600" />
+                <span className="bg-gray-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{heroTitle.ageRating}</span>
+              </div>
+              {heroTitle.synopsis && (
+                <p className="text-gray-400 text-xs mb-3 line-clamp-3">{heroTitle.synopsis}</p>
+              )}
+              <p className="text-gray-500 text-xs mb-3">by @{heroTitle.author.username}</p>
               <div className="flex gap-3">
-                <button onClick={() => { setShowInfo(false); navigate(`/stream/watch/${heroPost.id}`); }}
+                <button onClick={() => { setShowInfo(false); playTitle(heroTitle); }}
                   className="flex-1 bg-white text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition">
                   <Play size={18} fill="currentColor" /> Play
                 </button>
-                <button onClick={() => { toggleMyList(parseInt(heroPost.id, 16) || 0); setShowInfo(false); }}
+                <button onClick={() => { toggleWatchlist(heroTitle.id); setShowInfo(false); }}
                   className="flex-1 bg-gray-800 border border-gray-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-700 transition">
-                  <Plus size={18} /> My List
+                  {watchlist.includes(heroTitle.id) ? <Check size={18} /> : <Plus size={18} />} My List
                 </button>
               </div>
             </div>
@@ -126,7 +176,7 @@ export function Stream() {
           </button>
         </div>
         <div className="flex border-t border-gray-900 px-2 overflow-x-auto">
-          {TABS.map(tab => (
+          {tabs.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-shrink-0 px-4 py-2.5 text-sm font-semibold transition border-b-2 ${
                 activeTab === tab ? "border-white text-white" : "border-transparent text-gray-500 hover:text-gray-300"
@@ -141,41 +191,44 @@ export function Stream() {
         <div className="flex justify-center py-32">
           <Loader2 size={28} className="animate-spin text-purple-400" />
         </div>
-      ) : posts.length === 0 ? (
-        /* Empty state — no streams uploaded yet */
+      ) : titles.length === 0 ? (
+        /* Empty state — nothing in the catalogue yet */
         <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
           <div className="w-20 h-20 rounded-2xl bg-gray-900 flex items-center justify-center mb-5 border border-gray-800">
             <Tv size={32} className="text-gray-600" />
           </div>
           <h3 className="text-white font-bold text-xl mb-2">No content yet</h3>
           <p className="text-gray-500 text-sm max-w-xs">
-            KliqStream content coming soon — check back later.
+            The KliqStream catalogue is empty right now.
           </p>
         </div>
       ) : (
         <>
           {/* Hero Banner */}
-          {heroPost && (
+          {heroTitle && (
             <div className="relative w-full h-[50vh] md:h-[60vh] bg-gray-900">
               <div className="absolute inset-0">
-                {heroPost.mediaUrl ? (
-                  <MediaVideo
-                    src={resolveMediaUrl(heroPost.mediaUrl) ?? ""}
-                    className="w-full h-full object-cover"
-                    autoPlay muted loop playsInline
-                    context={`Stream/hero-banner:${heroPost.id}`}
-                  />
+                {heroTitle.posterUrl ? (
+                  <img src={resolveMediaUrl(heroTitle.posterUrl) ?? ""} alt={heroTitle.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-950 via-indigo-900 to-black" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
               </div>
               <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full md:w-2/3">
-                <p className="text-purple-400 font-bold tracking-widest text-xs mb-2 uppercase">Featured</p>
-                <h1 className="text-3xl md:text-5xl font-extrabold mb-2 text-white line-clamp-2">{heroPost.body}</h1>
-                <p className="text-gray-400 text-sm mb-4">by @{heroPost.author.username}</p>
+                <p className="text-purple-400 font-bold tracking-widest text-xs mb-2 uppercase">
+                  {heroTitle.isFeatured ? "Featured" : "Now Streaming"}
+                </p>
+                <h1 className="text-3xl md:text-5xl font-extrabold mb-2 text-white line-clamp-2">{heroTitle.title}</h1>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-gray-400 text-sm capitalize">{heroTitle.type}</span>
+                  <span className="w-1 h-1 rounded-full bg-gray-600" />
+                  <span className="text-gray-400 text-sm">{heroTitle.genre}</span>
+                  <span className="w-1 h-1 rounded-full bg-gray-600" />
+                  <span className="bg-gray-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{heroTitle.ageRating}</span>
+                </div>
                 <div className="flex gap-3 mt-4">
-                  <button onClick={() => navigate(`/stream/watch/${heroPost.id}`)}
+                  <button onClick={() => playTitle(heroTitle)}
                     className="bg-white text-black px-6 py-2.5 rounded-md font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
                     <Play size={18} fill="currentColor" /> Play
                   </button>
@@ -199,28 +252,37 @@ export function Stream() {
                   <span className="text-gray-500 text-sm font-normal ml-2">{filtered.length} titles</span>
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {filtered.map(post => (
-                    <button key={post.id} onClick={() => navigate(`/stream/watch/${post.id}`)}
-                      className="group text-left">
-                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-900 mb-2 group-hover:scale-105 transition-transform duration-300 relative">
-                        {post.mediaUrl ? (
-                          <MediaVideo src={resolveMediaUrl(post.mediaUrl) ?? ""}
-                            className="w-full h-full object-cover" preload="metadata"
-                            context={`Stream/grid:${post.id}`} />
+                  {filtered.map(t => (
+                    <button key={t.id} onClick={() => openTitle(t)} className="group text-left">
+                      <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 mb-2 group-hover:scale-105 transition-transform duration-300 relative">
+                        {t.posterUrl ? (
+                          <img src={resolveMediaUrl(t.posterUrl) ?? ""} alt={t.title}
+                            className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center">
                             <Play size={24} className="text-white/60" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                          <Play size={28} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
-                        </div>
+                        {/* Age rating badge */}
+                        <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/20">
+                          {t.ageRating}
+                        </span>
+                        {t.locked ? (
+                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1">
+                            <Lock size={20} className="text-white" />
+                            <span className="text-white text-[10px] font-bold capitalize">{t.minTier}</span>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <Play size={28} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
+                          </div>
+                        )}
                       </div>
-                      <p className="text-gray-300 text-xs font-medium line-clamp-2 group-hover:text-white transition">{post.body}</p>
+                      <p className="text-gray-300 text-xs font-medium line-clamp-2 group-hover:text-white transition">{t.title}</p>
                       <div className="flex items-center gap-2 mt-1 text-gray-600 text-[10px]">
-                        <img src={resolveAvatarUrl(post.author.avatarUrl)} alt="" className="w-3.5 h-3.5 rounded-full" />
-                        <span className="truncate">{post.author.displayName}</span>
-                        <span className="flex items-center gap-0.5 flex-shrink-0"><Eye size={9} /> {fmtNum(post.viewCount)}</span>
+                        <span className="capitalize">{t.type}</span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-gray-700" />
+                        <span className="truncate">{t.genre}</span>
                       </div>
                     </button>
                   ))}

@@ -25,6 +25,7 @@ interface ContentItem {
   views: string;
   status: "Published" | "Pending Manual Approval" | "Processing" | "Rejected";
   thumbnail: string;
+  isProduct?: boolean; // real marketplace Product (not a Post)
 }
 
 function fmtDate(iso: string): string {
@@ -154,6 +155,8 @@ export function Studio() {
   const [mktContact, setMktContact]     = useState("chat");
   const [mktDelivery, setMktDelivery]   = useState("pickup");
   const [mktNegotiable, setMktNegotiable] = useState(false);
+  const [mktIsDigital, setMktIsDigital] = useState(false);
+  const [mktStock, setMktStock]         = useState("1");
 
   // ── Thumbnail picker ─────────────────────────────────────────────────────
   const [thumbCandidates, setThumbCandidates] = useState<string[]>([]);
@@ -267,7 +270,7 @@ export function Studio() {
     setStreamTitle(""); setStreamDesc(""); setStreamCategory(VIDEO_CATEGORIES[0]); setStreamType("vod");
     setStreamGenre("Drama"); setStreamAgeRating("PG-13"); setStreamContentType("movie");
     setMktName(""); setMktDesc(""); setMktPrice(""); setMktPriceType("fixed"); setMktRoyalties("10"); setMktProperties([{ key: "", value: "" }]);
-    setMktCondition("new"); setMktCategory("Electronics"); setMktLocation(""); setMktContact("chat"); setMktDelivery("pickup"); setMktNegotiable(false);
+    setMktCondition("new"); setMktCategory("Electronics"); setMktLocation(""); setMktContact("chat"); setMktDelivery("pickup"); setMktNegotiable(false); setMktIsDigital(false); setMktStock("1");
     setIsPaylocked(false); setPayPrice(50);
     setIsPoll(false); setPollQuestion(""); setPollOptions(["", ""]); setPollEndsAt("");
     setThumbCandidates([]); setSelectedThumb(null); setThumbVideoRef(null); setThumbScrubTime(0); setThumbVideoDuration(0); setGeneratingThumbs(false); setScrubPreview(null);
@@ -460,17 +463,19 @@ export function Studio() {
       }
 
       if (uploadPlatform === "Marketplace") {
-        const props = mktProperties.filter(p => p.key && p.value);
-        const post = await api.post<{ id: string; body: string; mediaUrl: string | null; likeCount: number; createdAt: string }>(
-          "/posts", {
-            body: mktName, mediaUrl, mediaType: "image", postType: "marketplace",
-            description: mktDesc, price: mktPrice, currency: region.currency,
-            condition: mktCondition, category: mktCategory, location: mktLocation,
-            contact: mktContact, delivery: mktDelivery, negotiable: mktNegotiable,
-            properties: props,
+        const stockNum = parseInt(mktStock);
+        const product = await api.post<{ id: string; title: string; price: number; stock: number | null; mediaUrl: string | null; createdAt: string }>(
+          "/marketplace/products", {
+            title: mktName, description: mktDesc, price: parseInt(mktPrice),
+            isDigital: mktIsDigital,
+            stock: mktIsDigital ? null : (Number.isInteger(stockNum) && stockNum >= 0 ? stockNum : 1),
+            mediaUrl,
+            category: mktCategory,
+            ...(mktIsDigital ? {} : { condition: mktCondition }),
+            ...(mktLocation ? { location: mktLocation } : {}),
           }
         );
-        setContentItems(prev => [{ id: post.id, platform: "Marketplace", title: mktName || post.body, date: fmtDate(post.createdAt), views: `${mktPrice} KLIQ`, status: "Published", thumbnail: resolveMediaUrl(post.mediaUrl) ?? "" }, ...prev]);
+        setContentItems(prev => [{ id: product.id, platform: "Marketplace", title: product.title, date: fmtDate(product.createdAt), views: `🪙 ${product.price}${product.stock != null ? ` · ${product.stock} in stock` : ""}`, status: "Published", thumbnail: resolveMediaUrl(product.mediaUrl) ?? "", isProduct: true }, ...prev]);
       }
 
       setUploadDone(true);
@@ -496,6 +501,10 @@ export function Studio() {
       if (uploadPlatform === "Stream")   return streamTitle.trim().length >= 3;
       if (uploadPlatform === "Marketplace") return mktName.trim().length >= 3;
     }
+    if (uploadStep === 3 && uploadPlatform === "Marketplace") {
+      const price = parseInt(mktPrice);
+      return Number.isInteger(price) && price > 0;
+    }
     return true;
   };
 
@@ -510,12 +519,24 @@ export function Studio() {
 
   useEffect(() => {
     if (!user?.username) return;
-    api.get<{ id: string; body: string; mediaUrl: string | null; likeCount: number; createdAt: string; postType: string }[]>(`/users/${user.username}/posts`)
-      .then(posts => {
-        setContentItems(posts.map(p => {
+    Promise.all([
+      api.get<{ id: string; body: string; mediaUrl: string | null; likeCount: number; createdAt: string; postType: string }[]>(`/users/${user.username}/posts`).catch(() => []),
+      api.get<{ id: string; title: string; price: number; stock: number | null; status: string; mediaUrl: string | null; thumbUrl: string | null; createdAt: string }[]>("/marketplace/my-products").catch(() => []),
+    ])
+      .then(([posts, products]) => {
+        const postItems = posts.map(p => {
           const plt: Platform = p.postType === "tube" ? "KliqTube" : p.postType === "stream" ? "Stream" : p.postType === "marketplace" ? "Marketplace" : "Social";
-          return { id: p.id, platform: plt, title: p.body || "(No caption)", date: fmtDate(p.createdAt), views: fmtNum(p.likeCount) + " likes", status: "Published" as const, thumbnail: resolveMediaUrl(p.mediaUrl) ?? "" };
+          return { item: { id: p.id, platform: plt, title: p.body || "(No caption)", date: fmtDate(p.createdAt), views: fmtNum(p.likeCount) + " likes", status: "Published" as const, thumbnail: resolveMediaUrl(p.mediaUrl) ?? "" }, createdAt: p.createdAt };
+        });
+        const productItems = products.map(p => ({
+          item: { id: p.id, platform: "Marketplace" as Platform, title: p.title, date: fmtDate(p.createdAt), views: `🪙 ${p.price}${p.stock != null ? ` · ${p.stock} in stock` : ""}${p.status === "sold_out" ? " · Sold out" : ""}`, status: "Published" as const, thumbnail: resolveMediaUrl(p.thumbUrl ?? p.mediaUrl) ?? "", isProduct: true },
+          createdAt: p.createdAt,
         }));
+        setContentItems(
+          [...postItems, ...productItems]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map(x => x.item)
+        );
       })
       .catch(() => {})
       .finally(() => setLoadingContent(false));
@@ -529,9 +550,10 @@ export function Studio() {
   ];
 
   const deleteItem = async (id: string) => {
+    const target = contentItems.find(i => i.id === id);
     try {
-      await api.delete(`/posts/${id}`);
-      showToast("Content removed.");
+      await api.delete(target?.isProduct ? `/marketplace/products/${id}` : `/posts/${id}`);
+      showToast(target?.isProduct ? "Listing removed." : "Content removed.");
     } catch {
       // show nothing — item is gone either way
     }
@@ -1228,46 +1250,44 @@ export function Studio() {
       if (uploadStep === 3) return (
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1"><Coins size={11} /> Price ({region.currency})</p>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">{region.symbol}</span>
-              <input type="number" value={mktPrice} onChange={e => setMktPrice(e.target.value)} min="0"
-                placeholder="0.00"
-                className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-8 pr-20 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">{region.currency}</span>
-            </div>
-            <label className="flex items-center gap-2 mt-2 cursor-pointer">
-              <input type="checkbox" checked={mktNegotiable} onChange={e => setMktNegotiable(e.target.checked)} className="accent-yellow-500" />
-              <span className="text-gray-400 text-xs">Price is negotiable</span>
-            </label>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 mb-2">Delivery options</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[["pickup","Pickup only"],["delivery","Delivery"],["both","Pickup & Delivery"]].map(([v,l]) => (
-                <button key={v} onClick={() => setMktDelivery(v)}
-                  className={`p-2.5 rounded-xl border text-[11px] font-medium transition text-center ${mktDelivery === v ? "border-yellow-500 bg-yellow-500/10 text-white" : "border-gray-800 text-gray-400 hover:border-gray-600"}`}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 mb-2">Contact preference</p>
+            <p className="text-xs font-semibold text-gray-400 mb-2">Item type</p>
             <div className="grid grid-cols-2 gap-2">
-              {[["chat","💬 Chat only"],["whatsapp","📱 WhatsApp"],["call","📞 Call"],["email","✉️ Email"]].map(([v,l]) => (
-                <button key={v} onClick={() => setMktContact(v)}
-                  className={`p-2.5 rounded-xl border text-xs font-medium transition ${mktContact === v ? "border-yellow-500 bg-yellow-500/10 text-white" : "border-gray-800 text-gray-400 hover:border-gray-600"}`}>
-                  {l}
+              {([[false, "📦 Physical", "Shipped or collected"], [true, "⚡ Digital", "Delivered instantly"]] as const).map(([v, l, d]) => (
+                <button key={l} onClick={() => setMktIsDigital(v)}
+                  className={`p-2.5 rounded-xl border text-xs font-medium transition text-left ${mktIsDigital === v ? "border-yellow-500 bg-yellow-500/10 text-white" : "border-gray-800 text-gray-400 hover:border-gray-600"}`}>
+                  <p>{l}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{d}</p>
                 </button>
               ))}
             </div>
           </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1"><Coins size={11} /> Price (Tokens)</p>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">🪙</span>
+              <input type="number" value={mktPrice} onChange={e => setMktPrice(e.target.value)} min="1" step="1"
+                placeholder="0"
+                className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-20 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">TOKENS</span>
+            </div>
+          </div>
+          {!mktIsDigital && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 mb-2">Quantity in stock</p>
+              <input type="number" value={mktStock} onChange={e => setMktStock(e.target.value)} min="1" step="1"
+                placeholder="1"
+                className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition" />
+            </div>
+          )}
+          {mktIsDigital && (
+            <p className="text-gray-500 text-xs bg-gray-900 border border-gray-800 rounded-xl p-3">Digital items have unlimited stock — buyers can purchase as many copies as they like.</p>
+          )}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-xs text-gray-400 space-y-1">
             <p><span className="text-gray-500">Title:</span> {mktName}</p>
-            <p><span className="text-gray-500">Condition:</span> {CONDITIONS.find(c => c.value === mktCondition)?.label}</p>
-            <p><span className="text-gray-500">Price:</span> {region.symbol}{mktPrice || "—"} {region.currency}{mktNegotiable ? " (negotiable)" : ""}</p>
-            <p><span className="text-gray-500">Delivery:</span> {mktDelivery}</p>
+            <p><span className="text-gray-500">Type:</span> {mktIsDigital ? "Digital" : "Physical"}</p>
+            {!mktIsDigital && <p><span className="text-gray-500">Condition:</span> {CONDITIONS.find(c => c.value === mktCondition)?.label}</p>}
+            <p><span className="text-gray-500">Price:</span> 🪙 {mktPrice || "—"} tokens</p>
+            {!mktIsDigital && <p><span className="text-gray-500">Stock:</span> {mktStock || "1"}</p>}
             <p><span className="text-gray-500">Location:</span> {mktLocation || "—"}</p>
           </div>
         </div>
@@ -1644,6 +1664,10 @@ export function Studio() {
           <div className="flex items-center gap-2">
             <Film size={18} className="text-purple-400" />
             <h3 className="text-base font-bold text-white">Content Tracker</h3>
+            <button onClick={() => navigate("/marketplace/seller")}
+              className="ml-2 flex items-center gap-1 text-xs font-medium text-yellow-400 hover:text-yellow-300 transition">
+              <Store size={12} /> Listings & Sales
+            </button>
           </div>
           <div className="flex gap-2 overflow-x-auto">
             {(["All", "Social", "KliqTube", "Stream", "Marketplace"] as PlatformFilter[]).map(f => (

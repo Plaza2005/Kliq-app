@@ -44,6 +44,8 @@ import { Explore } from "./pages/Explore";
 import { HashtagPage } from "./pages/HashtagPage";
 import { SavedPosts } from "./pages/SavedPosts";
 import { MarketplaceSeller } from "./pages/MarketplaceSeller";
+import { ProductDetail } from "./pages/ProductDetail";
+import { WalletOrders } from "./pages/WalletOrders";
 import { WalletHistory } from "./pages/WalletHistory";
 import { KliqTubePlaylists } from "./pages/KliqTubePlaylists";
 import { BlockedUsers } from "./pages/BlockedUsers";
@@ -84,6 +86,7 @@ export const router = createBrowserRouter([
       { path: "kliqstream/:id", Component: KliqStreamShow },
       { path: "marketplace", Component: Marketplace },
       { path: "marketplace/seller", Component: MarketplaceSeller },
+      { path: "marketplace/product/:id", Component: ProductDetail },
       { path: "studio", Component: Studio },
       { path: "wallet", Component: Wallet },
       { path: "profile", Component: Profile },
@@ -109,6 +112,7 @@ export const router = createBrowserRouter([
       { path: "hashtag/:name", Component: HashtagPage },
       { path: "saved", Component: SavedPosts },
       { path: "wallet/history", Component: WalletHistory },
+      { path: "wallet/orders", Component: WalletOrders },
       { path: "klixtube/playlists", Component: KliqTubePlaylists },
       { path: "blocked-users", Component: BlockedUsers },
       { path: "muted-users", Component: MutedUsers },

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -71,6 +72,8 @@ model User {
   messageReactions    MessageReaction[]
   communitiesCreated  Community[]       @relation("CommunitiesCreated")
   communityMemberships CommunityMember[]
+  products            Product[]         @relation("ProductsSelling")
+  orders              Order[]           @relation("OrdersPlaced")
   notifPrefs          String?
   privacySettings     String?
   subPrice            Int?
@@ -254,6 +257,46 @@ model WalletTransaction {
   createdAt DateTime @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+// ── Marketplace ────────────────────────────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  sellerId    String
+  title       String
+  description String   @default("")
+  price       Int                          // in tokens
+  currency    String   @default("tokens")
+  mediaUrl    String?
+  thumbUrl    String?
+  isDigital   Boolean  @default(false)
+  stock       Int?                         // null = unlimited (digital goods)
+  status      String   @default("active")  // active | sold_out | removed
+  category    String?
+  condition   String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  seller User    @relation("ProductsSelling", fields: [sellerId], references: [id], onDelete: Cascade)
+  orders Order[]
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  buyerId    String
+  productId  String
+  quantity   Int      @default(1)
+  totalPrice Int                          // in tokens
+  currency   String   @default("tokens")
+  status     String   @default("paid")    // pending | paid | fulfilled | cancelled | refunded
+  paymentRef String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  buyer   User    @relation("OrdersPlaced", fields: [buyerId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 // ── Amplify Campaign ───────────────────────────────────────────────────────

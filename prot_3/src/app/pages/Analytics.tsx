@@ -16,6 +16,13 @@ interface AnalyticsData {
   totalLikes: number;
   totalComments: number;
   byDay: { name: string; views: number; likes: number; posts: number }[];
+  byType: { name: string; posts: number; views: number; likes: number; comments: number; shares: number }[];
+  engagement: {
+    avgViewsPerPost: number;
+    avgLikesPerPost: number;
+    avgCommentsPerPost: number;
+    engagementRate: number;
+  };
 }
 
 function EmptyChartPlaceholder({ label }: { label: string }) {
@@ -38,10 +45,10 @@ export function Analytics() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get<AnalyticsData>("/analytics/me")
+    api.get<AnalyticsData>(`/analytics/me?range=${timeRange}`)
       .then(data => setAnalytics(data))
       .catch(() => {});
-  }, []);
+  }, [timeRange]);
 
   const stats = [
     { label: "Followers",   value: (user?.followerCount ?? 0).toLocaleString(), icon: Users },
@@ -180,12 +187,69 @@ export function Analytics() {
           </div>
         )}
 
-        {/* Notice */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 mb-6 text-center mt-6">
-          <MessageCircle size={24} className="text-gray-600 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm font-medium mb-1">More analytics coming soon</p>
-          <p className="text-gray-600 text-xs">Engagement rates, audience insights, and traffic sources will populate here as you post more content.</p>
-        </div>
+        {/* Engagement summary — real aggregates from the backend */}
+        {analytics?.engagement && (
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 mb-6 mt-6">
+            <h3 className="text-white font-bold mb-1">Engagement</h3>
+            <p className="text-gray-500 text-xs mb-4">Averages across all your posts</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-xl font-bold text-white mb-0.5">{analytics.engagement.engagementRate}%</div>
+                <div className="text-gray-500 text-xs">Engagement rate</div>
+              </div>
+              <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-xl font-bold text-white mb-0.5">{analytics.engagement.avgViewsPerPost.toLocaleString()}</div>
+                <div className="text-gray-500 text-xs">Avg views / post</div>
+              </div>
+              <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-xl font-bold text-white mb-0.5 flex items-center gap-1.5">
+                  <Heart size={14} className="text-pink-400" /> {analytics.engagement.avgLikesPerPost.toLocaleString()}
+                </div>
+                <div className="text-gray-500 text-xs">Avg likes / post</div>
+              </div>
+              <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-xl font-bold text-white mb-0.5 flex items-center gap-1.5">
+                  <MessageCircle size={14} className="text-purple-400" /> {analytics.engagement.avgCommentsPerPost.toLocaleString()}
+                </div>
+                <div className="text-gray-500 text-xs">Avg comments / post</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Content breakdown by post type — within the selected time range */}
+        {(() => {
+          const byType = (analytics?.byType ?? []).filter(t => t.posts > 0);
+          if (byType.length === 0) return <EmptyChartPlaceholder label="Content Breakdown" />;
+          return (
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 mb-6">
+              <h3 className="text-white font-bold mb-1">Content Breakdown</h3>
+              <p className="text-gray-500 text-xs mb-4">Views and likes by content type ({timeRange})</p>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={byType}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                    <XAxis dataKey="name" stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip {...tooltipStyle} />
+                    <Bar dataKey="views" name="Views" fill="#9333ea" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="likes" name="Likes" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 space-y-2">
+                {byType.map(t => (
+                  <div key={t.name} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-300 font-medium">{t.name}</span>
+                    <span className="text-gray-500">
+                      {t.posts.toLocaleString()} {t.posts === 1 ? "post" : "posts"} · {t.views.toLocaleString()} views · {t.likes.toLocaleString()} likes · {t.comments.toLocaleString()} comments
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

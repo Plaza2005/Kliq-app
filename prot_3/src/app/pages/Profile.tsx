@@ -51,6 +51,16 @@ interface FollowUser {
   bio: string | null;
 }
 
+interface CommunityItem {
+  id: string;
+  name: string;
+  description: string;
+  avatarUrl: string | null;
+  memberCount: number;
+  role: string;
+  isOwner: boolean;
+}
+
 type ListModal = "followers" | "following" | null;
 
 function fmtNum(n: number): string {
@@ -82,6 +92,8 @@ export function Profile() {
   const [streamPosts, setStreamPosts] = useState<PostItem[]>([]);
   const [marketPosts, setMarketPosts] = useState<PostItem[]>([]);
   const [repostItems, setRepostItems] = useState<RepostItem[]>([]);
+  const [myCommunities, setMyCommunities] = useState<CommunityItem[]>([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const { isFollowing, toggleFollow } = useSocial();
   const [walletData, setWalletData] = useState<{ balance: number; tokens: number; diamonds: number; showWalletBalance: boolean } | null>(null);
@@ -98,6 +110,8 @@ export function Profile() {
     api.get<PostItem[]>(`/users/${user.username}/posts?type=stream`).then(setStreamPosts).catch(() => {});
     api.get<PostItem[]>(`/users/${user.username}/posts?type=marketplace`).then(setMarketPosts).catch(() => {});
     api.get<RepostItem[]>(`/users/${user.username}/reposts`).then(setRepostItems).catch(() => {});
+    api.get<CommunityItem[]>(`/communities/user/${user.username}`)
+      .then(setMyCommunities).catch(() => {}).finally(() => setLoadingCommunities(false));
   }, [user]);
 
   useEffect(() => {
@@ -491,11 +505,58 @@ export function Profile() {
           )}
 
           {resolvedTab === "Community" && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Users size={32} className="text-gray-600" />
-              <p className="text-gray-400 font-semibold text-sm">Communities coming soon</p>
-              <p className="text-gray-600 text-xs">Join and manage communities from the app</p>
-            </div>
+            loadingCommunities ? (
+              <div className="flex justify-center py-16">
+                <Loader2 size={24} className="animate-spin text-purple-400" />
+              </div>
+            ) : myCommunities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Users size={32} className="text-gray-600" />
+                <p className="text-gray-400 font-semibold text-sm">No communities yet</p>
+                <p className="text-gray-600 text-xs">Communities you join or create will appear here</p>
+                <button onClick={() => navigate("/communities")}
+                  className="mt-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition">
+                  Explore Communities
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {myCommunities.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => navigate(`/community/${c.id}`)}
+                    className="w-full text-left flex items-center gap-4 bg-gray-950 border border-gray-800 rounded-2xl p-4 hover:border-purple-800/60 hover:bg-gray-900/50 transition"
+                  >
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-800 flex-shrink-0">
+                      {c.avatarUrl ? (
+                        <img src={resolveMediaUrl(c.avatarUrl) ?? ""} alt={c.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-700 to-pink-700">
+                          <Users size={22} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-white font-bold text-sm truncate">{c.name}</p>
+                        {(c.isOwner || c.role === "admin") && (
+                          <span className="flex-shrink-0 text-[10px] font-bold text-purple-300 bg-purple-900/40 border border-purple-700/50 px-1.5 py-0.5 rounded-full">
+                            {c.isOwner ? "Owner" : "Admin"}
+                          </span>
+                        )}
+                      </div>
+                      {c.description && (
+                        <p className="text-gray-500 text-xs leading-snug line-clamp-2 mb-1.5">{c.description}</p>
+                      )}
+                      <div className="flex items-center gap-1 text-gray-600 text-xs">
+                        <Users size={11} />
+                        <span>{fmtNum(c.memberCount)} members</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

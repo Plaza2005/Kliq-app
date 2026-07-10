@@ -1,8 +1,12 @@
 import { FastifyInstance } from "fastify";
 
+const RANGE_DAYS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
+
 export async function analyticsRoutes(app: FastifyInstance) {
-  // GET /analytics/me — authenticated user's own stats + 7-day charts
-  app.get("/me", { preHandler: [app.authenticate] }, async (req) => {
+  // GET /analytics/me?range=24h|7d|30d|90d — authenticated user's own stats + charts
+  app.get<{ Querystring: { range?: string } }>("/me", { preHandler: [app.authenticate] }, async (req) => {
+    const rangeDays = RANGE_DAYS[req.query.range ?? "7d"] ?? 7;
+
     const [posts, user] = await Promise.all([
       app.prisma.post.findMany({
         where: { authorId: req.user.id, deletedAt: null },
@@ -22,26 +26,80 @@ export async function analyticsRoutes(app: FastifyInstance) {
     const totalLikes    = posts.reduce((s, p) => s + p.likeCount, 0);
     const totalComments = posts.reduce((s, p) => s + p.commentCount, 0);
 
-    // 7-day breakdown (most-recent day last)
     const now = new Date();
-    const byDay = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (6 - i));
-      const dateStr = d.toISOString().slice(0, 10);
-      const dayPosts = posts.filter(p => p.createdAt.toISOString().slice(0, 10) === dateStr);
-      return {
-        name:  d.toLocaleDateString("en-US", { weekday: "short" }),
-        views: dayPosts.reduce((s, p) => s + p.viewCount, 0),
-        likes: dayPosts.reduce((s, p) => s + p.likeCount, 0),
-        posts: dayPosts.length,
-      };
-    });
+    const since = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
+    const rangePosts = posts.filter(p => p.createdAt >= since);
+
+    // Time-bucket breakdown (most-recent bucket last).
+    // 24h → hourly buckets; otherwise daily buckets.
+    let byDay: { name: string; views: number; likes: number; posts: number }[];
+    if (rangeDays === 1) {
+      byDay = Array.from({ length: 24 }, (_, i) => {
+        const start = new Date(now.getTime() - (23 - i) * 60 * 60 * 1000);
+        start.setMinutes(0, 0, 0);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        const bucket = posts.filter(p => p.createdAt >= start && p.createdAt < end);
+        return {
+          name:  start.toLocaleTimeString("en-US", { hour: "numeric", hour12: true }),
+          views: bucket.reduce((s, p) => s + p.viewCount, 0),
+          likes: bucket.reduce((s, p) => s + p.likeCount, 0),
+          posts: bucket.length,
+        };
+      });
+    } else {
+      byDay = Array.from({ length: rangeDays }, (_, i) => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (rangeDays - 1 - i));
+        const dateStr = d.toISOString().slice(0, 10);
+        const dayPosts = posts.filter(p => p.createdAt.toISOString().slice(0, 10) === dateStr);
+        return {
+          name: rangeDays <= 7
+            ? d.toLocaleDateString("en-US", { weekday: "short" })
+            : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          views: dayPosts.reduce((s, p) => s + p.viewCount, 0),
+          likes: dayPosts.reduce((s, p) => s + p.likeCount, 0),
+          posts: dayPosts.length,
+        };
+      });
+    }
 
     const byPlatform = {
       Social:      posts.filter(p => p.postType === "post" || p.postType === "reel").length,
       KliqTube:    posts.filter(p => p.postType === "tube").length,
       Stream:      posts.filter(p => p.postType === "stream").length,
       Marketplace: posts.filter(p => p.postType === "marketplace").length,
+    };
+
+    // Per-content-type breakdown within the selected range
+    const TYPE_GROUPS: { name: string; match: (t: string) => boolean }[] = [
+      { name: "Posts",       match: t => t === "post" },
+      { name: "Reels",       match: t => t === "reel" },
+      { name: "KliqTube",    match: t => t === "tube" },
+      { name: "Stream",      match: t => t === "stream" },
+      { name: "Marketplace", match: t => t === "marketplace" },
+    ];
+    const byType = TYPE_GROUPS.map(g => {
+      const group = rangePosts.filter(p => g.match(p.postType));
+      return {
+        name:     g.name,
+        posts:    group.length,
+        views:    group.reduce((s, p) => s + p.viewCount, 0),
+        likes:    group.reduce((s, p) => s + p.likeCount, 0),
+        comments: group.reduce((s, p) => s + p.commentCount, 0),
+        shares:   group.reduce((s, p) => s + p.shareCount, 0),
+      };
+    });
+
+    // Engagement summary (all-time)
+    const postCount = posts.length;
+    const engagement = {
+      avgViewsPerPost:    postCount > 0 ? Math.round(totalViews / postCount) : 0,
+      avgLikesPerPost:    postCount > 0 ? Math.round((totalLikes / postCount) * 10) / 10 : 0,
+      avgCommentsPerPost: postCount > 0 ? Math.round((totalComments / postCount) * 10) / 10 : 0,
+      // (likes + comments) / views, as a percentage
+      engagementRate: totalViews > 0
+        ? Math.round(((totalLikes + totalComments) / totalViews) * 1000) / 10
+        : 0,
     };
 
     return {
@@ -53,6 +111,8 @@ export async function analyticsRoutes(app: FastifyInstance) {
       following:    user?.followingCount ?? 0,
       byDay,
       byPlatform,
+      byType,
+      engagement,
     };
   });
 

@@ -67,6 +67,41 @@ export async function communityRoutes(app: FastifyInstance) {
     }
   );
 
+  // GET /communities/user/:username — communities a user is a member of
+  app.get<{ Params: { username: string } }>(
+    "/user/:username",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const user = await app.prisma.user.findUnique({
+        where: { username: req.params.username },
+        select: { id: true },
+      });
+      if (!user) return reply.status(404).send({ error: "User not found" });
+
+      const memberships = await app.prisma.communityMember.findMany({
+        where: { userId: user.id },
+        orderBy: { joinedAt: "desc" },
+        include: {
+          community: {
+            include: { _count: { select: { members: true } } },
+          },
+        },
+      });
+
+      return memberships.map(m => ({
+        id:          m.community.id,
+        name:        m.community.name,
+        description: m.community.description,
+        avatarUrl:   m.community.avatarUrl,
+        isPublic:    m.community.isPublic,
+        memberCount: m.community._count.members,
+        role:        m.role,
+        isOwner:     m.community.creatorId === user.id,
+        joinedAt:    m.joinedAt,
+      }));
+    }
+  );
+
   // GET /communities/:id — community metadata
   app.get<{ Params: { id: string } }>(
     "/:id",

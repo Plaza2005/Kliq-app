@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Shield, Ban, Trash2, ExternalLink, CheckCircle, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
+import { exportToCsv } from "../utils/csv";
 
 const KLIQ_APP_URL = "http://localhost:5174";
 
@@ -48,6 +49,7 @@ export function Users() {
   const [pages, setPages]           = useState(1);
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState<string | null>(null);
+  const [exporting, setExporting]   = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ action: string; userId: string; username: string } | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
@@ -81,6 +83,45 @@ export function Users() {
     setConfirmModal({ action, userId: user.id, username: user.username });
   };
 
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      // Fetch every page matching the current filter so the export covers
+      // the full filtered set, not just the visible page.
+      const all: ApiUser[] = [];
+      let p = 1;
+      let totalPages = 1;
+      do {
+        const params = new URLSearchParams({ page: String(p) });
+        if (filterStatus !== "All") params.set("status", filterStatus);
+        if (query.trim())           params.set("q", query.trim());
+        const data = await adminApi.get<{ users: ApiUser[]; pages: number }>(`/admin/users?${params}`);
+        all.push(...data.users);
+        totalPages = data.pages;
+        p++;
+      } while (p <= totalPages);
+
+      exportToCsv(`kliq-users-${new Date().toISOString().slice(0, 10)}`, [
+        { header: "Username",     value: u => u.username },
+        { header: "Display Name", value: u => u.displayName },
+        { header: "Email",        value: u => u.email },
+        { header: "Tier",         value: u => u.tier },
+        { header: "Status",       value: u => u.status },
+        { header: "Verified",     value: u => u.isVerified ? "yes" : "no" },
+        { header: "Admin",        value: u => u.isAdmin ? "yes" : "no" },
+        { header: "Posts",        value: u => u.postCount },
+        { header: "Followers",    value: u => u.followerCount },
+        { header: "Joined",       value: u => new Date(u.createdAt).toISOString() },
+      ], all);
+      showToast(`Exported ${all.length} users to CSV.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleTierChange = async (userId: string, username: string, tier: string) => {
     try {
       await adminApi.patch(`/admin/users/${userId}`, { action: "tier", tier });
@@ -107,7 +148,7 @@ export function Users() {
           Ban:      "ban",
         };
         await adminApi.patch(`/admin/users/${userId}`, { action: actionMap[action] });
-        showToast(`@${username} — ${action} applied.`);
+        showToast(`@${username} ï¿½ ${action} applied.`);
       }
       load(page, filterStatus, query);
     } catch (err) {
@@ -153,10 +194,11 @@ export function Users() {
           <p className="text-gray-500 text-sm mt-0.5">{total} total users</p>
         </div>
         <button
-          onClick={() => showToast("Export as CSV — coming soon")}
-          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition"
+          onClick={handleExport}
+          disabled={exporting}
+          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition disabled:opacity-50"
         >
-          Export CSV
+          {exporting ? "Exportingâ€¦" : "Export CSV"}
         </button>
       </div>
 
@@ -297,7 +339,7 @@ export function Users() {
       {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-gray-500 text-sm">Page {page} of {pages} · {total} users</p>
+          <p className="text-gray-500 text-sm">Page {page} of {pages} ï¿½ {total} users</p>
           <div className="flex gap-2">
             <button onClick={() => load(page - 1, filterStatus, query)} disabled={page <= 1}
               className="p-2 bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 rounded-lg transition">

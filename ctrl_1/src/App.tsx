@@ -6,6 +6,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Users } from "./pages/Users";
 import { Content } from "./pages/Content";
 import { Communities } from "./pages/Communities";
+import { Marketplace } from "./pages/Marketplace";
 import { Analytics } from "./pages/Analytics";
 import { Messages } from "./pages/Messages";
 import { Notifications } from "./pages/Notifications";
@@ -29,6 +30,7 @@ import { KliqStreamCatalogue } from "./pages/KliqStreamCatalogue";
 import { ReportsManagement } from "./pages/ReportsManagement";
 import { LiveModeration } from "./pages/LiveModeration";
 import { BadgeRequests } from "./pages/BadgeRequests";
+import { SystemStatus } from "./pages/SystemStatus";
 
 function Layout() {
   return (
@@ -53,6 +55,7 @@ const router = createBrowserRouter([
       { path: "users",            Component: Users            },
       { path: "content",          Component: Content          },
       { path: "communities",      Component: Communities      },
+      { path: "marketplace",      Component: Marketplace      },
       { path: "analytics",        Component: Analytics        },
       { path: "messages",         Component: Messages         },
       { path: "notifications",    Component: Notifications    },
@@ -75,6 +78,7 @@ const router = createBrowserRouter([
       { path: "reports",                 Component: ReportsManagement       },
       { path: "live-moderation",         Component: LiveModeration          },
       { path: "badge-requests",          Component: BadgeRequests           },
+      { path: "status",                  Component: SystemStatus            },
     ],
   },
   { path: "/login", Component: AdminLogin },

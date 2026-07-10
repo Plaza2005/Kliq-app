@@ -32,6 +32,7 @@ import { soundRoutes } from "./routes/sounds";
 import { pollRoutes } from "./routes/polls";
 import { groupRoutes } from "./routes/groups";
 import { subscriptionRoutes } from "./routes/subscriptions";
+import { marketplaceRoutes } from "./routes/marketplace";
 import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream } from "./ws";
 import { startBackgroundJobs } from "./jobs";
 import { getPresignedUploadUrl, R2_PUBLIC_URL } from "./storage";
@@ -42,7 +43,10 @@ declare module "fastify" {
     authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateAdmin: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
-  interface FastifyRequest {
+}
+
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
     user: { id: string; isAdmin: boolean };
   }
 }
@@ -198,6 +202,7 @@ app.register(soundRoutes,        { prefix: "/sounds" });
 app.register(pollRoutes,         { prefix: "/polls" });
 app.register(groupRoutes,        { prefix: "/groups" });
 app.register(subscriptionRoutes, { prefix: "/subscriptions" });
+app.register(marketplaceRoutes,  { prefix: "/marketplace" });
 
 app.get("/", () => ({ name: "KLIQ API", status: "ok", version: "1.0.0" }));
 app.get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }));
