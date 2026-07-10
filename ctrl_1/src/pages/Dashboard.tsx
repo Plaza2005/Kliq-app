@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Users, Eye, TrendingUp, DollarSign, AlertTriangle, CheckCircle, Clock, Activity, ArrowUpRight, ExternalLink, X, Loader2 } from "lucide-react";
+import { Users, Eye, TrendingUp, DollarSign, AlertTriangle, CheckCircle, Clock, Activity, ArrowUpRight, ExternalLink, X, Loader2, Database, Trash2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { adminApi } from "../api/client";
 
@@ -65,8 +65,17 @@ function actionLabel(action: string): string {
     "admin.delete_user":    "Deleted user",
     "admin.tier":           "Changed user tier",
     "admin.remove_content": "Removed content",
+    "admin.load_demo_data":  "Loaded demo data",
+    "admin.clear_demo_data": "Cleared demo data",
   };
   return map[action] ?? action;
+}
+
+function summarize(summary: Record<string, number>): string {
+  const parts = Object.entries(summary)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${v} ${k}`);
+  return parts.length > 0 ? parts.join(", ") : "nothing to change";
 }
 
 export function Dashboard() {
@@ -79,8 +88,31 @@ export function Dashboard() {
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState<string | null>(null);
   const [drilldown, setDrilldown]   = useState<string | null>(null);
+  const [demoBusy, setDemoBusy]         = useState<"load" | "clear" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"load" | "clear" | null>(null);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const showToast = (msg: string, ms = 2500) => { setToast(msg); setTimeout(() => setToast(null), ms); };
+
+  const runDemoAction = async (action: "load" | "clear") => {
+    setConfirmAction(null);
+    setDemoBusy(action);
+    try {
+      const res = await adminApi.post<{ ok: boolean; summary: Record<string, number> }>(
+        action === "load" ? "/admin/load-demo-data" : "/admin/clear-demo-data"
+      );
+      showToast(
+        action === "load"
+          ? `Demo data loaded: ${summarize(res.summary)}`
+          : `Demo data cleared: ${summarize(res.summary)}`,
+        6000
+      );
+      loadData();
+    } catch (err) {
+      showToast(`Failed to ${action} demo data: ${err instanceof Error ? err.message : "unknown error"}`, 5000);
+    } finally {
+      setDemoBusy(null);
+    }
+  };
 
   const loadData = () => {
     setLoading(true);
@@ -176,6 +208,71 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* Demo-data confirmation modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setConfirmAction(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${confirmAction === "load" ? "bg-indigo-500/10" : "bg-red-500/10"}`}>
+                  {confirmAction === "load"
+                    ? <Database size={16} className="text-indigo-400" />
+                    : <AlertTriangle size={16} className="text-red-400" />}
+                </div>
+                <h3 className="text-white font-bold text-lg">
+                  {confirmAction === "load" ? "Load demo data?" : "Clear demo data?"}
+                </h3>
+              </div>
+              <button onClick={() => setConfirmAction(null)} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {confirmAction === "load" ? (
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  This fills the platform with rich test data — demo users, posts, comments,
+                  communities, marketplace listings, KliqStream titles, wallets and more.
+                  Existing demo data is replaced; real accounts are untouched. Safe to run more than once.
+                </p>
+              ) : (
+                <>
+                  <p className="text-gray-400 text-sm leading-relaxed">
+                    This permanently deletes <span className="text-white font-semibold">all demo/test data</span> —
+                    every demo account and everything attached to it (posts, comments, products,
+                    communities, wallets, messages...).
+                  </p>
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-start gap-2.5">
+                    <AlertTriangle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-300 text-xs leading-relaxed">
+                      This cannot be undone. Admin accounts and real users are never removed,
+                      but all seeded demo content will be gone.
+                    </p>
+                  </div>
+                </>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => runDemoAction(confirmAction)}
+                  className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition ${
+                    confirmAction === "load"
+                      ? "bg-indigo-600 hover:bg-indigo-500"
+                      : "bg-red-600 hover:bg-red-500"
+                  }`}
+                >
+                  {confirmAction === "load" ? "Load Demo Data" : "Yes, Clear Everything"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drill-down modal */}
       {drilldown && drill && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setDrilldown(null)}>
@@ -245,12 +342,30 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-0.5">Platform overview · Live data</p>
         </div>
-        <button
-          onClick={() => { loadData(); showToast("Refreshing data..."); }}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setConfirmAction("load")}
+            disabled={demoBusy !== null}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+          >
+            {demoBusy === "load" ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
+            {demoBusy === "load" ? "Loading..." : "Load Data"}
+          </button>
+          <button
+            onClick={() => setConfirmAction("clear")}
+            disabled={demoBusy !== null}
+            className="flex items-center gap-2 bg-gray-800 hover:bg-red-900/40 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 text-sm font-medium px-4 py-2 rounded-lg transition"
+          >
+            {demoBusy === "clear" ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {demoBusy === "clear" ? "Clearing..." : "Clear Data"}
+          </button>
+          <button
+            onClick={() => { loadData(); showToast("Refreshing data..."); }}
+            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
