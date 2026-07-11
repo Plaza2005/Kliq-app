@@ -22,7 +22,10 @@ export function clearAdminToken() {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getAdminToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  // Only claim a JSON body when one is actually sent — Fastify rejects an
+  // empty body with Content-Type: application/json as 400 Bad Request.
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE}${path}`, {
