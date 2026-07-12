@@ -5,7 +5,7 @@
 * {
   box-sizing: border-box;
   scrollbar-width: thin;
-  scrollbar-color: #7c3aed #111111;
+  scrollbar-color: #8b5cf6 #111111;
 }
 
 *::-webkit-scrollbar {
@@ -19,19 +19,37 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7c3aed, #db2777);
+  background: linear-gradient(180deg, #22d3ee, #8b5cf6, #ec4899);
   border-radius: 99px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #9333ea, #ec4899);
+  background: linear-gradient(180deg, #67e8f9, #a78bfa, #f472b6);
 }
 
 body { background: #000; }
 
+/* ── KLIQ app design system (kliq_flutter/lib/core/theme.dart) ──────────
+   Dark surfaces: base #000, surface #121212, elevated #1E1E1E, border #2A2A2A.
+   Accents: cyan #22D3EE → purple #8B5CF6 → pink #EC4899. Remapped onto the
+   Tailwind palette so every existing gray-*/cyan-*/purple-*/pink-* utility
+   shifts to the KLIQ theme app-wide. */
+:root {
+  --color-gray-950: #000000;
+  --color-gray-900: #121212;
+  --color-gray-800: #1e1e1e;
+  --color-gray-700: #2a2a2a;
+  --color-gray-400: #9ca3af; /* KLIQ text secondary */
+  --color-gray-500: #6b7280; /* KLIQ text muted */
+  --color-cyan-500: #22d3ee;
+  --color-purple-500: #8b5cf6;
+  --color-pink-500: #ec4899;
+}
+
 /* ── Light mode color overrides (Tailwind v4 CSS variable overrides) ── */
 html.light {
   --color-black: #ffffff;
+  --color-cyan-500: #06b6d4; /* darker cyan for contrast on light bg */
   --color-white: #111827;
   --color-gray-950: #f9fafb;
   --color-gray-900: #f3f4f6;
@@ -49,8 +67,7 @@ html.light {
 
 /* Keep gradient button text readable in light mode */
 html.light .from-cyan-500,
-html.light .from-purple-600,
-html.light .from-indigo-500 {
+html.light .from-purple-600 {
   --tw-text-opacity: 1;
 }
 

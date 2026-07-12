@@ -164,7 +164,7 @@ export function SystemStatus() {
 
       {loading && !status ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-indigo-400" />
+          <Loader2 size={32} className="animate-spin text-cyan-400" />
         </div>
       ) : !status && !apiReachable ? (
         /* API entirely unreachable */
@@ -205,7 +205,7 @@ export function SystemStatus() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center">
-                        <Icon size={16} className={s.ok ? "text-indigo-400" : "text-red-400"} />
+                        <Icon size={16} className={s.ok ? "text-cyan-400" : "text-red-400"} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export function SystemStatus() {
           {status && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Cpu size={16} className="text-indigo-400" />
+                <Cpu size={16} className="text-cyan-400" />
                 <h3 className="text-white font-semibold">API Process Resources</h3>
               </div>
               <div className="grid grid-cols-3 gap-2">

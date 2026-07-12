@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ExternalLink, Trash2, ChevronLeft, ChevronRight, Loader2, Heart, MessageCircle, Globe, Youtube, Tv, Store, Eye, AlertTriangle, RefreshCw } from "lucide-react";
 import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 
-const KLIQ_APP_URL = "http://localhost:5174";
+const KLIQ_APP_URL = "http://localhost:8080";
 
 interface ApiContent {
   id: string;
@@ -42,7 +42,7 @@ const TAB_ICONS: Record<string, typeof Globe> = {
 };
 
 const TAB_COLORS: Record<string, string> = {
-  Social:      "text-blue-400",
+  Social:      "text-cyan-400",
   KliqTube:    "text-red-400",
   Stream:      "text-pink-400",
   Marketplace: "text-yellow-400",
@@ -137,7 +137,7 @@ export function Content() {
             <h3 className="text-white font-bold text-lg mb-1">Remove Content</h3>
             <p className="text-gray-400 text-sm mb-6">
               Remove <strong className="text-white capitalize">{POST_TYPE_LABEL[deleteModal.postType] ?? deleteModal.postType}</strong> post by{" "}
-              <strong className="text-indigo-400">@{deleteModal.author.username}</strong>? This soft-deletes and removes it from the feed.
+              <strong className="text-cyan-400">@{deleteModal.author.username}</strong>? This soft-deletes and removes it from the feed.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteModal(null)}
@@ -221,7 +221,7 @@ export function Content() {
       {/* Content grid */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-indigo-400" />
+          <Loader2 size={24} className="animate-spin text-cyan-400" />
         </div>
       ) : content.length === 0 ? (
         <div className="text-center py-20">
@@ -256,7 +256,7 @@ export function Content() {
                   <a href={`${KLIQ_APP_URL}/user/${item.author.username}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 group">
                     <img src={resolveAvatarUrl(item.author.avatarUrl)} alt="" className="w-6 h-6 rounded-full bg-gray-700" />
-                    <span className="text-indigo-400 text-xs group-hover:underline">@{item.author.username}</span>
+                    <span className="text-cyan-400 text-xs group-hover:underline">@{item.author.username}</span>
                   </a>
                   <span className="text-gray-600 text-xs">{timeAgo(item.createdAt)}</span>
                 </div>

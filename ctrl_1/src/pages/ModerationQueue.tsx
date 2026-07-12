@@ -21,7 +21,7 @@ interface ModerationStats {
 }
 
 const PLATFORM_COLOR: Record<string, string> = {
-  feed:      "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  feed:      "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
   klixtube:  "text-purple-400 bg-purple-500/10 border-purple-500/20",
   community: "text-green-400 bg-green-500/10 border-green-500/20",
   stream:    "text-pink-400 bg-pink-500/10 border-pink-500/20",
@@ -178,7 +178,7 @@ export function ModerationQueue() {
       <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
         <button
           onClick={() => setTab("pending")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "pending" ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "pending" ? "bg-cyan-600 text-white" : "text-gray-400 hover:text-white"}`}
         >
           <span className="flex items-center gap-2">
             <Clock size={14} />
@@ -187,7 +187,7 @@ export function ModerationQueue() {
         </button>
         <button
           onClick={() => setTab("flagged")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "flagged" ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "flagged" ? "bg-cyan-600 text-white" : "text-gray-400 hover:text-white"}`}
         >
           <span className="flex items-center gap-2">
             <Flag size={14} />
@@ -199,7 +199,7 @@ export function ModerationQueue() {
       {/* Content */}
       {loading ? (
         <div className="py-20 flex justify-center">
-          <Loader2 size={24} className="animate-spin text-indigo-400" />
+          <Loader2 size={24} className="animate-spin text-cyan-400" />
         </div>
       ) : items.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl py-20 flex flex-col items-center gap-3">

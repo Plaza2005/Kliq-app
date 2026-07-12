@@ -134,7 +134,7 @@ export function AppSettings() {
           <p className="text-gray-500 text-sm mt-0.5">Feature flags and platform configuration</p>
         </div>
         <button onClick={saveAll} disabled={saving}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-60">
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-60">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           {saving ? "Saving..." : "Save All"}
         </button>
@@ -168,7 +168,7 @@ export function AppSettings() {
                 <button
                   onClick={() => requestToggle(flag)}
                   className={`relative ml-4 flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${
-                    flag.enabled ? (flag.danger ? "bg-red-500" : "bg-indigo-600") : "bg-gray-700"
+                    flag.enabled ? (flag.danger ? "bg-red-500" : "bg-cyan-600") : "bg-gray-700"
                   }`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
@@ -192,7 +192,7 @@ export function AppSettings() {
             <div key={l.key}>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm text-gray-300 font-medium">{l.label}</label>
-                <span className="text-indigo-400 text-sm font-bold">{l.value.toLocaleString()} <span className="text-gray-500 font-normal text-xs">{l.unit}</span></span>
+                <span className="text-cyan-400 text-sm font-bold">{l.value.toLocaleString()} <span className="text-gray-500 font-normal text-xs">{l.unit}</span></span>
               </div>
               <input
                 type="range"
@@ -200,7 +200,7 @@ export function AppSettings() {
                 max={l.max}
                 value={l.value}
                 onChange={e => setLimits(prev => prev.map(x => x.key === l.key ? { ...x, value: Number(e.target.value) } : x))}
-                className="w-full h-1.5 rounded-full accent-indigo-500"
+                className="w-full h-1.5 rounded-full accent-cyan-500"
               />
               <div className="flex justify-between text-gray-600 text-xs mt-1">
                 <span>{l.min}</span><span>{l.max}</span>

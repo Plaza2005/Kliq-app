@@ -132,7 +132,7 @@ function fmtTokens(n: number) {
 
 const TIER_BADGE: Record<string, string> = {
   pro:  "bg-purple-500/20 text-purple-300 border border-purple-500/30",
-  plus: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+  plus: "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30",
   free: "bg-gray-700 text-gray-400",
 };
 
@@ -277,9 +277,9 @@ export function RevenueDashboard() {
       label: "This Month",
       value: summaryLoading ? "�" : fmtMoney(summary.thisMonth),
       icon: TrendingUp,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
+      color: "text-cyan-400",
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/20",
     },
     {
       label: "Transactions",
@@ -321,9 +321,9 @@ export function RevenueDashboard() {
       label: "In Circulation",
       value: tokenSummaryLoading ? "�" : fmtTokens(tokenSummary.inCirculation),
       icon: BarChart2,
-      color: "text-indigo-400",
-      bg: "bg-indigo-500/10",
-      border: "border-indigo-500/20",
+      color: "text-cyan-400",
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/20",
     },
     {
       label: "Campaigns Run",
@@ -414,7 +414,7 @@ export function RevenueDashboard() {
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                   filter === f
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-cyan-600 text-white"
                     : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"
                 }`}
               >
@@ -426,7 +426,7 @@ export function RevenueDashboard() {
 
         {txLoading ? (
           <div className="py-20 flex justify-center">
-            <Loader2 size={24} className="animate-spin text-indigo-400" />
+            <Loader2 size={24} className="animate-spin text-cyan-400" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 flex flex-col items-center gap-3">
@@ -458,7 +458,7 @@ export function RevenueDashboard() {
                           ? "text-green-400 bg-green-500/10"
                           : tx.type === "Withdrawal"
                           ? "text-red-400 bg-red-500/10"
-                          : "text-blue-400 bg-blue-500/10"
+                          : "text-cyan-400 bg-cyan-500/10"
                       }`}
                     >
                       {tx.type}
@@ -635,7 +635,7 @@ export function RevenueDashboard() {
         <h2 className="text-lg font-bold text-white mb-4">Revenue Insights</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Revenue per Token */}
-          <div className="bg-gradient-to-br from-purple-900/40 to-indigo-900/30 border border-purple-500/20 rounded-2xl p-5">
+          <div className="bg-gradient-to-br from-purple-900/40 to-cyan-900/30 border border-purple-500/20 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
               <DollarSign size={16} className="text-purple-400" />
               <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">
@@ -669,10 +669,10 @@ export function RevenueDashboard() {
           </div>
 
           {/* Conversion Rate */}
-          <div className="bg-gradient-to-br from-indigo-900/40 to-blue-900/30 border border-indigo-500/20 rounded-2xl p-5">
+          <div className="bg-gradient-to-br from-cyan-900/40 to-cyan-900/30 border border-cyan-500/20 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp size={16} className="text-indigo-400" />
-              <span className="text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+              <TrendingUp size={16} className="text-cyan-400" />
+              <span className="text-cyan-300 text-xs font-semibold uppercase tracking-wider">
                 Conversion Rate
               </span>
             </div>

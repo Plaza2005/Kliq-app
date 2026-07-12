@@ -39,7 +39,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
-      className={`flex-shrink-0 transition ${on ? "text-indigo-400" : "text-gray-600"}`}
+      className={`flex-shrink-0 transition ${on ? "text-cyan-400" : "text-gray-600"}`}
       aria-label={on ? "Disable" : "Enable"}
     >
       {on ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
@@ -195,12 +195,12 @@ export function AutoModeration() {
               onChange={e => setNewKeyword(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAddRule()}
               placeholder="Enter keyword or phrase..."
-              className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 placeholder-gray-600"
+              className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500 placeholder-gray-600"
             />
             <button
               onClick={handleAddRule}
               disabled={addLoading || !newKeyword.trim()}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition"
+              className="flex items-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition"
             >
               {addLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               Add
@@ -211,7 +211,7 @@ export function AutoModeration() {
         {/* Rules list */}
         {rulesLoading ? (
           <div className="py-12 flex justify-center">
-            <Loader2 size={20} className="animate-spin text-indigo-400" />
+            <Loader2 size={20} className="animate-spin text-cyan-400" />
           </div>
         ) : rules.length === 0 ? (
           <div className="py-12 text-center text-gray-600 text-sm">No keyword filters added yet.</div>
@@ -285,7 +285,7 @@ export function AutoModeration() {
                 max={100}
                 value={thresholds.flagAfterReports}
                 onChange={e => setThresholds(prev => ({ ...prev, flagAfterReports: Number(e.target.value) }))}
-                className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500"
               />
               <p className="text-gray-600 text-xs mt-1">Content is flagged for review after this many user reports.</p>
             </div>
@@ -299,7 +299,7 @@ export function AutoModeration() {
                 max={100}
                 value={thresholds.autoBanAfterViolations}
                 onChange={e => setThresholds(prev => ({ ...prev, autoBanAfterViolations: Number(e.target.value) }))}
-                className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500"
               />
               <p className="text-gray-600 text-xs mt-1">Users are automatically banned after accumulating this many violations.</p>
             </div>
@@ -308,7 +308,7 @@ export function AutoModeration() {
             <button
               onClick={handleSaveThresholds}
               disabled={saveLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition"
+              className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition"
             >
               {saveLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Thresholds

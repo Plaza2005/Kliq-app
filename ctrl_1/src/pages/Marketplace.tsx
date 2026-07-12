@@ -43,7 +43,7 @@ const PRODUCT_STATUS_COLORS: Record<string, string> = {
 };
 
 const ORDER_STATUS_COLORS: Record<string, string> = {
-  paid:      "text-blue-400 bg-blue-500/10",
+  paid:      "text-cyan-400 bg-cyan-500/10",
   fulfilled: "text-green-400 bg-green-500/10",
   cancelled: "text-red-400 bg-red-500/10",
   refunded:  "text-amber-400 bg-amber-500/10",
@@ -98,7 +98,7 @@ export function Marketplace() {
         <div className="flex gap-2">
           {(["products", "orders"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition ${tab === t ? "bg-indigo-500/20 border border-indigo-500/50 text-white" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"}`}>
+              className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition ${tab === t ? "bg-cyan-500/20 border border-cyan-500/50 text-white" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"}`}>
               {t}
             </button>
           ))}
@@ -109,14 +109,14 @@ export function Marketplace() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={tab === "products" ? "Search products or sellers..." : "Search orders, buyers or sellers..."}
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition"
           />
         </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-indigo-400" />
+          <Loader2 size={28} className="animate-spin text-cyan-400" />
         </div>
       ) : tab === "products" ? (
         filteredProducts.length === 0 ? (

@@ -105,7 +105,7 @@ export function Notifications() {
         {/* Composer */}
         <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <h2 className="text-white font-semibold mb-5 flex items-center gap-2">
-            <Bell size={16} className="text-indigo-400" /> Compose Notification
+            <Bell size={16} className="text-cyan-400" /> Compose Notification
           </h2>
 
           {sent ? (
@@ -119,7 +119,7 @@ export function Notifications() {
               </p>
               <p className="text-gray-500 text-xs mb-6">{AUDIENCE_LABELS[audience]}</p>
               <button onClick={resetForm}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
                 Send Another
               </button>
             </div>
@@ -135,10 +135,10 @@ export function Notifications() {
                       <button type="button" key={a} onClick={() => setAudience(a)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition text-left ${
                           audience === a
-                            ? "border-indigo-500 bg-indigo-500/10 text-white"
+                            ? "border-cyan-500 bg-cyan-500/10 text-white"
                             : "border-gray-700 bg-gray-800 text-gray-400 hover:text-white hover:border-gray-600"
                         }`}>
-                        <Icon size={14} className={audience === a ? "text-indigo-400" : "text-gray-500"} />
+                        <Icon size={14} className={audience === a ? "text-cyan-400" : "text-gray-500"} />
                         <span className="flex-1">{AUDIENCE_LABELS[a]}</span>
                         <span className="text-xs text-gray-500">
                           {audienceCounts[a] > 0 ? audienceCounts[a].toLocaleString() : "—"}
@@ -155,7 +155,7 @@ export function Notifications() {
                 <input value={title} onChange={e => setTitle(e.target.value)}
                   maxLength={80}
                   placeholder="Notification title..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 placeholder-gray-600" />
+                  className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500 placeholder-gray-600" />
                 <p className="text-gray-600 text-xs text-right mt-1">{title.length}/80</p>
               </div>
 
@@ -165,7 +165,7 @@ export function Notifications() {
                 <textarea value={message} onChange={e => setMessage(e.target.value)}
                   maxLength={200} rows={4}
                   placeholder="Notification body..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 placeholder-gray-600 resize-none" />
+                  className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500 placeholder-gray-600 resize-none" />
                 <p className="text-gray-600 text-xs text-right mt-1">{message.length}/200</p>
               </div>
 
@@ -176,7 +176,7 @@ export function Notifications() {
               )}
 
               <button type="submit" disabled={sending}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-xl transition disabled:opacity-60">
                 {sending ? <><Loader2 size={15} className="animate-spin" /> Sending...</> : <><Send size={15} /> Send Notification</>}
               </button>
             </form>

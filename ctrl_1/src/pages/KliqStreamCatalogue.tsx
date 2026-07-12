@@ -29,7 +29,7 @@ type Filter = "all" | "pending" | "approved" | "rejected";
 const TIER_LABELS: Record<string, string> = { free: "Free", plus: "Plus", pro: "Pro" };
 const TIER_COLORS: Record<string, string> = {
   free: "bg-gray-700 text-gray-300",
-  plus: "bg-blue-500/20 text-blue-300",
+  plus: "bg-cyan-500/20 text-cyan-300",
   pro:  "bg-purple-500/20 text-purple-300",
 };
 
@@ -187,7 +187,7 @@ export function KliqStreamCatalogue() {
             </div>
             <div className="p-5 space-y-4">
               <textarea
-                className="w-full bg-gray-800 border border-gray-700 text-gray-300 rounded-xl px-4 py-3 text-sm placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 resize-none"
+                className="w-full bg-gray-800 border border-gray-700 text-gray-300 rounded-xl px-4 py-3 text-sm placeholder:text-gray-600 focus:outline-none focus:border-cyan-500 resize-none"
                 placeholder="Reason (optional)"
                 rows={3}
                 value={rejectReason}
@@ -269,7 +269,7 @@ export function KliqStreamCatalogue() {
             onClick={() => setFilter(f.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === f.key
-                ? "bg-indigo-600 text-white"
+                ? "bg-cyan-600 text-white"
                 : "text-gray-400 hover:text-white hover:bg-gray-800"
             }`}
           >
@@ -281,7 +281,7 @@ export function KliqStreamCatalogue() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-indigo-400" />
+          <Loader2 size={32} className="animate-spin text-cyan-400" />
         </div>
       ) : titles.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -389,7 +389,7 @@ export function KliqStreamCatalogue() {
                     <select
                       value={t.minTier}
                       onChange={e => handleTierChange(t, e.target.value)}
-                      className="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      className="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
                     >
                       <option value="free">Free</option>
                       <option value="plus">Plus</option>

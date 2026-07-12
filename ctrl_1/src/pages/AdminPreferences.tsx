@@ -58,7 +58,7 @@ export function AdminPreferences() {
         {/* Email notifications */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
-            <Bell size={16} className="text-indigo-400" />
+            <Bell size={16} className="text-cyan-400" />
             <h2 className="text-white font-semibold">Email Notifications</h2>
           </div>
           <div className="divide-y divide-gray-800">
@@ -69,7 +69,7 @@ export function AdminPreferences() {
                   <p className="text-gray-500 text-xs mt-0.5">{p.desc}</p>
                 </div>
                 <button type="button" onClick={() => toggleEmail(p.key)}
-                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${emailToggles[p.key] ? "bg-indigo-600" : "bg-gray-700"}`}>
+                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${emailToggles[p.key] ? "bg-cyan-600" : "bg-gray-700"}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${emailToggles[p.key] ? "translate-x-5" : ""}`} />
                 </button>
               </div>
@@ -80,7 +80,7 @@ export function AdminPreferences() {
         {/* Real-time alerts */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
-            <Monitor size={16} className="text-indigo-400" />
+            <Monitor size={16} className="text-cyan-400" />
             <h2 className="text-white font-semibold">Real-Time Alerts</h2>
           </div>
           <div className="divide-y divide-gray-800">
@@ -91,7 +91,7 @@ export function AdminPreferences() {
                   <p className="text-gray-500 text-xs mt-0.5">{p.desc}</p>
                 </div>
                 <button type="button" onClick={() => toggleAlert(p.key)}
-                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${alertToggles[p.key] ? "bg-indigo-600" : "bg-gray-700"}`}>
+                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${alertToggles[p.key] ? "bg-cyan-600" : "bg-gray-700"}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${alertToggles[p.key] ? "translate-x-5" : ""}`} />
                 </button>
               </div>
@@ -102,7 +102,7 @@ export function AdminPreferences() {
         {/* Display settings */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Globe size={16} className="text-indigo-400" />
+            <Globe size={16} className="text-cyan-400" />
             <h2 className="text-white font-semibold">Display & Region</h2>
           </div>
           <div>
@@ -119,7 +119,7 @@ export function AdminPreferences() {
             <div className="flex gap-2 flex-wrap">
               {REFRESHES.map(r => (
                 <button key={r} type="button" onClick={() => setRefresh(r)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${refresh === r ? "bg-indigo-600/20 border-indigo-500 text-white" : "border-gray-700 text-gray-400 hover:text-white"}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${refresh === r ? "bg-cyan-600/20 border-cyan-500 text-white" : "border-gray-700 text-gray-400 hover:text-white"}`}>
                   {r}
                 </button>
               ))}
@@ -130,7 +130,7 @@ export function AdminPreferences() {
         {/* Appearance / Theme */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
-            <Palette size={16} className="text-indigo-400" />
+            <Palette size={16} className="text-cyan-400" />
             <h2 className="text-white font-semibold">Appearance</h2>
             {themeMode === "system" && (
               <span className="ml-auto text-xs text-gray-500">System ({themeEffective})</span>
@@ -142,10 +142,10 @@ export function AdminPreferences() {
               const icons = { dark: "🌙", light: "☀️", system: "⚙️" };
               return (
                 <button key={opt} type="button" onClick={() => setThemeMode(opt)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition ${themeMode === opt ? "border-indigo-500 bg-indigo-600/10 text-white" : "border-gray-700 text-gray-400 hover:border-gray-600 hover:text-white"}`}>
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition ${themeMode === opt ? "border-cyan-500 bg-cyan-600/10 text-white" : "border-gray-700 text-gray-400 hover:border-gray-600 hover:text-white"}`}>
                   <span className="text-xl">{icons[opt]}</span>
                   <span className="text-xs font-semibold">{labels[opt]}</span>
-                  {themeMode === opt && <Check size={12} className="text-indigo-400" />}
+                  {themeMode === opt && <Check size={12} className="text-cyan-400" />}
                 </button>
               );
             })}
@@ -153,7 +153,7 @@ export function AdminPreferences() {
         </div>
 
         <button type="submit"
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition">
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition">
           <Save size={14} /> Save Preferences
         </button>
       </form>

@@ -2,7 +2,7 @@
 import { MessageSquare, MessagesSquare, Loader2, ExternalLink } from "lucide-react";
 import { adminApi } from "../api/client";
 
-const KLIQ_APP_URL = "http://localhost:5173";
+const KLIQ_APP_URL = "http://localhost:8080";
 
 interface MsgStats { totalThreads: number; totalMessages: number; activeToday: number }
 
@@ -25,12 +25,12 @@ export function Messages() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : stats ? (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Total Threads",  value: stats.totalThreads.toLocaleString(),  icon: MessagesSquare, color: "text-indigo-400" },
-            { label: "Total Messages", value: stats.totalMessages.toLocaleString(), icon: MessageSquare,  color: "text-blue-400"   },
+            { label: "Total Threads",  value: stats.totalThreads.toLocaleString(),  icon: MessagesSquare, color: "text-cyan-400" },
+            { label: "Total Messages", value: stats.totalMessages.toLocaleString(), icon: MessageSquare,  color: "text-cyan-400"   },
             { label: "Sent Today",     value: stats.activeToday.toLocaleString(),   icon: MessageSquare,  color: "text-green-400"  },
           ].map(c => (
             <div key={c.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
@@ -58,7 +58,7 @@ export function Messages() {
           href={KLIQ_APP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
         >
           <ExternalLink size={14} /> Open KLIQ App
         </a>

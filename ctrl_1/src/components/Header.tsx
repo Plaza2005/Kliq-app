@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Search, Bell, ChevronDown, ExternalLink, Flag, AlertTriangle, Users, TrendingUp, Shield, X, CheckCircle, Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
-const KLIQ_APP_URL = "http://localhost:5174";
+const KLIQ_APP_URL = "http://localhost:8080";
 
 interface AdminNotif {
   id: number;
@@ -21,7 +21,7 @@ const NOTIF_ICONS: Record<AdminNotif["type"], React.ElementType> = {
 };
 const NOTIF_COLORS: Record<AdminNotif["type"], string> = {
   flag: "text-red-400 bg-red-500/10", alert: "text-yellow-400 bg-yellow-500/10",
-  user: "text-blue-400 bg-blue-500/10", growth: "text-green-400 bg-green-500/10",
+  user: "text-cyan-400 bg-cyan-500/10", growth: "text-green-400 bg-green-500/10",
   safety: "text-purple-400 bg-purple-500/10",
 };
 
@@ -88,7 +88,7 @@ export function Header() {
         >
           {effective === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           {themeMode === "system" && (
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-indigo-500 rounded-full border border-gray-900" title="System mode active" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-cyan-500 rounded-full border border-gray-900" title="System mode active" />
           )}
         </button>
 
@@ -116,7 +116,7 @@ export function Header() {
                 </div>
                 <div className="flex items-center gap-2">
                   {unread > 0 && (
-                    <button onClick={markAllRead} className="text-indigo-400 text-xs font-semibold hover:text-indigo-300 transition flex items-center gap-1">
+                    <button onClick={markAllRead} className="text-cyan-400 text-xs font-semibold hover:text-cyan-300 transition flex items-center gap-1">
                       <CheckCircle size={11} /> Mark all read
                     </button>
                   )}
@@ -132,7 +132,7 @@ export function Header() {
                   const Icon = NOTIF_ICONS[n.type];
                   const colorStyle = NOTIF_COLORS[n.type];
                   return (
-                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-800/50 transition group ${!n.read ? "bg-indigo-500/5" : ""}`}>
+                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-800/50 transition group ${!n.read ? "bg-cyan-500/5" : ""}`}>
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${colorStyle}`}>
                         <Icon size={14} />
                       </div>
@@ -149,7 +149,7 @@ export function Header() {
                         <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{n.desc}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <span className="text-gray-600 text-xs">{n.time}</span>
-                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />}
                         </div>
                       </div>
                     </div>
@@ -162,7 +162,7 @@ export function Header() {
               )}
 
               <div className="px-4 py-2.5 border-t border-gray-800">
-                <button className="text-indigo-400 text-xs font-semibold hover:text-indigo-300 transition">
+                <button className="text-cyan-400 text-xs font-semibold hover:text-cyan-300 transition">
                   View notification history →
                 </button>
               </div>
@@ -176,7 +176,7 @@ export function Header() {
             onClick={() => { setShowProfile(v => !v); setShowNotifs(false); }}
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-pink-500 flex items-center justify-center">
               <span className="text-white text-xs font-bold">{(adminUser?.username?.[0] ?? "A").toUpperCase()}</span>
             </div>
             <span className="text-gray-300 text-sm font-medium">{adminUser?.username ?? "Admin"}</span>

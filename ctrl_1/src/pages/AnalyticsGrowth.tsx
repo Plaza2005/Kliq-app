@@ -43,14 +43,14 @@ export function AnalyticsGrowth() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : !stats ? (
         <div className="text-center py-20 text-gray-500">Failed to load growth data.</div>
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Users",  value: stats.totalUsers.toLocaleString(),  icon: Users,      color: "text-indigo-400" },
+              { label: "Total Users",  value: stats.totalUsers.toLocaleString(),  icon: Users,      color: "text-cyan-400" },
               { label: "Active Users", value: stats.activeUsers.toLocaleString(), icon: Activity,   color: "text-green-400"  },
               { label: "Total Posts",  value: stats.totalPosts.toLocaleString(),  icon: FileText,   color: "text-purple-400" },
               { label: "Posts Today",  value: stats.postsToday.toLocaleString(),  icon: TrendingUp, color: "text-yellow-400" },
@@ -102,7 +102,7 @@ export function AnalyticsGrowth() {
               <div className="flex gap-6 mt-3 justify-center">
                 {[
                   { label: "Free",  count: tiers.free,  color: "bg-gray-500"   },
-                  { label: "Plus",  count: tiers.plus,  color: "bg-blue-500"   },
+                  { label: "Plus",  count: tiers.plus,  color: "bg-cyan-500"   },
                   { label: "Pro",   count: tiers.pro,   color: "bg-purple-500" },
                 ].map(t => (
                   <div key={t.label} className="flex items-center gap-2">

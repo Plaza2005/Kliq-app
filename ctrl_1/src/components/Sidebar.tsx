@@ -28,7 +28,7 @@ const NAV_MODERATION = [
   { to: "/badge-requests",        icon: BadgeCheck,        label: "Badge Requests"  },
 ];
 
-const KLIQ_APP_URL = "http://localhost:5174";
+const KLIQ_APP_URL = "http://localhost:8080";
 
 export function Sidebar() {
   return (

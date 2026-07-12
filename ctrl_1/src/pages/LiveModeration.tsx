@@ -48,7 +48,7 @@ export function LiveModeration() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
       ) : active.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-3">
           <Radio size={40} className="text-gray-700" />

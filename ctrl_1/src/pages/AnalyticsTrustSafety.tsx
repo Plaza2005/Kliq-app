@@ -64,13 +64,13 @@ export function AnalyticsTrustSafety() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: "Total Reports",  value: reports.length,              icon: AlertTriangle, color: "text-yellow-400" },
-              { label: "Total Users",    value: stats?.totalUsers ?? 0,      icon: Users,         color: "text-indigo-400" },
+              { label: "Total Users",    value: stats?.totalUsers ?? 0,      icon: Users,         color: "text-cyan-400" },
               { label: "Banned Users",   value: stats?.bannedUsers ?? 0,     icon: Ban,           color: "text-red-400"    },
               { label: "Suspended",      value: stats?.suspendedUsers ?? 0,  icon: Shield,        color: "text-orange-400" },
             ].map(c => (

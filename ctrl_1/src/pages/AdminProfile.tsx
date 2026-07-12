@@ -77,7 +77,7 @@ export function AdminProfile() {
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         <div className="flex items-center gap-5">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-pink-500 flex items-center justify-center">
               <span className="text-white text-3xl font-black">{(name?.[0] ?? "A").toUpperCase()}</span>
             </div>
             <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-700 border border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-600 transition">
@@ -86,7 +86,7 @@ export function AdminProfile() {
           </div>
           <div>
             <p className="text-white font-bold text-lg">{name}</p>
-            <p className="text-indigo-400 text-sm">{role}</p>
+            <p className="text-cyan-400 text-sm">{role}</p>
             <p className="text-gray-500 text-xs mt-0.5">{email}</p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export function AdminProfile() {
           <div key={f.label}>
             <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">{f.label}</label>
             <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 transition" />
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500 transition" />
           </div>
         ))}
         <div>
@@ -112,10 +112,10 @@ export function AdminProfile() {
         <div>
           <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Bio</label>
           <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
-            className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 transition resize-none" />
+            className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500 transition resize-none" />
         </div>
         <button type="submit" disabled={saving}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition">
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition">
           <Save size={14} /> {saving ? "Saving…" : "Save Changes"}
         </button>
       </form>
@@ -125,14 +125,14 @@ export function AdminProfile() {
         <h2 className="text-white font-semibold">Security</h2>
         <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
           <div className="flex items-center gap-3">
-            <Shield size={16} className="text-indigo-400" />
+            <Shield size={16} className="text-cyan-400" />
             <div>
               <p className="text-white text-sm font-medium">Two-Factor Authentication</p>
               <p className="text-gray-500 text-xs">Authenticator app (TOTP)</p>
             </div>
           </div>
           <button onClick={() => { setTwoFA(v => !v); showToast(`2FA ${twoFA ? "disabled" : "enabled"}.`); }}
-            className={`relative w-11 h-6 rounded-full transition-colors ${twoFA ? "bg-indigo-600" : "bg-gray-700"}`}>
+            className={`relative w-11 h-6 rounded-full transition-colors ${twoFA ? "bg-cyan-600" : "bg-gray-700"}`}>
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${twoFA ? "translate-x-5" : ""}`} />
           </button>
         </div>

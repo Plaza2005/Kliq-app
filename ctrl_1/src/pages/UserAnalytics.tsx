@@ -70,7 +70,7 @@ function fmtNum(n: number) {
 
 const TIER_COLOR: Record<string, string> = {
   free: "text-gray-400 bg-gray-800",
-  plus: "text-blue-400 bg-blue-500/10",
+  plus: "text-cyan-400 bg-cyan-500/10",
   pro:  "text-purple-400 bg-purple-500/10",
 };
 const STATUS_COLOR: Record<string, string> = {
@@ -128,7 +128,7 @@ export function UserAnalytics() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-indigo-400" />
+        <Loader2 size={28} className="animate-spin text-cyan-400" />
       </div>
     );
   }
@@ -137,7 +137,7 @@ export function UserAnalytics() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <p className="text-gray-400">User not found.</p>
-        <button onClick={() => navigate("/users")} className="text-indigo-400 hover:text-indigo-300 text-sm">
+        <button onClick={() => navigate("/users")} className="text-cyan-400 hover:text-cyan-300 text-sm">
           ? Back to Users
         </button>
       </div>
@@ -184,7 +184,7 @@ export function UserAnalytics() {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-white font-bold text-lg">@{user.username}</h2>
-            {user.isVerified && <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">VERIFIED</span>}
+            {user.isVerified && <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/20">VERIFIED</span>}
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${STATUS_COLOR[user.status] ?? "text-gray-400 bg-gray-800"}`}>{user.status}</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${TIER_COLOR[user.tier] ?? "text-gray-400 bg-gray-800"}`}>{user.tier}</span>
           </div>
@@ -286,11 +286,11 @@ export function UserAnalytics() {
           className="w-full flex items-center justify-between px-5 py-4 border-b border-gray-800 hover:bg-gray-800/40 transition"
         >
           <div className="flex items-center gap-2">
-            <Clock size={15} className="text-blue-400" />
+            <Clock size={15} className="text-cyan-400" />
             <h3 className="text-white font-semibold text-sm">Session History</h3>
           </div>
           {sessionLoading
-            ? <Loader2 size={14} className="animate-spin text-indigo-400" />
+            ? <Loader2 size={14} className="animate-spin text-cyan-400" />
             : sessionOpen ? <ChevronUp size={15} className="text-gray-500" /> : <ChevronDown size={15} className="text-gray-500" />
           }
         </button>

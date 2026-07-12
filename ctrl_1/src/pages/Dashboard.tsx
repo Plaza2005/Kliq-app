@@ -4,7 +4,7 @@ import { Users, Eye, TrendingUp, DollarSign, AlertTriangle, CheckCircle, Clock, 
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { adminApi } from "../api/client";
 
-const KLIQ_APP_URL = "http://localhost:5174";
+const KLIQ_APP_URL = "http://localhost:8080";
 const TOOLTIP = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#fff", fontSize: 12 };
 const TICK = { fill: "#64748b", fontSize: 11 };
 
@@ -135,7 +135,7 @@ export function Dashboard() {
   }, []);
 
   const STATS = stats ? [
-    { key: "users",   label: "Total Users",   value: fmtNum(stats.totalUsers),  icon: Users,      color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/20" },
+    { key: "users",   label: "Total Users",   value: fmtNum(stats.totalUsers),  icon: Users,      color: "text-cyan-400",   bg: "bg-cyan-500/10",   border: "border-cyan-500/20" },
     { key: "active",  label: "Active Users",  value: fmtNum(stats.activeUsers), icon: Activity,   color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/20" },
     { key: "content", label: "Total Posts",   value: fmtNum(stats.totalPosts),  icon: Eye,        color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { key: "notifs",  label: "Notifications", value: fmtNum(stats.totalNotifs), icon: DollarSign, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
@@ -147,7 +147,7 @@ export function Dashboard() {
       subtitle: "Breakdown by tier and account status",
       metrics: [
         { label: "Free (Basic)",  value: fmtNum(tiers.free),           color: "text-gray-300"  },
-        { label: "Plus",          value: fmtNum(tiers.plus),           color: "text-blue-400"   },
+        { label: "Plus",          value: fmtNum(tiers.plus),           color: "text-cyan-400"   },
         { label: "Pro",           value: fmtNum(tiers.pro),            color: "text-purple-400" },
         { label: "Active",        value: fmtNum(stats.activeUsers),    color: "text-green-400"  },
         { label: "Suspended",     value: fmtNum(stats.suspendedUsers), color: "text-yellow-400" },
@@ -170,14 +170,14 @@ export function Dashboard() {
         { label: "Suspended", value: fmtNum(stats.suspendedUsers),                             color: "text-yellow-400" },
         { label: "Banned",    value: fmtNum(stats.bannedUsers),                                color: "text-red-400"    },
         { label: "Total",     value: fmtNum(stats.totalUsers),                                 color: "text-gray-300"  },
-        { label: "Active %",  value: ((stats.activeUsers / Math.max(stats.totalUsers, 1)) * 100).toFixed(1) + "%", color: "text-indigo-400" },
+        { label: "Active %",  value: ((stats.activeUsers / Math.max(stats.totalUsers, 1)) * 100).toFixed(1) + "%", color: "text-cyan-400" },
       ],
     },
     content: {
       title:    `Total Posts — ${fmtNum(stats.totalPosts)}`,
       subtitle: "All posts and reels in the system",
       metrics: [
-        { label: "Total Posts", value: fmtNum(stats.totalPosts),  color: "text-blue-400"   },
+        { label: "Total Posts", value: fmtNum(stats.totalPosts),  color: "text-cyan-400"   },
         { label: "Today",       value: fmtNum(stats.postsToday),  color: "text-green-400"  },
         { label: "Older",       value: fmtNum(stats.totalPosts - stats.postsToday), color: "text-gray-400" },
       ],
@@ -214,9 +214,9 @@ export function Dashboard() {
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-800">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${confirmAction === "load" ? "bg-indigo-500/10" : "bg-red-500/10"}`}>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${confirmAction === "load" ? "bg-cyan-500/10" : "bg-red-500/10"}`}>
                   {confirmAction === "load"
-                    ? <Database size={16} className="text-indigo-400" />
+                    ? <Database size={16} className="text-cyan-400" />
                     : <AlertTriangle size={16} className="text-red-400" />}
                 </div>
                 <h3 className="text-white font-bold text-lg">
@@ -261,7 +261,7 @@ export function Dashboard() {
                   onClick={() => runDemoAction(confirmAction)}
                   className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition ${
                     confirmAction === "load"
-                      ? "bg-indigo-600 hover:bg-indigo-500"
+                      ? "bg-cyan-600 hover:bg-cyan-500"
                       : "bg-red-600 hover:bg-red-500"
                   }`}
                 >
@@ -346,7 +346,7 @@ export function Dashboard() {
           <button
             onClick={() => setConfirmAction("load")}
             disabled={demoBusy !== null}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition"
           >
             {demoBusy === "load" ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
             {demoBusy === "load" ? "Loading..." : "Load Data"}
@@ -370,7 +370,7 @@ export function Dashboard() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-indigo-400" />
+          <Loader2 size={32} className="animate-spin text-cyan-400" />
         </div>
       ) : (
         <>
@@ -450,7 +450,7 @@ export function Dashboard() {
                   <p className="text-gray-600 text-sm text-center py-8">No recent activity</p>
                 ) : activity.map((a, i) => {
                   const ICONS = [Activity, AlertTriangle, TrendingUp, CheckCircle, Clock, DollarSign];
-                  const COLORS = ["text-blue-400", "text-red-400", "text-green-400", "text-purple-400", "text-gray-400", "text-yellow-400"];
+                  const COLORS = ["text-cyan-400", "text-red-400", "text-green-400", "text-purple-400", "text-gray-400", "text-yellow-400"];
                   const Icon = ICONS[i % ICONS.length];
                   return (
                     <div key={a.id} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
@@ -487,10 +487,10 @@ export function Dashboard() {
                     className="flex items-center justify-between p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition group"
                   >
                     <div>
-                      <p className="text-white text-sm font-medium group-hover:text-indigo-300 transition">{l.label}</p>
+                      <p className="text-white text-sm font-medium group-hover:text-cyan-300 transition">{l.label}</p>
                       <p className="text-gray-500 text-xs">{l.desc}</p>
                     </div>
-                    <ArrowUpRight size={14} className="text-gray-600 group-hover:text-indigo-400 transition" />
+                    <ArrowUpRight size={14} className="text-gray-600 group-hover:text-cyan-400 transition" />
                   </a>
                 ))}
               </div>

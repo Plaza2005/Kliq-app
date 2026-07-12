@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { adminApi, resolveAvatarUrl, resolveMediaUrl } from "../api/client";
 import { exportToCsv } from "../utils/csv";
 
-const KLIQ_APP_URL = "http://localhost:5174";
+const KLIQ_APP_URL = "http://localhost:8080";
 
 interface ApiUser {
   id: string;
@@ -24,7 +24,7 @@ interface ApiUser {
 const TIER_LABEL: Record<string, string>  = { free: "Basic", plus: "Plus", pro: "Pro" };
 const TIER_COLOR: Record<string, string>  = {
   free: "text-gray-400 bg-gray-800 border-gray-700",
-  plus: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  plus: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
   pro:  "text-purple-400 bg-purple-500/10 border-purple-500/20",
 };
 const STATUS_COLOR: Record<string, string> = {
@@ -171,7 +171,7 @@ export function Users() {
             <h3 className="text-white font-bold text-lg mb-2">{confirmModal.action} User</h3>
             <p className="text-gray-400 text-sm mb-6">
               Are you sure you want to <strong className="text-white">{confirmModal.action.toLowerCase()}</strong>{" "}
-              <strong className="text-indigo-400">@{confirmModal.username}</strong>? This action will take effect immediately.
+              <strong className="text-cyan-400">@{confirmModal.username}</strong>? This action will take effect immediately.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmModal(null)}
@@ -216,7 +216,7 @@ export function Users() {
         <div className="flex gap-2">
           {["All", "active", "suspended", "banned"].map(s => (
             <button key={s} onClick={() => changeStatus(s)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition ${filterStatus === s ? "bg-indigo-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"}`}>
+              className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition ${filterStatus === s ? "bg-cyan-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"}`}>
               {s === "All" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
@@ -227,7 +227,7 @@ export function Users() {
       <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="py-20 flex justify-center">
-            <Loader2 size={24} className="animate-spin text-indigo-400" />
+            <Loader2 size={24} className="animate-spin text-cyan-400" />
           </div>
         ) : (
           <table className="w-full">
@@ -253,9 +253,9 @@ export function Users() {
                         className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" />
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-white text-sm font-medium group-hover:text-indigo-400 transition">@{u.username}</p>
-                          {u.isVerified && <CheckCircle size={12} className="text-blue-400 fill-blue-400" />}
-                          {u.isAdmin && <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">ADMIN</span>}
+                          <p className="text-white text-sm font-medium group-hover:text-cyan-400 transition">@{u.username}</p>
+                          {u.isVerified && <CheckCircle size={12} className="text-cyan-400 fill-cyan-400" />}
+                          {u.isAdmin && <span className="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded">ADMIN</span>}
                         </div>
                         <p className="text-gray-500 text-xs">{u.displayName}</p>
                       </div>
@@ -284,14 +284,14 @@ export function Users() {
                         value={u.tier}
                         title="Change tier"
                         onChange={e => handleTierChange(u.id, u.username, e.target.value)}
-                        className="text-[10px] bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-1 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        className="text-[10px] bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-1 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
                       >
                         <option value="free">Free</option>
                         <option value="plus">Plus</option>
                         <option value="pro">Pro</option>
                       </select>
                       <a href={`${KLIQ_APP_URL}/user/${u.username}`} target="_blank" rel="noopener noreferrer"
-                        className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition" title="View Profile">
+                        className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition" title="View Profile">
                         <ExternalLink size={13} />
                       </a>
                       {!u.isVerified && (
@@ -308,7 +308,7 @@ export function Users() {
                       )}
                       {(u.status === "suspended" || u.status === "banned") && (
                         <button onClick={() => handleAction("Reinstate", u)}
-                          className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition" title="Reinstate">
+                          className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition" title="Reinstate">
                           <CheckCircle size={13} />
                         </button>
                       )}

@@ -45,14 +45,14 @@ export function AnalyticsEngagement() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : !data ? (
         <div className="text-center py-20 text-gray-500">Failed to load engagement data.</div>
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Views",     value: fmtNum(data.totalViews),    icon: Eye,           color: "text-blue-400"   },
+              { label: "Total Views",     value: fmtNum(data.totalViews),    icon: Eye,           color: "text-cyan-400"   },
               { label: "Total Likes",     value: fmtNum(data.totalLikes),    icon: Heart,         color: "text-pink-400"   },
               { label: "Total Comments",  value: fmtNum(data.totalComments), icon: MessageCircle, color: "text-purple-400" },
               { label: "Engagement Rate", value: engagementRate + "%",       icon: FileText,      color: "text-yellow-400" },
@@ -81,7 +81,7 @@ export function AnalyticsEngagement() {
                     <p className="text-gray-500 text-xs">@{post.author.username} · <span className="capitalize text-gray-400">{post.postType}</span></p>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
-                    <span className="flex items-center gap-1"><Eye size={11} className="text-blue-400" /> {fmtNum(post.viewCount)}</span>
+                    <span className="flex items-center gap-1"><Eye size={11} className="text-cyan-400" /> {fmtNum(post.viewCount)}</span>
                     <span className="flex items-center gap-1"><Heart size={11} className="text-pink-400" /> {fmtNum(post.likeCount)}</span>
                     <span className="flex items-center gap-1"><MessageCircle size={11} className="text-purple-400" /> {fmtNum(post.commentCount)}</span>
                   </div>
@@ -104,9 +104,9 @@ export function AnalyticsEngagement() {
                     <p className="text-gray-500 text-xs">@{c.username}</p>
                   </div>
                   <div className="flex items-center gap-3 text-xs flex-shrink-0">
-                    <span className="text-gray-300"><Users size={11} className="inline mr-1 text-indigo-400" />{fmtNum(c.followerCount)}</span>
+                    <span className="text-gray-300"><Users size={11} className="inline mr-1 text-cyan-400" />{fmtNum(c.followerCount)}</span>
                     <span className="text-gray-300"><FileText size={11} className="inline mr-1 text-purple-400" />{c.postCount}</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${c.tier === "pro" ? "bg-purple-900/50 text-purple-300" : c.tier === "plus" ? "bg-blue-900/50 text-blue-300" : "bg-gray-700 text-gray-400"}`}>{c.tier}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${c.tier === "pro" ? "bg-purple-900/50 text-purple-300" : c.tier === "plus" ? "bg-cyan-900/50 text-cyan-300" : "bg-gray-700 text-gray-400"}`}>{c.tier}</span>
                   </div>
                 </div>
               ))}

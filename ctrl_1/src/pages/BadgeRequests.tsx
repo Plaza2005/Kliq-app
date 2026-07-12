@@ -35,19 +35,19 @@ export function BadgeRequests() {
 
   return (
     <div className="min-h-screen bg-gray-950 p-6">
-      <h1 className="text-white font-bold text-2xl mb-6 flex items-center gap-2"><BadgeCheck size={22} className="text-blue-400" /> Badge Requests</h1>
+      <h1 className="text-white font-bold text-2xl mb-6 flex items-center gap-2"><BadgeCheck size={22} className="text-cyan-400" /> Badge Requests</h1>
 
       <div className="flex gap-2 mb-6">
         {(["pending","approved","rejected"] as StatusFilter[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition ${tab===t?"bg-indigo-600 text-white":"bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition ${tab===t?"bg-cyan-600 text-white":"bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
             {t} ({requests.filter(r=>(statuses[r.id]??r.status)===t).length})
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-3">
           <BadgeCheck size={40} className="text-gray-700" />
@@ -64,7 +64,7 @@ export function BadgeRequests() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-white font-bold">{r.user.displayName}</span>
-                      {r.user.isVerified && <span className="text-blue-400 text-sm">? Already verified</span>}
+                      {r.user.isVerified && <span className="text-cyan-400 text-sm">? Already verified</span>}
                       {status === "approved" && <span className="bg-green-900/50 text-green-400 text-xs px-2 py-0.5 rounded-full font-semibold">Approved</span>}
                       {status === "rejected" && <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full font-semibold">Rejected</span>}
                     </div>
@@ -80,7 +80,7 @@ export function BadgeRequests() {
                       <XCircle size={15} />Reject
                     </button>
                     <button onClick={() => act(r.id, "approved")}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition">
+                      className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-xl transition">
                       <CheckCircle size={15} />Approve ?
                     </button>
                   </div>

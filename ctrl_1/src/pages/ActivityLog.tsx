@@ -52,7 +52,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 };
 const TYPE_COLORS: Record<string, string> = {
   Moderation:   "text-yellow-400 bg-yellow-500/10",
-  User:         "text-blue-400 bg-blue-500/10",
+  User:         "text-cyan-400 bg-cyan-500/10",
   Content:      "text-red-400 bg-red-500/10",
   System:       "text-gray-400 bg-gray-700",
   Notification: "text-purple-400 bg-purple-500/10",
@@ -113,7 +113,7 @@ export function ActivityLog() {
         <div className="flex gap-1.5 flex-wrap">
           {FILTER_TYPES.map(t => (
             <button key={t} onClick={() => setFilter(t)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${filter === t ? "bg-indigo-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"}`}>
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${filter === t ? "bg-cyan-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"}`}>
               {t}
             </button>
           ))}
@@ -124,7 +124,7 @@ export function ActivityLog() {
       <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="py-20 flex justify-center">
-            <Loader2 size={24} className="animate-spin text-indigo-400" />
+            <Loader2 size={24} className="animate-spin text-cyan-400" />
           </div>
         ) : (
           <table className="w-full">

@@ -145,7 +145,7 @@ export function Analytics() {
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
-              tab === t ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"
+              tab === t ? "bg-cyan-600 text-white" : "text-gray-400 hover:text-white"
             }`}>
             {t}
           </button>
@@ -155,11 +155,11 @@ export function Analytics() {
       {/* -- OVERVIEW ---------------------------------------------- */}
       {tab === "Overview" && (
         loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
         ) : stats ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Users"    value={stats.totalUsers.toLocaleString()}  icon={Users}      color="text-indigo-400" />
+              <StatCard label="Total Users"    value={stats.totalUsers.toLocaleString()}  icon={Users}      color="text-cyan-400" />
               <StatCard label="Active Users"   value={stats.activeUsers.toLocaleString()} icon={Activity}   color="text-green-400"  />
               <StatCard label="Total Posts"    value={stats.totalPosts.toLocaleString()}  icon={FileText}   color="text-purple-400" />
               <StatCard label="Posts Today"    value={stats.postsToday.toLocaleString()}  icon={TrendingUp} color="text-yellow-400" />
@@ -169,8 +169,8 @@ export function Analytics() {
             {overview && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                  <div className="flex items-center gap-2 mb-3"><Eye size={14} className="text-blue-400" /><p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Views</p></div>
-                  <p className="text-2xl font-black text-blue-400">{fmtNum(overview.totalViews)}</p>
+                  <div className="flex items-center gap-2 mb-3"><Eye size={14} className="text-cyan-400" /><p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Views</p></div>
+                  <p className="text-2xl font-black text-cyan-400">{fmtNum(overview.totalViews)}</p>
                 </div>
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                   <div className="flex items-center gap-2 mb-3"><Heart size={14} className="text-pink-400" /><p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Likes</p></div>
@@ -187,7 +187,7 @@ export function Analytics() {
               <div className="grid grid-cols-3 gap-4">
                 {([
                   { label: "Free",  key: "free",  value: tiers.free,  color: "text-gray-300" },
-                  { label: "Plus",  key: "plus",  value: tiers.plus,  color: "text-blue-400"  },
+                  { label: "Plus",  key: "plus",  value: tiers.plus,  color: "text-cyan-400"  },
                   { label: "Pro",   key: "pro",   value: tiers.pro,   color: "text-purple-400"},
                 ] as const).map(t => (
                   <div key={t.key} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
@@ -246,13 +246,13 @@ export function Analytics() {
       {/* -- ENGAGEMENT ---------------------------------------------- */}
       {tab === "Engagement" && (
         loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
         ) : overview ? (
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-2"><Eye size={14} className="text-blue-400" /><p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Views</p></div>
-                <p className="text-3xl font-black text-blue-400">{fmtNum(overview.totalViews)}</p>
+                <div className="flex items-center gap-2 mb-2"><Eye size={14} className="text-cyan-400" /><p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Views</p></div>
+                <p className="text-3xl font-black text-cyan-400">{fmtNum(overview.totalViews)}</p>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2"><Heart size={14} className="text-pink-400" /><p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Likes</p></div>
@@ -279,7 +279,7 @@ export function Analytics() {
                         <p className="text-gray-500 text-xs">@{post.author.username} · <span className="capitalize text-gray-400">{post.postType}</span></p>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
-                        <span className="flex items-center gap-1"><Eye size={11} className="text-blue-400" /> {fmtNum(post.viewCount)}</span>
+                        <span className="flex items-center gap-1"><Eye size={11} className="text-cyan-400" /> {fmtNum(post.viewCount)}</span>
                         <span className="flex items-center gap-1"><Heart size={11} className="text-pink-400" /> {fmtNum(post.likeCount)}</span>
                         <span className="flex items-center gap-1"><MessageCircle size={11} className="text-purple-400" /> {fmtNum(post.commentCount)}</span>
                       </div>
@@ -304,9 +304,9 @@ export function Analytics() {
                         <p className="text-gray-500 text-xs">@{c.username}</p>
                       </div>
                       <div className="flex items-center gap-3 text-xs flex-shrink-0">
-                        <span className="text-gray-300"><Users size={11} className="inline mr-1 text-indigo-400" />{fmtNum(c.followerCount)}</span>
+                        <span className="text-gray-300"><Users size={11} className="inline mr-1 text-cyan-400" />{fmtNum(c.followerCount)}</span>
                         <span className="text-gray-300"><FileText size={11} className="inline mr-1 text-purple-400" />{c.postCount}</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${c.tier === "pro" ? "bg-purple-900/50 text-purple-300" : c.tier === "plus" ? "bg-blue-900/50 text-blue-300" : "bg-gray-700 text-gray-400"}`}>{c.tier}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${c.tier === "pro" ? "bg-purple-900/50 text-purple-300" : c.tier === "plus" ? "bg-cyan-900/50 text-cyan-300" : "bg-gray-700 text-gray-400"}`}>{c.tier}</span>
                       </div>
                     </div>
                   ))
@@ -320,12 +320,12 @@ export function Analytics() {
       {/* -- CONTENT ---------------------------------------------- */}
       {tab === "Content" && (
         loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
         ) : overview ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {([
-                { label: "Social",      icon: Globe,    color: "text-blue-400",   count: overview.byType.Social      },
+                { label: "Social",      icon: Globe,    color: "text-cyan-400",   count: overview.byType.Social      },
                 { label: "KliqTube",   icon: Youtube,  color: "text-red-400",    count: overview.byType.KliqTube    },
                 { label: "Stream",      icon: Tv,       color: "text-pink-400",   count: overview.byType.Stream      },
                 { label: "Marketplace", icon: Store,    color: "text-yellow-400", count: overview.byType.Marketplace },
@@ -389,24 +389,24 @@ export function Analytics() {
       {/* -- SESSIONS ---------------------------------------------- */}
       {tab === "Sessions" && (
         loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
         ) : sessionStats ? (
           <div className="space-y-6">
             {/* Summary cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock size={16} className="text-blue-400" />
+                  <Clock size={16} className="text-cyan-400" />
                   <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Avg Session Duration</p>
                 </div>
-                <p className="text-2xl font-black text-blue-400">{fmtDuration(sessionStats.avgDurationS)}</p>
+                <p className="text-2xl font-black text-cyan-400">{fmtDuration(sessionStats.avgDurationS)}</p>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Activity size={16} className="text-indigo-400" />
+                  <Activity size={16} className="text-cyan-400" />
                   <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Sessions</p>
                 </div>
-                <p className="text-2xl font-black text-indigo-400">{sessionStats.totalSessions.toLocaleString()}</p>
+                <p className="text-2xl font-black text-cyan-400">{sessionStats.totalSessions.toLocaleString()}</p>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -468,13 +468,13 @@ export function Analytics() {
       {/* -- GROWTH ---------------------------------------------- */}
       {tab === "Growth" && (
         loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
         ) : (stats && overview) ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Users</p>
-                <p className="text-4xl font-black text-indigo-400">{stats.totalUsers.toLocaleString()}</p>
+                <p className="text-4xl font-black text-cyan-400">{stats.totalUsers.toLocaleString()}</p>
                 <p className="text-gray-500 text-xs mt-1">+{stats.totalUsers - stats.bannedUsers - stats.suspendedUsers} active</p>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">

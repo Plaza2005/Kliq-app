@@ -47,15 +47,15 @@ export function AnalyticsUserBehavior() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : !data ? (
         <div className="text-center py-20 text-gray-500">Failed to load session data.</div>
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Avg Session", value: fmtDuration(data.avgDurationS), icon: Clock,    color: "text-blue-400"   },
-              { label: "Total Sessions", value: data.totalSessions.toLocaleString(), icon: Activity, color: "text-indigo-400" },
+              { label: "Avg Session", value: fmtDuration(data.avgDurationS), icon: Clock,    color: "text-cyan-400"   },
+              { label: "Total Sessions", value: data.totalSessions.toLocaleString(), icon: Activity, color: "text-cyan-400" },
               { label: "Active Now",    value: String(data.activeSessions),           icon: Zap,      color: "text-green-400"  },
               { label: "7-Day Users",  value: String(data.dau7),                     icon: Users,    color: "text-purple-400" },
             ].map(c => (

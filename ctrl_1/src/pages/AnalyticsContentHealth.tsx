@@ -52,15 +52,15 @@ export function AnalyticsContentHealth() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
       ) : !data ? (
         <div className="text-center py-20 text-gray-500">Failed to load content data.</div>
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Posts",    value: fmtNum(data.totalPosts),    icon: FileText,      color: "text-indigo-400" },
-              { label: "Total Views",    value: fmtNum(data.totalViews),    icon: Eye,           color: "text-blue-400"   },
+              { label: "Total Posts",    value: fmtNum(data.totalPosts),    icon: FileText,      color: "text-cyan-400" },
+              { label: "Total Views",    value: fmtNum(data.totalViews),    icon: Eye,           color: "text-cyan-400"   },
               { label: "Total Likes",    value: fmtNum(data.totalLikes),    icon: Heart,         color: "text-pink-400"   },
               { label: "Total Comments", value: fmtNum(data.totalComments), icon: MessageCircle, color: "text-purple-400" },
             ].map(c => (
@@ -76,7 +76,7 @@ export function AnalyticsContentHealth() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Social",      icon: Globe,    color: "text-blue-400",   count: data.byType.Social      },
+              { label: "Social",      icon: Globe,    color: "text-cyan-400",   count: data.byType.Social      },
               { label: "KliqTube",   icon: Youtube,  color: "text-red-400",    count: data.byType.KliqTube    },
               { label: "Stream",      icon: Tv,       color: "text-pink-400",   count: data.byType.Stream      },
               { label: "Marketplace", icon: Store,    color: "text-yellow-400", count: data.byType.Marketplace },

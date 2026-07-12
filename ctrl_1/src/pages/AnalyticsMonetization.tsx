@@ -12,8 +12,8 @@ export function AnalyticsMonetization() {
       <p className="text-gray-500 text-sm max-w-sm mb-6">
         ARPU trends, tier conversion funnels, payment method breakdown, transaction success rates, and revenue forecasting will appear here once payments are integrated.
       </p>
-      <div className="mb-6 px-4 py-2 bg-indigo-900/30 border border-indigo-700/40 rounded-full">
-        <p className="text-indigo-300 text-xs font-medium">Data collection pipeline being configured</p>
+      <div className="mb-6 px-4 py-2 bg-cyan-900/30 border border-cyan-700/40 rounded-full">
+        <p className="text-cyan-300 text-xs font-medium">Data collection pipeline being configured</p>
       </div>
       <button onClick={() => navigate("/analytics")} className="text-gray-400 hover:text-white text-sm transition">← Back to Analytics</button>
     </div>

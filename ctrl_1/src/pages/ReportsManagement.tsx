@@ -60,14 +60,14 @@ export function ReportsManagement() {
       <div className="flex gap-2 mb-6">
         {(["all","pending","actioned"] as FilterTab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition ${tab===t?"bg-indigo-600 text-white":"bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition ${tab===t?"bg-cyan-600 text-white":"bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
             {t}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-cyan-400" /></div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-3">
           <ShieldX size={40} className="text-gray-700" />
