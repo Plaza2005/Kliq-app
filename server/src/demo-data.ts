@@ -38,17 +38,30 @@ export async function clearDemoData(prisma: PrismaClient): Promise<DemoSummary> 
   });
   const ids = demoUsers.map(u => u.id);
 
+  // Content authored by admin accounts is also cleared, but the admin *user*
+  // rows (logins) are always preserved. Admin posts don't cascade from a user
+  // deletion (the admin survives), so we track them and delete them explicitly
+  // at the end — after their blocking relations are cleaned via the merged
+  // postIds set below.
+  const adminPosts = await prisma.post.findMany({
+    where: { author: { isAdmin: true } },
+    select: { id: true },
+  });
+  const adminPostIds = adminPosts.map(p => p.id);
+
   const summary: DemoSummary = {
     users: 0, posts: 0, comments: 0, products: 0,
     communities: 0, streamTitles: 0, sessions: 0, reports: 0,
   };
-  if (ids.length === 0) return summary;
+  if (ids.length === 0 && adminPostIds.length === 0) return summary;
 
   const demoPosts = await prisma.post.findMany({
     where: { authorId: { in: ids } },
     select: { id: true },
   });
-  const postIds = demoPosts.map(p => p.id);
+  // Merge demo + admin post ids so every relation-cleanup block below (reports,
+  // bookmarks, hashtags, polls, sounds, likes) covers admin-authored posts too.
+  const postIds = [...new Set([...demoPosts.map(p => p.id), ...adminPostIds])];
 
   // Counts for the summary (these rows are removed below, directly or via cascade)
   summary.posts = postIds.length;
@@ -170,11 +183,19 @@ export async function clearDemoData(prisma: PrismaClient): Promise<DemoSummary> 
     await prisma.thread.deleteMany({ where: { id: { in: threadIds } } });
   }
 
-  // Finally the users themselves — posts, comments, follows, notifications,
+  // The demo users themselves — posts, comments, follows, notifications,
   // wallets, campaigns, stories, products, orders etc. cascade from here.
   summary.users = (await prisma.user.deleteMany({
     where: { id: { in: ids }, isAdmin: false },
   })).count;
+
+  // Admin-authored posts: the admin account/login is never deleted, so these
+  // don't cascade — remove them directly. Their blocking relations (reports,
+  // bookmarks, hashtags, polls, sounds) were cleared above via postIds;
+  // comments/campaigns/reposts cascade from the post itself.
+  if (adminPostIds.length > 0) {
+    await prisma.post.deleteMany({ where: { id: { in: adminPostIds } } });
+  }
 
   return summary;
 }
