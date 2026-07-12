@@ -1,7 +1,14 @@
 import { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
 import * as crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../email";
+
+// TODO(google-signin): set GOOGLE_CLIENT_ID in server/.env to your Google
+// OAuth *Web* client ID (from Google Cloud / Firebase console). Until it is
+// set, /auth/google returns 503 and the app falls back to email/username.
+// See GOOGLE_SIGNIN_SETUP.md for the full steps.
+const googleClient = new OAuth2Client();
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /auth/register
@@ -99,6 +106,71 @@ export async function authRoutes(app: FastifyInstance) {
         { expiresIn: "7d" }
       );
 
+      return { token, user: sanitize(user) };
+    }
+  );
+
+  // POST /auth/google — sign in / sign up with a Google ID token.
+  // The Flutter app obtains the token via google_sign_in and posts it here;
+  // we verify it against Google, then find-or-create the user and issue OUR jwt.
+  app.post<{ Body: { idToken: string } }>(
+    "/google",
+    async (req, reply) => {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return reply.status(503).send({
+          error: "Google sign-in is not configured on the server (missing GOOGLE_CLIENT_ID)",
+        });
+      }
+      const { idToken } = req.body;
+      if (!idToken) return reply.status(400).send({ error: "idToken is required" });
+
+      let payload;
+      try {
+        const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
+        payload = ticket.getPayload();
+      } catch {
+        return reply.status(401).send({ error: "Invalid Google token" });
+      }
+      if (!payload?.email) {
+        return reply.status(401).send({ error: "Google token has no email" });
+      }
+
+      const email = payload.email.toLowerCase();
+      let user = await app.prisma.user.findUnique({ where: { email } });
+
+      if (!user) {
+        // First Google sign-in → create the account.
+        let username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+        if (await app.prisma.user.findUnique({ where: { username } })) {
+          username = username + Math.floor(Math.random() * 9000 + 1000).toString();
+        }
+        // Random unusable password — this account signs in via Google.
+        const randomPassword = await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 12);
+        user = await app.prisma.user.create({
+          data: {
+            email,
+            password: randomPassword,
+            displayName: payload.name || username,
+            username,
+            avatarUrl: payload.picture || null,
+            emailVerified: Boolean(payload.email_verified),
+          },
+        });
+        await app.prisma.activityLog.create({
+          data: { actorId: user.id, action: "user.register", target: user.email },
+        });
+      }
+
+      if (user.status === "banned") {
+        return reply.status(403).send({ error: "Account banned" });
+      }
+
+      await app.prisma.activityLog.create({
+        data: { actorId: user.id, action: "user.login", target: user.email },
+      });
+
+      const token = app.jwt.sign({ id: user.id, isAdmin: user.isAdmin }, { expiresIn: "7d" });
       return { token, user: sanitize(user) };
     }
   );
