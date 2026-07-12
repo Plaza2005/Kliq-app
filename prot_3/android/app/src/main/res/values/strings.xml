@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Kliq</string>
-    <string name="title_activity_main">Kliq</string>
-    <string name="package_name">app.kliq.social</string>
-    <string name="custom_url_scheme">app.kliq.social</string>
-</resources>
