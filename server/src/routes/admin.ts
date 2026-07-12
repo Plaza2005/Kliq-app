@@ -937,6 +937,7 @@ export async function adminRoutes(app: FastifyInstance) {
         await app.prisma.activityLog.create({
           data: { actorId: req.user.id, action: "admin.load_demo_data", details: JSON.stringify(summary) },
         });
+        wsHub.broadcast({ type: "admin:demo-data-changed", action: "loaded" });
         return { ok: true, summary };
       } catch (err) {
         req.log.error(err);
@@ -956,6 +957,7 @@ export async function adminRoutes(app: FastifyInstance) {
         await app.prisma.activityLog.create({
           data: { actorId: req.user.id, action: "admin.clear_demo_data", details: JSON.stringify(summary) },
         });
+        wsHub.broadcast({ type: "admin:demo-data-changed", action: "cleared" });
         return { ok: true, summary };
       } catch (err) {
         req.log.error(err);
