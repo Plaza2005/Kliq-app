@@ -133,26 +133,99 @@ export async function postRoutes(app: FastifyInstance) {
     }
   );
 
-  // GET /posts/reels  (reels feed)
+  // GET /posts/reels  (reels feed — TikTok-style For You ranking)
   app.get<{ Querystring: { page?: string } }>(
     "/reels",
     { preHandler: [app.authenticate] },
     async (req) => {
       const page = parseInt(req.query.page || "1");
-      const posts = await app.prisma.post.findMany({
-        where: { deletedAt: null, postType: "reel" },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        skip: (page - 1) * 10,
-        include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+      const take = 10;
+      const skip = (page - 1) * take;
+
+      // Pull a candidate window plus the viewer's interest categories and who
+      // they follow, then rank with the same multi-signal model as the main
+      // feed (completion rate is the dominant TikTok signal).
+      const [candidates, userInterests, following] = await Promise.all([
+        app.prisma.post.findMany({
+          where: { deletedAt: null, postType: "reel", status: "published" },
+          orderBy: { createdAt: "desc" },
+          take: Math.min(skip + take * 5, 200),
+          include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+        }),
+        app.prisma.$queryRaw<{ category: string; score: number }[]>`
+          SELECT "category", "score" FROM "UserInterest"
+          WHERE "userId" = ${req.user.id}
+          ORDER BY "score" DESC LIMIT 8
+        `,
+        app.prisma.follow.findMany({
+          where: { followerId: req.user.id },
+          select: { followingId: true },
+        }),
+      ]);
+
+      const interestTags = new Set(userInterests.map(i => i.category.toLowerCase()));
+      const followedIds = new Set(following.map(f => f.followingId));
+      const now = Date.now();
+      const FORTY_EIGHT_H = 48 * 3600 * 1000;
+
+      // Seed slots (20%): fresh, low-view reels so new creators get discovery.
+      const seedPool = candidates.filter(p => {
+        const cv = (p as unknown as { completedViews: number }).completedViews ?? 0;
+        return (now - p.createdAt.getTime()) < FORTY_EIGHT_H && p.viewCount < 50 && cv < 10;
       });
+      const mainPool = candidates.filter(p => !seedPool.includes(p));
+
+      const scoreReel = (p: typeof candidates[0]) => {
+        const ageDays = (now - p.createdAt.getTime()) / 86400000;
+        const recencyBoost = Math.max(0, 1 - ageDays / 14);
+        const cv = (p as unknown as { completedViews: number }).completedViews ?? 0;
+        const shareCount = (p as unknown as { shareCount: number }).shareCount ?? 0;
+        // Completion rate: completed views relative to total views (0..1).
+        const completionRate = p.viewCount > 0 ? Math.min(1, cv / p.viewCount) : 0;
+        const tags = (p.body.match(/#(\w+)/g) ?? []).map(t => t.slice(1).toLowerCase());
+        const interestBonus = tags.some(t => interestTags.has(t)) ? 30 : 0;
+        const followBonus = followedIds.has(p.authorId) ? 25 : 0;
+        return (
+          completionRate * 120 +   // TikTok's #1 signal: did they watch it through
+          cv * 15 +
+          p.likeCount * 3 +
+          p.commentCount * 5 +
+          shareCount * 6 +         // shares weigh heavily on reels
+          p.viewCount * 0.1 +
+          recencyBoost * 50 +
+          interestBonus +
+          followBonus
+        );
+      };
+
+      const scoredMain = mainPool
+        .map(p => ({ ...p, _score: scoreReel(p) }))
+        .sort((a, b) => b._score - a._score);
+      const shuffledSeed = seedPool
+        .map(p => ({ ...p, _score: scoreReel(p) }))
+        .sort(() => Math.random() - 0.5);
+
+      // Interleave 1 seed per 5 slots, filling the rest from the ranked main pool.
+      const ranked: typeof scoredMain = [];
+      let mainIdx = 0;
+      let seedIdx = 0;
+      for (let i = 0; i < skip + take; i++) {
+        if (i % 5 === 4 && seedIdx < shuffledSeed.length) {
+          ranked.push(shuffledSeed[seedIdx++] as typeof scoredMain[0]);
+        } else if (mainIdx < scoredMain.length) {
+          ranked.push(scoredMain[mainIdx++]);
+        } else if (seedIdx < shuffledSeed.length) {
+          ranked.push(shuffledSeed[seedIdx++] as typeof scoredMain[0]);
+        }
+      }
+      const posts = ranked.slice(skip, skip + take);
 
       const myLikes = await app.prisma.like.findMany({
         where: { userId: req.user.id, targetId: { in: posts.map(p => p.id) }, targetType: "post" },
       });
       const likedSet = new Set(myLikes.map(l => l.targetId));
 
-      return { posts: posts.map(p => mapPost(p, likedSet)), page };
+      return { posts: posts.map(p => mapPost(p, likedSet)), page, hasMore: posts.length === take };
     }
   );
 
@@ -413,11 +486,10 @@ export async function postRoutes(app: FastifyInstance) {
       const videoDuration = req.body.videoDuration ?? null;
       const title = req.body.title?.trim() || null;
 
-      // Auto-route: videos longer than 60 seconds go to KliqTube, short ones stay as reels
-      const SHORT_FORM_MAX_SECONDS = 60;
+      // Any video post is a reel (Instagram-style: no long-form/tube surface).
       let postType = req.body.postType ?? "post";
-      if (mediaType === "video" && videoDuration != null) {
-        postType = videoDuration > SHORT_FORM_MAX_SECONDS ? "tube" : "reel";
+      if (mediaType === "video") {
+        postType = "reel";
       }
       if (!body && !mediaUrl && !carouselMedia) {
         return reply.status(400).send({ error: "body or mediaUrl required" });
