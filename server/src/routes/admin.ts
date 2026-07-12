@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import * as fs from "fs";
 import * as path from "path";
 import { wsHub } from "../ws";
-import { loadDemoData, clearDemoData } from "../demo-data";
 
 const SETTINGS_FILE = path.join(process.cwd(), "settings.json");
 
@@ -923,46 +922,6 @@ export async function adminRoutes(app: FastifyInstance) {
           isMostActive:       idx === 0,
         };
       });
-    }
-  );
-
-  // POST /admin/load-demo-data — fill the database with rich demo/test data.
-  // Safe to call repeatedly: existing demo data is replaced, real users untouched.
-  app.post(
-    "/load-demo-data",
-    { preHandler: [app.authenticateAdmin] },
-    async (req, reply) => {
-      try {
-        const summary = await loadDemoData(app.prisma);
-        await app.prisma.activityLog.create({
-          data: { actorId: req.user.id, action: "admin.load_demo_data", details: JSON.stringify(summary) },
-        });
-        wsHub.broadcast({ type: "admin:demo-data-changed", action: "loaded" });
-        return { ok: true, summary };
-      } catch (err) {
-        req.log.error(err);
-        return reply.status(500).send({ error: err instanceof Error ? err.message : "Failed to load demo data" });
-      }
-    }
-  );
-
-  // POST /admin/clear-demo-data — remove all seeded/demo data.
-  // Only touches demo accounts (@demo.kliq.app + legacy fake emails); never admins or real users.
-  app.post(
-    "/clear-demo-data",
-    { preHandler: [app.authenticateAdmin] },
-    async (req, reply) => {
-      try {
-        const summary = await clearDemoData(app.prisma);
-        await app.prisma.activityLog.create({
-          data: { actorId: req.user.id, action: "admin.clear_demo_data", details: JSON.stringify(summary) },
-        });
-        wsHub.broadcast({ type: "admin:demo-data-changed", action: "cleared" });
-        return { ok: true, summary };
-      } catch (err) {
-        req.log.error(err);
-        return reply.status(500).send({ error: err instanceof Error ? err.message : "Failed to clear demo data" });
-      }
     }
   );
 }
