@@ -133,12 +133,14 @@ export async function postRoutes(app: FastifyInstance) {
     }
   );
 
-  // GET /posts/reels  (reels feed — TikTok-style For You ranking)
-  app.get<{ Querystring: { page?: string } }>(
+  // GET /posts/reels  (reels feed — TikTok-style For You ranking; tab=following
+  // restricts to reels from accounts the viewer follows)
+  app.get<{ Querystring: { page?: string; tab?: string } }>(
     "/reels",
     { preHandler: [app.authenticate] },
     async (req) => {
       const page = parseInt(req.query.page || "1");
+      const tab = req.query.tab === "following" ? "following" : "for_you";
       const take = 10;
       const skip = (page - 1) * take;
 
@@ -168,12 +170,18 @@ export async function postRoutes(app: FastifyInstance) {
       const now = Date.now();
       const FORTY_EIGHT_H = 48 * 3600 * 1000;
 
+      // Following tab: only reels from accounts the viewer follows (no discovery
+      // seed slots — this tab is intentionally just people you follow).
+      const pool = tab === "following"
+        ? candidates.filter(p => followedIds.has(p.authorId))
+        : candidates;
+
       // Seed slots (20%): fresh, low-view reels so new creators get discovery.
-      const seedPool = candidates.filter(p => {
+      const seedPool = tab === "following" ? [] : pool.filter(p => {
         const cv = (p as unknown as { completedViews: number }).completedViews ?? 0;
         return (now - p.createdAt.getTime()) < FORTY_EIGHT_H && p.viewCount < 50 && cv < 10;
       });
-      const mainPool = candidates.filter(p => !seedPool.includes(p));
+      const mainPool = pool.filter(p => !seedPool.includes(p));
 
       const scoreReel = (p: typeof candidates[0]) => {
         const ageDays = (now - p.createdAt.getTime()) / 86400000;
