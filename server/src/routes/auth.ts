@@ -251,11 +251,11 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // PATCH /auth/me  (update own profile)
-  app.patch<{ Body: { username?: string; displayName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; phone?: string; dateOfBirth?: string } }>(
+  app.patch<{ Body: { username?: string; displayName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; phone?: string; dateOfBirth?: string; isOnboarded?: boolean } }>(
     "/me",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { username, displayName, bio, avatarUrl, coverUrl, phone, dateOfBirth } = req.body;
+      const { username, displayName, bio, avatarUrl, coverUrl, phone, dateOfBirth, isOnboarded } = req.body;
 
       if (username !== undefined) {
         const clean = username.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
@@ -276,6 +276,7 @@ export async function authRoutes(app: FastifyInstance) {
           ...(coverUrl    !== undefined && { coverUrl }),
           ...(phone       !== undefined && { phone }),
           ...(dobDate     !== undefined && { dateOfBirth: dobDate }),
+          ...(isOnboarded !== undefined && { isOnboarded: isOnboarded === true }),
         },
       });
       return sanitize(user);
