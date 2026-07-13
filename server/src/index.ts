@@ -166,15 +166,41 @@ app.post("/upload", { preHandler: [app.authenticate] }, async (req, reply) => {
   }
 
   const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`;
-  const filepath = path.join(UPLOADS_DIR, filename);
 
   const chunks: Buffer[] = [];
   for await (const chunk of data.file) chunks.push(chunk);
-  fs.writeFileSync(filepath, Buffer.concat(chunks));
+  const buffer = Buffer.concat(chunks);
 
-  // Return a root-relative path so clients resolve it against their own origin.
-  // When the frontend proxies through Vite (dev) or a reverse proxy (prod),
-  // this avoids mixed-content blocks from absolute http:// URLs.
+  // ── Supabase Storage (preferred, when configured) ──
+  // Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_STORAGE_BUCKET.
+  // The bucket must be Public so the returned URL is directly viewable.
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET;
+  if (supabaseUrl && serviceKey && bucket) {
+    try {
+      const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${filename}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": data.mimetype || "application/octet-stream",
+          "x-upsert": "true",
+        },
+        body: buffer,
+      });
+      if (res.ok) {
+        const url = `${supabaseUrl}/storage/v1/object/public/${bucket}/${filename}`;
+        return { url, filename };
+      }
+      req.log.error({ status: res.status, body: await res.text() }, "Supabase Storage upload failed — falling back to local");
+    } catch (err) {
+      req.log.error(err, "Supabase Storage upload threw — falling back to local");
+    }
+  }
+
+  // ── Local disk fallback ──
+  // Root-relative path so clients resolve it against their own origin.
+  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
   const url = `/uploads/${filename}`;
   return { url, filename };
 });
