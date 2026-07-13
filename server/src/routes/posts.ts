@@ -484,13 +484,24 @@ export async function postRoutes(app: FastifyInstance) {
   );
 
   // POST /posts
-  app.post<{ Body: { body: string; title?: string; mediaUrl?: string; mediaType?: string; thumbUrl?: string; thumbnailUrl?: string; postType?: string; scheduledAt?: string; stitchOfId?: string; carouselMedia?: string[]; videoDuration?: number } }>(
+  app.post<{ Body: { body: string; title?: string; mediaUrl?: string; mediaUrls?: string[]; mediaType?: string; thumbUrl?: string; thumbnailUrl?: string; postType?: string; scheduledAt?: string; stitchOfId?: string; carouselMedia?: string[]; videoDuration?: number } }>(
     "/",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { body, mediaUrl, mediaType, scheduledAt, stitchOfId } = req.body;
+      const { body, mediaType, scheduledAt, stitchOfId } = req.body;
       const thumbUrl = req.body.thumbUrl ?? req.body.thumbnailUrl ?? undefined;
-      const carouselMedia = req.body.carouselMedia?.length ? JSON.stringify(req.body.carouselMedia) : undefined;
+
+      // The app sends the uploaded images as `mediaUrls` (array). Map it onto the
+      // stored shape: first image is the primary `mediaUrl`; 2+ images become a
+      // carousel. Still accept legacy `mediaUrl`/`carouselMedia` for compatibility.
+      const mediaUrls = Array.isArray(req.body.mediaUrls)
+        ? req.body.mediaUrls.filter(u => typeof u === "string" && u.length > 0)
+        : [];
+      const mediaUrl = req.body.mediaUrl ?? (mediaUrls.length > 0 ? mediaUrls[0] : undefined);
+      const carouselList = req.body.carouselMedia?.length
+        ? req.body.carouselMedia
+        : (mediaUrls.length > 1 ? mediaUrls : undefined);
+      const carouselMedia = carouselList?.length ? JSON.stringify(carouselList) : undefined;
       const videoDuration = req.body.videoDuration ?? null;
       const title = req.body.title?.trim() || null;
 
