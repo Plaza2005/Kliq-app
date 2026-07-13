@@ -250,6 +250,28 @@ export async function authRoutes(app: FastifyInstance) {
     return { ok: true, message: "Password reset successfully" };
   });
 
+  // POST /auth/change-password  (authenticated — verify current, set new)
+  app.post<{ Body: { currentPassword: string; newPassword: string } }>(
+    "/change-password",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return reply.status(400).send({ error: "currentPassword and newPassword are required" });
+      }
+      if (newPassword.length < 8) {
+        return reply.status(400).send({ error: "New password must be at least 8 characters" });
+      }
+      const user = await app.prisma.user.findUnique({ where: { id: req.user.id } });
+      if (!user) return reply.status(404).send({ error: "User not found" });
+      const match = await bcrypt.compare(currentPassword, user.password);
+      if (!match) return reply.status(401).send({ error: "Current password is incorrect" });
+      const hash = await bcrypt.hash(newPassword, 12);
+      await app.prisma.user.update({ where: { id: user.id }, data: { password: hash } });
+      return { ok: true, message: "Password changed successfully" };
+    }
+  );
+
   // PATCH /auth/me  (update own profile)
   app.patch<{ Body: { username?: string; displayName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; phone?: string; dateOfBirth?: string; isOnboarded?: boolean } }>(
     "/me",
