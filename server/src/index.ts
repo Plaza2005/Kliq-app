@@ -33,7 +33,7 @@ import { pollRoutes } from "./routes/polls";
 import { groupRoutes } from "./routes/groups";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { marketplaceRoutes } from "./routes/marketplace";
-import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, setLastChunk, getLastChunk } from "./ws";
+import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, subscriberCount, setLastChunk, getLastChunk } from "./ws";
 import { startBackgroundJobs } from "./jobs";
 import { getPresignedUploadUrl, R2_PUBLIC_URL } from "./storage";
 
@@ -109,6 +109,10 @@ app.decorate("authenticateAdmin", async (req: FastifyRequest, reply: FastifyRepl
 });
 
 // ── WebSocket endpoint ─────────────────────────────────────────────────────
+// Lightweight frame-relay stats logged via console.log since the fastify
+// logger level is "warn" (app.log.* below that level is silent).
+const frameStats = new Map<string, { received: number }>();
+
 // Client connects as: ws://<host>:4000/ws?token=<jwt>
 app.get<{ Querystring: { token?: string } }>(
   "/ws",
@@ -130,23 +134,44 @@ app.get<{ Querystring: { token?: string } }>(
     wsHub.register(userId, ws);
     ws.send(JSON.stringify({ type: "connected", userId }));
 
+    const mySubs = new Set<string>();
+
+    const logFrame = (streamId: string, relayed: number) => {
+      const stats = frameStats.get(streamId) ?? { received: 0 };
+      stats.received++;
+      frameStats.set(streamId, stats);
+      const n = stats.received;
+      if (n === 1 || n % 100 === 0) {
+        console.log(`[live] ${streamId} frames=${n} subs=${subscriberCount(streamId)} relayedTo=${relayed}`);
+      }
+      if (n === 1 && relayed === 0) {
+        console.log(`[live] ${streamId} stream:chunk received but 0 subscribers`);
+      }
+    };
+
     ws.on("message", (raw: Buffer | string) => {
       try {
         const msg = JSON.parse(raw.toString()) as { type: string; streamId?: string; chunk?: unknown; body?: string; fromUsername?: string };
         if (msg.type === "stream:subscribe" && msg.streamId && userId) {
-          subscribeToStream(msg.streamId, userId);
+          subscribeToStream(msg.streamId, ws);
+          mySubs.add(msg.streamId);
+          console.log(`[live] subscribe user=${userId} stream=${msg.streamId} subs=${subscriberCount(msg.streamId)}`);
           const cached = getLastChunk(msg.streamId);
           if (cached !== undefined) {
             ws.send(JSON.stringify({ type: "live:chunk", streamId: msg.streamId, chunk: cached }));
           }
         } else if (msg.type === "stream:unsubscribe" && msg.streamId && userId) {
-          unsubscribeFromStream(msg.streamId, userId);
+          unsubscribeFromStream(msg.streamId, ws);
+          mySubs.delete(msg.streamId);
+          console.log(`[live] unsubscribe user=${userId} stream=${msg.streamId} subs=${subscriberCount(msg.streamId)}`);
         } else if (msg.type === "stream:chunk" && msg.streamId) {
           if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
-          broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk });
+          const relayed = broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk }, ws);
+          logFrame(msg.streamId, relayed);
         } else if (msg.type === "live:chunk" && msg.streamId) {
           if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
-          broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk });
+          const relayed = broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk }, ws);
+          logFrame(msg.streamId, relayed);
         } else if (msg.type === "live:chat" && msg.streamId) {
           broadcastToStream(msg.streamId, { type: "live:chat", streamId: msg.streamId, body: msg.body, fromUsername: msg.fromUsername ?? "viewer" });
         }
@@ -155,8 +180,14 @@ app.get<{ Querystring: { token?: string } }>(
       }
     });
 
-    ws.on("close", () => { if (userId) wsHub.unregister(userId); });
-    ws.on("error", () => { if (userId) wsHub.unregister(userId); });
+    const cleanup = () => {
+      if (userId) wsHub.unregister(userId, ws);
+      for (const streamId of mySubs) unsubscribeFromStream(streamId, ws);
+      mySubs.clear();
+    };
+
+    ws.on("close", cleanup);
+    ws.on("error", cleanup);
   }
 );
 
