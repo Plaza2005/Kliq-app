@@ -441,6 +441,92 @@ export async function userRoutes(app: FastifyInstance) {
     }
   );
 
+  // POST /users/match-contacts — find KLIQ users among a device's contacts.
+  // Contacts are never persisted; phones/emails only live for this request.
+  app.post<{ Body: { phones?: string[]; emails?: string[] } }>(
+    "/match-contacts",
+    { preHandler: [app.authenticate] },
+    async (req) => {
+      const rawPhones = Array.isArray(req.body?.phones) ? req.body.phones.slice(0, 2000) : [];
+      const rawEmails = Array.isArray(req.body?.emails) ? req.body.emails.slice(0, 2000) : [];
+
+      // email -> normalized email (trim+lowercase)
+      const emailByNormalized = new Map<string, string>();
+      for (const raw of rawEmails) {
+        if (typeof raw !== "string") continue;
+        const normalized = raw.trim().toLowerCase();
+        if (normalized && !emailByNormalized.has(normalized)) {
+          emailByNormalized.set(normalized, raw);
+        }
+      }
+
+      // last-9-digits suffix -> original phone string
+      const phoneBySuffix = new Map<string, string>();
+      for (const raw of rawPhones) {
+        if (typeof raw !== "string") continue;
+        const digits = raw.replace(/\D/g, "");
+        if (digits.length < 7) continue;
+        const suffix = digits.slice(-9);
+        if (!phoneBySuffix.has(suffix)) phoneBySuffix.set(suffix, raw);
+      }
+
+      const normalizedEmails = [...emailByNormalized.keys()];
+      const [byEmail, byPhone] = await Promise.all([
+        normalizedEmails.length > 0
+          ? app.prisma.user.findMany({
+              where: { email: { in: normalizedEmails }, status: { not: "banned" } },
+              select: {
+                id: true, username: true, displayName: true,
+                avatarUrl: true, isVerified: true, phone: true, email: true,
+              },
+            })
+          : Promise.resolve([]),
+        phoneBySuffix.size > 0
+          ? app.prisma.user.findMany({
+              where: { phone: { not: null }, status: { not: "banned" } },
+              select: {
+                id: true, username: true, displayName: true,
+                avatarUrl: true, isVerified: true, phone: true, email: true,
+              },
+            })
+          : Promise.resolve([]),
+      ]);
+
+      const following = await app.prisma.follow.findMany({
+        where: { followerId: req.user.id },
+        select: { followingId: true },
+      });
+      const followingIds = new Set(following.map(f => f.followingId));
+
+      const matched = new Map<string, { user: typeof byEmail[number]; matchedOn: string }>();
+
+      for (const u of byEmail) {
+        if (u.id === req.user.id || matched.has(u.id)) continue;
+        const original = emailByNormalized.get(u.email.trim().toLowerCase());
+        if (original) matched.set(u.id, { user: u, matchedOn: original });
+      }
+
+      for (const u of byPhone) {
+        if (u.id === req.user.id || matched.has(u.id) || !u.phone) continue;
+        const digits = u.phone.replace(/\D/g, "");
+        if (digits.length < 7) continue;
+        const suffix = digits.slice(-9);
+        const original = phoneBySuffix.get(suffix);
+        if (original) matched.set(u.id, { user: u, matchedOn: original });
+      }
+
+      return [...matched.values()].map(({ user, matchedOn }) => ({
+        id:           user.id,
+        username:     user.username,
+        displayName:  user.displayName,
+        avatarUrl:    user.avatarUrl,
+        isVerified:   user.isVerified,
+        isFollowing:  followingIds.has(user.id),
+        matchedOn,
+      }));
+    }
+  );
+
   // DELETE /users/:username/follow
   app.delete<{ Params: { username: string } }>(
     "/:username/follow",
