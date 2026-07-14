@@ -34,6 +34,7 @@ import { groupRoutes } from "./routes/groups";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { marketplaceRoutes } from "./routes/marketplace";
 import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, subscriberCount, setLastChunk, getLastChunk } from "./ws";
+import { uploadBufferToSupabase } from "./supabase-storage";
 import { startBackgroundJobs } from "./jobs";
 import { getPresignedUploadUrl, R2_PUBLIC_URL } from "./storage";
 
@@ -113,6 +114,32 @@ app.decorate("authenticateAdmin", async (req: FastifyRequest, reply: FastifyRepl
 // logger level is "warn" (app.log.* below that level is silent).
 const frameStats = new Map<string, { received: number }>();
 
+// ── Live auto-thumbnail ────────────────────────────────────────────────────
+// Grab an early frame per stream, upload it to Supabase Storage, and set it as
+// the stream's thumbnail so the live list shows a real preview. Done once, a
+// few frames in (so the camera has settled), fire-and-forget.
+const thumbnailedStreams = new Set<string>();
+function maybeThumbnail(streamId: string, chunk: string) {
+  const stats = frameStats.get(streamId);
+  // ~the 8th frame (a couple seconds in) — skip the very first warm-up frames.
+  if (thumbnailedStreams.has(streamId) || (stats?.received ?? 0) < 8) return;
+  thumbnailedStreams.add(streamId);
+  (async () => {
+    try {
+      const b64 = chunk.includes(",") ? chunk.split(",")[1] : chunk;
+      const buffer = Buffer.from(b64, "base64");
+      if (buffer.length < 500) return; // too small to be a real frame
+      const url = await uploadBufferToSupabase(
+        buffer, `live-thumb-${streamId}-${Date.now()}.jpg`, "image/jpeg");
+      if (url) {
+        await app.prisma.liveStream
+          .update({ where: { id: streamId }, data: { thumbnailUrl: url } })
+          .catch(() => {});
+      }
+    } catch { /* ignore */ }
+  })();
+}
+
 // Client connects as: ws://<host>:4000/ws?token=<jwt>
 app.get<{ Querystring: { token?: string } }>(
   "/ws",
@@ -168,10 +195,12 @@ app.get<{ Querystring: { token?: string } }>(
           if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
           const relayed = broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk }, ws);
           logFrame(msg.streamId, relayed);
+          if (typeof msg.chunk === "string") maybeThumbnail(msg.streamId, msg.chunk);
         } else if (msg.type === "live:chunk" && msg.streamId) {
           if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
           const relayed = broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk }, ws);
           logFrame(msg.streamId, relayed);
+          if (typeof msg.chunk === "string") maybeThumbnail(msg.streamId, msg.chunk);
         } else if (msg.type === "live:chat" && msg.streamId) {
           broadcastToStream(msg.streamId, { type: "live:chat", streamId: msg.streamId, body: msg.body, fromUsername: msg.fromUsername ?? "viewer" });
         }

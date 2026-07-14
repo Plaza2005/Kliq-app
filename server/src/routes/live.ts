@@ -117,6 +117,17 @@ export async function liveRoutes(app: FastifyInstance) {
         select: { id: true, viewerCount: true },
       });
 
+      // Push the new count to the broadcaster (who subscribes to its own stream)
+      // and to viewers, so the live viewer count updates in realtime everywhere.
+      const { broadcastToStream, wsHub } = await import("../ws");
+      const event = {
+        type: "live:viewers",
+        streamId: req.params.streamId,
+        viewerCount: updated.viewerCount,
+      };
+      broadcastToStream(req.params.streamId, event);
+      wsHub.send(stream.userId, event);
+
       return { viewerCount: updated.viewerCount };
     }
   );
