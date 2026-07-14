@@ -33,7 +33,7 @@ import { pollRoutes } from "./routes/polls";
 import { groupRoutes } from "./routes/groups";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { marketplaceRoutes } from "./routes/marketplace";
-import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream } from "./ws";
+import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, setLastChunk, getLastChunk } from "./ws";
 import { startBackgroundJobs } from "./jobs";
 import { getPresignedUploadUrl, R2_PUBLIC_URL } from "./storage";
 
@@ -135,11 +135,17 @@ app.get<{ Querystring: { token?: string } }>(
         const msg = JSON.parse(raw.toString()) as { type: string; streamId?: string; chunk?: unknown; body?: string; fromUsername?: string };
         if (msg.type === "stream:subscribe" && msg.streamId && userId) {
           subscribeToStream(msg.streamId, userId);
+          const cached = getLastChunk(msg.streamId);
+          if (cached !== undefined) {
+            ws.send(JSON.stringify({ type: "live:chunk", streamId: msg.streamId, chunk: cached }));
+          }
         } else if (msg.type === "stream:unsubscribe" && msg.streamId && userId) {
           unsubscribeFromStream(msg.streamId, userId);
         } else if (msg.type === "stream:chunk" && msg.streamId) {
+          if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
           broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk });
         } else if (msg.type === "live:chunk" && msg.streamId) {
+          if (typeof msg.chunk === "string") setLastChunk(msg.streamId, msg.chunk);
           broadcastToStream(msg.streamId, { type: "live:chunk", streamId: msg.streamId, chunk: msg.chunk });
         } else if (msg.type === "live:chat" && msg.streamId) {
           broadcastToStream(msg.streamId, { type: "live:chat", streamId: msg.streamId, body: msg.body, fromUsername: msg.fromUsername ?? "viewer" });

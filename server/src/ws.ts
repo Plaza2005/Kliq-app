@@ -46,6 +46,21 @@ export function broadcastToStream(streamId: string, data: unknown) {
 
 export function clearStreamSubscribers(streamId: string) {
   streamSubscribers.delete(streamId);
+  lastChunks.delete(streamId);
+}
+
+// ── Live stream last-frame cache ──────────────────────────────────────────
+// Lets a newly-subscribed viewer see the current frame instantly instead of
+// waiting for the broadcaster's next chunk.
+
+const lastChunks = new Map<string, string>();
+
+export function setLastChunk(streamId: string, chunk: string) {
+  lastChunks.set(streamId, chunk);
+}
+
+export function getLastChunk(streamId: string): string | undefined {
+  return lastChunks.get(streamId);
 }
 
 // Alias used by live routes
