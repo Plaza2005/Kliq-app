@@ -146,6 +146,8 @@ model Comment {
   postId     String
   parentId   String?
   body       String
+  mediaUrl   String?
+  mediaType  String?
   likeCount  Int       @default(0)
   replyCount Int       @default(0)
   createdAt  DateTime  @default(now())

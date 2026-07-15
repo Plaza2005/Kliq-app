@@ -788,6 +788,8 @@ export async function postRoutes(app: FastifyInstance) {
         take: 30,
         include: {
           author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } },
+          // Only a preview of replies for the inline feed view — the full
+          // thread is fetched on demand via GET /:id/comments/:commentId/replies.
           replies: {
             where: { deletedAt: null },
             orderBy: { createdAt: "asc" },
@@ -797,7 +799,34 @@ export async function postRoutes(app: FastifyInstance) {
         },
       });
 
-      return comments.map(c => mapComment(c));
+      const allIds = comments.flatMap(c => [c.id, ...c.replies.map(r => r.id)]);
+      const likedIds = await likedCommentIds(app, req.user.id, allIds);
+
+      return comments.map(c => mapComment(c, likedIds));
+    }
+  );
+
+  // GET /posts/:id/comments/:commentId/replies — full reply thread for a
+  // single comment (the inline list above only returns a 3-reply preview).
+  app.get<{ Params: { id: string; commentId: string } }>(
+    "/:id/comments/:commentId/replies",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const parent = await app.prisma.comment.findFirst({
+        where: { id: req.params.commentId, postId: req.params.id, deletedAt: null },
+      });
+      if (!parent) return reply.status(404).send({ error: "Comment not found" });
+
+      const replies = await app.prisma.comment.findMany({
+        where: { parentId: req.params.commentId, deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        take: 200,
+        include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+      });
+
+      const likedIds = await likedCommentIds(app, req.user.id, replies.map(r => r.id));
+
+      return replies.map(r => mapComment(r, likedIds));
     }
   );
 
@@ -960,18 +989,18 @@ export async function postRoutes(app: FastifyInstance) {
   });
 
   // POST /posts/:id/comments
-  app.post<{ Params: { id: string }; Body: { body: string; parentId?: string } }>(
+  app.post<{ Params: { id: string }; Body: { body: string; parentId?: string; mediaUrl?: string; mediaType?: string } }>(
     "/:id/comments",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { body, parentId } = req.body;
-      if (!body?.trim()) return reply.status(400).send({ error: "Comment body required" });
+      const { body, parentId, mediaUrl, mediaType } = req.body;
+      if (!body?.trim() && !mediaUrl) return reply.status(400).send({ error: "Comment body required" });
 
       const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
       if (!post) return reply.status(404).send({ error: "Post not found" });
 
       const comment = await app.prisma.comment.create({
-        data: { authorId: req.user.id, postId: req.params.id, body, parentId },
+        data: { authorId: req.user.id, postId: req.params.id, body: body ?? "", parentId, mediaUrl, mediaType },
         include: {
           author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } },
           replies: {
@@ -989,6 +1018,7 @@ export async function postRoutes(app: FastifyInstance) {
         await app.prisma.comment.update({ where: { id: parentId }, data: { replyCount: { increment: 1 } } });
       }
 
+      const previewText = body?.trim() ? body.slice(0, 50) : "sent a photo";
       if (post.authorId !== req.user.id) {
         const [me, postAuthor] = await Promise.all([
           app.prisma.user.findUnique({ where: { id: req.user.id }, select: { displayName: true, username: true, avatarUrl: true } }),
@@ -1001,7 +1031,7 @@ export async function postRoutes(app: FastifyInstance) {
             actorName:     me?.displayName ?? "Someone",
             actorUsername: me?.username ?? null,
             actorAvatar:   me?.avatarUrl,
-            message:       `commented: ${body.slice(0, 50)}`,
+            message:       `commented: ${previewText}`,
             targetId:      post.id,
             targetType:    "post",
           },
@@ -1014,7 +1044,7 @@ export async function postRoutes(app: FastifyInstance) {
           readAt: null, createdAt: notif.createdAt.toISOString(),
         } });
         if (postAuthor?.fcmToken) {
-          sendPushNotification(postAuthor.fcmToken, `${me?.displayName ?? "Someone"} commented`, body.slice(0, 80)).catch(() => {});
+          sendPushNotification(postAuthor.fcmToken, `${me?.displayName ?? "Someone"} commented`, previewText).catch(() => {});
         }
       }
 
@@ -1078,16 +1108,23 @@ function mapPost(p: PostRaw, likedSet: Set<string>, repostedSet?: Set<string>, r
 
 type CommentRaw = {
   id: string; body: string; likeCount: number; createdAt: Date;
+  parentId?: string | null; replyCount?: number;
+  mediaUrl?: string | null; mediaType?: string | null;
   author: AuthorSel;
-  replies?: { id: string; body: string; likeCount: number; createdAt: Date; author: { username: string; displayName: string; avatarUrl: string | null } }[];
+  replies?: { id: string; body: string; likeCount: number; createdAt: Date; parentId?: string | null; replyCount?: number; mediaUrl?: string | null; mediaType?: string | null; author: { username: string; displayName: string; avatarUrl: string | null } }[];
 };
 
-function mapComment(c: CommentRaw) {
+function mapComment(c: CommentRaw, likedIds?: Set<string>) {
   return {
-    id:        c.id,
-    body:      c.body,
-    likeCount: c.likeCount,
-    createdAt: c.createdAt,
+    id:         c.id,
+    body:       c.body,
+    mediaUrl:   c.mediaUrl ?? null,
+    mediaType:  c.mediaType ?? null,
+    likeCount:  c.likeCount,
+    liked:      likedIds ? likedIds.has(c.id) : false,
+    parentId:   c.parentId ?? null,
+    replyCount: c.replyCount ?? 0,
+    createdAt:  c.createdAt,
     author: {
       username:    c.author.username,
       displayName: c.author.displayName,
@@ -1095,10 +1132,15 @@ function mapComment(c: CommentRaw) {
       isVerified:  (c.author as { isVerified?: boolean }).isVerified ?? false,
     },
     replies: (c.replies ?? []).map(r => ({
-      id:        r.id,
-      body:      r.body,
-      likeCount: r.likeCount,
-      createdAt: r.createdAt,
+      id:         r.id,
+      body:       r.body,
+      mediaUrl:   r.mediaUrl ?? null,
+      mediaType:  r.mediaType ?? null,
+      likeCount:  r.likeCount,
+      liked:      likedIds ? likedIds.has(r.id) : false,
+      parentId:   r.parentId ?? null,
+      replyCount: r.replyCount ?? 0,
+      createdAt:  r.createdAt,
       author: {
         username:    r.author.username,
         displayName: r.author.displayName,
@@ -1106,4 +1148,14 @@ function mapComment(c: CommentRaw) {
       },
     })),
   };
+}
+
+// Which of the given comment ids the current user has liked (targetType "comment").
+async function likedCommentIds(app: FastifyInstance, userId: string, commentIds: string[]): Promise<Set<string>> {
+  if (commentIds.length === 0) return new Set();
+  const likes = await app.prisma.like.findMany({
+    where: { userId, targetType: "comment", targetId: { in: commentIds } },
+    select: { targetId: true },
+  });
+  return new Set(likes.map(l => l.targetId));
 }
