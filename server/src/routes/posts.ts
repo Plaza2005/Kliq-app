@@ -854,6 +854,22 @@ export async function postRoutes(app: FastifyInstance) {
     }
   );
 
+  // POST /posts/:id/share — bump shareCount (in-app send, or external share sheet invoked)
+  app.post<{ Params: { id: string } }>(
+    "/:id/share",
+    { preHandler: [app.authenticate] },
+    async (req, reply) => {
+      const post = await app.prisma.post.findUnique({ where: { id: req.params.id } });
+      if (!post) return reply.status(404).send({ error: "Post not found" });
+      const updated = await app.prisma.post.update({
+        where: { id: req.params.id },
+        data: { shareCount: { increment: 1 } },
+        select: { shareCount: true },
+      });
+      return { shareCount: updated.shareCount };
+    }
+  );
+
   // POST /posts/:id/pin — toggle pin on own post
   app.post<{ Params: { id: string } }>("/:id/pin", { preHandler: [app.authenticate] }, async (req, reply) => {
     const post = await app.prisma.post.findFirst({ where: { id: req.params.id, authorId: req.user.id } });
