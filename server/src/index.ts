@@ -141,7 +141,21 @@ function maybeThumbnail(streamId: string, chunk: string) {
 }
 
 // Client connects as: ws://<host>:4000/ws?token=<jwt>
-app.get<{ Querystring: { token?: string } }>(
+//
+// Registered inside its own `app.register()` callback (rather than as a bare
+// `app.get(...)` on the root instance) so that avvio sequences it strictly
+// after the `@fastify/websocket` plugin above has actually finished loading.
+// `@fastify/websocket` installs an `onRoute` hook that rewrites this route's
+// handler to do the real WS upgrade — but `onRoute` hooks fire synchronously
+// at the moment a route is added, while plugin registration bodies run on a
+// later tick. A bare `app.get("/ws", { websocket: true }, ...)` right after
+// `app.register(websocket)` was therefore adding the route *before* that hook
+// existed, so it silently stayed a normal HTTP route: the raw (request, reply)
+// pair was passed to this handler in place of (connection, req), no 101
+// upgrade response was ever written, and the handler returned without calling
+// reply.send() — which is exactly why every WS handshake hung forever.
+app.register(async function (instance) {
+instance.get<{ Querystring: { token?: string } }>(
   "/ws",
   { websocket: true },
   (connection, req) => {
@@ -219,6 +233,7 @@ app.get<{ Querystring: { token?: string } }>(
     ws.on("error", cleanup);
   }
 );
+});
 
 // ── File upload endpoint ───────────────────────────────────────────────────
 app.post("/upload", { preHandler: [app.authenticate] }, async (req, reply) => {
