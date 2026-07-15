@@ -96,10 +96,12 @@ export async function groupRoutes(app: FastifyInstance) {
   );
 
   // POST /groups/:id/messages
-  app.post<{ Params: { id: string }; Body: { body?: string; mediaUrl?: string } }>(
+  app.post<{ Params: { id: string }; Body: { body?: string; mediaUrl?: string; mediaType?: string } }>(
     "/:id/messages",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
+      const { body, mediaUrl, mediaType } = req.body;
+      if (!body?.trim() && !mediaUrl) return reply.status(400).send({ error: "Message body or media required" });
       const member = await app.prisma.groupChatMember.findFirst({
         where: { groupId: req.params.id, userId: req.user.id },
       });
@@ -108,8 +110,9 @@ export async function groupRoutes(app: FastifyInstance) {
         data: {
           groupId: req.params.id,
           senderId: req.user.id,
-          body: req.body.body,
-          mediaUrl: req.body.mediaUrl,
+          body,
+          mediaUrl,
+          mediaType,
         },
         include: {
           sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },

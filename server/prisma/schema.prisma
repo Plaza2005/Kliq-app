@@ -670,6 +670,7 @@ model GroupMessage {
   senderId  String
   body      String?
   mediaUrl  String?
+  mediaType String?
   group     GroupChat @relation(fields: [groupId], references: [id])
   sender    User      @relation("GroupMessagesSent", fields: [senderId], references: [id])
   createdAt DateTime  @default(now())
