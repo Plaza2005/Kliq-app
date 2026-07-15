@@ -74,6 +74,8 @@ model User {
   communityMemberships CommunityMember[]
   products            Product[]         @relation("ProductsSelling")
   orders              Order[]           @relation("OrdersPlaced")
+  callsMade           Call[]            @relation("CallsMade")
+  callsReceived       Call[]            @relation("CallsReceived")
   notifPrefs          String?
   privacySettings     String?
   subPrice            Int?
@@ -720,6 +722,26 @@ model CreatorSubscription {
   createdAt    DateTime @default(now())
 
   @@unique([subscriberId, creatorId])
+}
+
+// ── Calls (voice/video signaling) ──────────────────────────────────────────
+// The DB row is the record of truth; instant "ring/accept/reject/end"
+// signaling itself goes over the existing wsHub (routes/calls.ts), not
+// polling — see server/src/routes/calls.ts.
+
+model Call {
+  id        String    @id @default(cuid())
+  callerId  String
+  calleeId  String
+  channel   String    @unique
+  type      String    // "voice" | "video"
+  status    String    @default("ringing") // ringing | accepted | rejected | ended | missed
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  caller User @relation("CallsMade",     fields: [callerId], references: [id], onDelete: Cascade)
+  callee User @relation("CallsReceived", fields: [calleeId], references: [id], onDelete: Cascade)
 }
 
 // ── User Reports ───────────────────────────────────────────────────────────
