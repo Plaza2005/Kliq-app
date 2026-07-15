@@ -78,6 +78,7 @@ model User {
   privacySettings     String?
   subPrice            Int?
   fcmToken            String?
+  stickers            Sticker[]
 }
 
 model Follow {
@@ -157,6 +158,23 @@ model Comment {
   post    Post      @relation(fields: [postId],   references: [id], onDelete: Cascade)
   parent  Comment?  @relation("replies", fields: [parentId], references: [id])
   replies Comment[] @relation("replies")
+}
+
+/// A user's saved sticker library. Populated either by long-press-saving an
+/// existing image/comment attachment, a direct upload, or the output of the
+/// video-to-sticker conversion pipeline (`POST /stickers/convert`).
+model Sticker {
+  id         String   @id @default(cuid())
+  ownerId    String
+  url        String
+  width      Int?
+  height     Int?
+  sourceType String   // "upload" | "converted" | "comment" | "chat"
+  createdAt  DateTime @default(now())
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, url])
 }
 
 model Notification {

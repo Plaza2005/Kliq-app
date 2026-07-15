@@ -33,6 +33,7 @@ import { pollRoutes } from "./routes/polls";
 import { groupRoutes } from "./routes/groups";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { marketplaceRoutes } from "./routes/marketplace";
+import { stickerRoutes } from "./routes/stickers";
 import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, subscriberCount, setLastChunk, getLastChunk } from "./ws";
 import { uploadBufferToSupabase } from "./supabase-storage";
 import { startBackgroundJobs } from "./jobs";
@@ -310,6 +311,7 @@ app.register(pollRoutes,         { prefix: "/polls" });
 app.register(groupRoutes,        { prefix: "/groups" });
 app.register(subscriptionRoutes, { prefix: "/subscriptions" });
 app.register(marketplaceRoutes,  { prefix: "/marketplace" });
+app.register(stickerRoutes,      { prefix: "/stickers" });
 
 app.get("/", () => ({ name: "KLIQ API", status: "ok", version: "1.0.0" }));
 app.get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }));
