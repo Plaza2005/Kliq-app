@@ -14,18 +14,72 @@ export async function postRoutes(app: FastifyInstance) {
       const skip = (page - 1) * take;
 
       let posts;
+      // Map of postId -> who reposted it (for followed-user reposts interleaved into the feed)
+      let repostedByMap = new Map<string, { id: string; username: string; avatarUrl: string | null }>();
       if (tab === "following") {
         const following = await app.prisma.follow.findMany({
           where: { followerId: req.user.id },
           select: { followingId: true },
         });
         const ids = following.map(f => f.followingId);
-        posts = await app.prisma.post.findMany({
-          where: { authorId: { in: ids }, deletedAt: null, postType: "post" },
-          orderBy: { createdAt: "desc" },
-          take, skip,
-          include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
-        });
+
+        // Pull a pool of followed users' own posts/reels plus a pool of reposts made
+        // by followed users, then merge + sort by recency so reposts are interleaved
+        // into the feed (Instagram/Twitter-style "🔁 Reposted by @x").
+        const pool = Math.min(skip + take * 3, 200);
+        const [followedPosts, repostLikes] = await Promise.all([
+          app.prisma.post.findMany({
+            where: { authorId: { in: ids }, deletedAt: null, postType: { in: ["post", "reel"] } },
+            orderBy: { createdAt: "desc" },
+            take: pool,
+            include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+          }),
+          app.prisma.like.findMany({
+            where: { userId: { in: ids }, targetType: "repost" },
+            orderBy: { createdAt: "desc" },
+            take: pool,
+          }),
+        ]);
+
+        const reposterIds = [...new Set(repostLikes.map(r => r.userId))];
+        const repostedPostIds = [...new Set(repostLikes.map(r => r.targetId))];
+        const [reposters, repostedPosts] = await Promise.all([
+          reposterIds.length
+            ? app.prisma.user.findMany({
+                where: { id: { in: reposterIds } },
+                select: { id: true, username: true, avatarUrl: true },
+              })
+            : Promise.resolve([]),
+          repostedPostIds.length
+            ? app.prisma.post.findMany({
+                where: { id: { in: repostedPostIds }, deletedAt: null, postType: { in: ["post", "reel"] } },
+                include: { author: { select: { username: true, displayName: true, avatarUrl: true, isVerified: true } } },
+              })
+            : Promise.resolve([]),
+        ]);
+        const reposterMap = new Map(reposters.map(u => [u.id, u]));
+        const repostedPostMap = new Map(repostedPosts.map(p => [p.id, p]));
+
+        type FeedItem = { sortAt: Date; post: typeof followedPosts[0]; repostedBy?: { id: string; username: string; avatarUrl: string | null } };
+
+        const originalItems: FeedItem[] = followedPosts.map(p => ({ sortAt: p.createdAt, post: p }));
+        const repostItems: FeedItem[] = repostLikes
+          .map((r): FeedItem | null => {
+            const post = repostedPostMap.get(r.targetId);
+            const reposter = reposterMap.get(r.userId);
+            if (!post || !reposter) return null;
+            return { sortAt: r.createdAt, post, repostedBy: reposter };
+          })
+          .filter((x): x is FeedItem => x !== null);
+
+        const combined = [...originalItems, ...repostItems].sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
+        const pageItems = combined.slice(skip, skip + take);
+
+        posts = pageItems.map(i => i.post);
+        repostedByMap = new Map(
+          pageItems.filter((i): i is FeedItem & { repostedBy: NonNullable<FeedItem["repostedBy"]> } => !!i.repostedBy)
+            .map(i => [i.post.id, i.repostedBy])
+        );
       } else {
         // ── TikTok-style For You ──────────────────────────────────────────────
         // Three-signal ranking: engagement score + completion rate + interest affinity
@@ -109,7 +163,11 @@ export async function postRoutes(app: FastifyInstance) {
       const likedSet    = new Set(myLikes.map(l => l.targetId));
       const repostedSet = new Set(myReposts.map(r => r.targetId));
 
-      return { posts: posts.map(p => mapPost(p, likedSet, repostedSet)), page, hasMore: posts.length === take };
+      return {
+        posts: posts.map(p => mapPost(p, likedSet, repostedSet, repostedByMap.get(p.id) ?? null)),
+        page,
+        hasMore: posts.length === take,
+      };
     }
   );
 
@@ -228,12 +286,14 @@ export async function postRoutes(app: FastifyInstance) {
       }
       const posts = ranked.slice(skip, skip + take);
 
-      const myLikes = await app.prisma.like.findMany({
-        where: { userId: req.user.id, targetId: { in: posts.map(p => p.id) }, targetType: "post" },
-      });
+      const [myLikes, myReposts] = await Promise.all([
+        app.prisma.like.findMany({ where: { userId: req.user.id, targetId: { in: posts.map(p => p.id) }, targetType: "post" } }),
+        app.prisma.like.findMany({ where: { userId: req.user.id, targetId: { in: posts.map(p => p.id) }, targetType: "repost" } }),
+      ]);
       const likedSet = new Set(myLikes.map(l => l.targetId));
+      const repostedSet = new Set(myReposts.map(r => r.targetId));
 
-      return { posts: posts.map(p => mapPost(p, likedSet)), page, hasMore: posts.length === take };
+      return { posts: posts.map(p => mapPost(p, likedSet, repostedSet)), page, hasMore: posts.length === take };
     }
   );
 
@@ -969,15 +1029,16 @@ export async function postRoutes(app: FastifyInstance) {
 }
 
 type AuthorSel = { username: string; displayName: string; avatarUrl: string | null; isVerified?: boolean };
+type RepostedBy = { id: string; username: string; avatarUrl: string | null };
 type PostRaw = {
   id: string; body: string; mediaUrl: string | null; mediaType: string | null; thumbUrl?: string | null; postType: string;
   status?: string; scheduledAt?: Date | null; pinnedAt?: Date | null; stitchOfId?: string | null; carouselMedia?: string | null;
   title?: string | null; videoDuration?: number | null;
-  likeCount: number; commentCount: number; shareCount: number; viewCount: number; completedViews?: number; createdAt: Date;
+  likeCount: number; commentCount: number; shareCount: number; viewCount: number; completedViews?: number; repostCount?: number; createdAt: Date;
   author: AuthorSel;
 };
 
-function mapPost(p: PostRaw, likedSet: Set<string>, repostedSet?: Set<string>) {
+function mapPost(p: PostRaw, likedSet: Set<string>, repostedSet?: Set<string>, repostedBy?: RepostedBy | null) {
   let carouselUrls: string[] | undefined;
   if (p.carouselMedia) {
     try { carouselUrls = JSON.parse(p.carouselMedia); } catch { /* ignore */ }
@@ -1001,9 +1062,11 @@ function mapPost(p: PostRaw, likedSet: Set<string>, repostedSet?: Set<string>) {
     shareCount:   p.shareCount,
     viewCount:       p.viewCount,
     completedViews:  p.completedViews ?? 0,
+    repostCount:     p.repostCount ?? 0,
     createdAt:       p.createdAt,
     liked:        likedSet.has(p.id),
     reposted:     repostedSet ? repostedSet.has(p.id) : false,
+    repostedBy:   repostedBy ?? null,
     author: {
       username:    p.author.username,
       displayName: p.author.displayName,
