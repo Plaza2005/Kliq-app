@@ -1,11 +1,29 @@
 import { FastifyInstance } from "fastify";
 import { wsHub } from "../ws";
 
+/// Builds the short "replying to" preview shown above a quoted message —
+/// truncated text, or a placeholder for media/deleted messages. Mirrors the
+/// snippet style used for community-message replies.
+function replySnippet(rt: { body: string; mediaUrl: string | null; mediaType?: string | null; deletedAt?: Date | null }) {
+  if (rt.deletedAt) return "Message deleted";
+  if (rt.mediaType === "sticker") return "Sticker";
+  if (rt.mediaType === "audio") return "Voice message";
+  if (rt.mediaType === "image" || rt.mediaUrl) return "Photo";
+  const trimmed = (rt.body ?? "").trim();
+  if (!trimmed) return "";
+  return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed;
+}
+
 function serializeMessage(m: {
   id: string; body: string; mediaUrl: string | null; mediaType?: string | null;
   readAt: Date | null; deletedAt?: Date | null; createdAt: Date; senderId: string;
+  replyToId?: string | null;
   reactions?: { userId: string; emoji: string }[];
   sender: { id: string; username: string; displayName: string; avatarUrl: string | null };
+  replyTo?: null | {
+    id: string; body: string; mediaUrl: string | null; mediaType: string | null; deletedAt: Date | null;
+    sender: { username: string };
+  };
 }, myId: string) {
   const reactionMap: Record<string, number> = {};
   let myReaction: string | undefined;
@@ -30,8 +48,21 @@ function serializeMessage(m: {
       displayName: m.sender.displayName,
       avatarUrl:   m.sender.avatarUrl,
     },
+    ...(m.replyTo ? {
+      replyTo: {
+        id:             m.replyTo.id,
+        senderUsername: m.replyTo.sender.username,
+        snippet:        replySnippet(m.replyTo),
+      },
+    } : {}),
   };
 }
+
+const REPLY_TO_INCLUDE = {
+  include: {
+    sender: { select: { username: true } },
+  },
+} as const;
 
 export async function messageRoutes(app: FastifyInstance) {
   // GET /messages/threads
@@ -90,6 +121,7 @@ export async function messageRoutes(app: FastifyInstance) {
         include: {
           sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           reactions: { select: { userId: true, emoji: true } },
+          replyTo: REPLY_TO_INCLUDE,
         },
       });
 
@@ -120,6 +152,7 @@ export async function messageRoutes(app: FastifyInstance) {
         include: {
           sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           reactions: { select: { userId: true, emoji: true } },
+          replyTo: REPLY_TO_INCLUDE,
         },
       });
 
@@ -222,11 +255,11 @@ export async function messageRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Body: { recipientId: string; body?: string; mediaUrl?: string; mediaType?: string; threadId?: string } }>(
+  app.post<{ Body: { recipientId: string; body?: string; mediaUrl?: string; mediaType?: string; threadId?: string; replyToId?: string } }>(
     "/send",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { recipientId, body, mediaUrl, mediaType, threadId } = req.body;
+      const { recipientId, body, mediaUrl, mediaType, threadId, replyToId } = req.body;
       if (!body?.trim() && !mediaUrl) return reply.status(400).send({ error: "Message body or media required" });
 
       let thread;
@@ -264,6 +297,13 @@ export async function messageRoutes(app: FastifyInstance) {
 
       if (!thread) return reply.status(404).send({ error: "Thread not found" });
 
+      if (replyToId) {
+        const parent = await app.prisma.message.findUnique({ where: { id: replyToId } });
+        if (!parent || parent.threadId !== thread.id) {
+          return reply.status(400).send({ error: "replyToId not found in this thread" });
+        }
+      }
+
       const message = await app.prisma.message.create({
         data: {
           threadId: thread.id,
@@ -271,8 +311,12 @@ export async function messageRoutes(app: FastifyInstance) {
           body: body ?? "",
           ...(mediaUrl   ? { mediaUrl }   : {}),
           ...(mediaType  ? { mediaType }  : {}),
+          ...(replyToId  ? { replyToId }  : {}),
         },
-        include: { sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+        include: {
+          sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          replyTo: REPLY_TO_INCLUDE,
+        },
       });
 
       await app.prisma.thread.update({ where: { id: thread.id }, data: { updatedAt: new Date() } });

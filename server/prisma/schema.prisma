@@ -222,10 +222,13 @@ model Message {
   readAt    DateTime?
   deletedAt DateTime?
   createdAt DateTime  @default(now())
+  replyToId String?
 
   thread    Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender    User              @relation(fields: [senderId],  references: [id], onDelete: Cascade)
   reactions MessageReaction[]
+  replyTo   Message?          @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   Message[]         @relation("MessageReplies")
 }
 
 model MessageReaction {
@@ -671,9 +674,13 @@ model GroupMessage {
   body      String?
   mediaUrl  String?
   mediaType String?
+  replyToId String?
   group     GroupChat @relation(fields: [groupId], references: [id])
   sender    User      @relation("GroupMessagesSent", fields: [senderId], references: [id])
   createdAt DateTime  @default(now())
+
+  replyTo   GroupMessage?  @relation("GroupMessageReplies", fields: [replyToId], references: [id])
+  replies   GroupMessage[] @relation("GroupMessageReplies")
 }
 
 // ── Reposts ────────────────────────────────────────────────────────────────

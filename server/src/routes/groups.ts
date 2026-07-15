@@ -1,6 +1,52 @@
 import { FastifyInstance } from "fastify";
 import { wsHub } from "../ws";
 
+/// Same snippet convention as DM replies (messages.ts) — truncated text or a
+/// media placeholder for the quoted message shown above a group reply.
+function groupReplySnippet(rt: { body: string | null; mediaUrl: string | null; mediaType: string | null }) {
+  if (rt.mediaType === "sticker") return "Sticker";
+  if (rt.mediaType === "audio") return "Voice message";
+  if (rt.mediaType === "image" || rt.mediaUrl) return "Photo";
+  const trimmed = (rt.body ?? "").trim();
+  if (!trimmed) return "";
+  return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed;
+}
+
+const GROUP_MESSAGE_INCLUDE = {
+  sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+  replyTo: {
+    include: { sender: { select: { username: true } } },
+  },
+} as const;
+
+function serializeGroupMessage(m: {
+  id: string; groupId: string; senderId: string; body: string | null;
+  mediaUrl: string | null; mediaType: string | null; createdAt: Date;
+  sender: { id: string; username: string; displayName: string; avatarUrl: string | null };
+  replyTo?: null | {
+    id: string; body: string | null; mediaUrl: string | null; mediaType: string | null;
+    sender: { username: string };
+  };
+}) {
+  return {
+    id:        m.id,
+    groupId:   m.groupId,
+    senderId:  m.senderId,
+    body:      m.body,
+    mediaUrl:  m.mediaUrl,
+    mediaType: m.mediaType,
+    createdAt: m.createdAt,
+    sender:    m.sender,
+    ...(m.replyTo ? {
+      replyTo: {
+        id:             m.replyTo.id,
+        senderUsername: m.replyTo.sender.username,
+        snippet:        groupReplySnippet(m.replyTo),
+      },
+    } : {}),
+  };
+}
+
 export async function groupRoutes(app: FastifyInstance) {
   // POST /groups — create group chat
   app.post<{ Body: { name: string; memberUsernames: string[]; avatarUrl?: string } }>(
@@ -81,31 +127,38 @@ export async function groupRoutes(app: FastifyInstance) {
         where: { groupId: req.params.id, userId: req.user.id },
       });
       if (!member) return reply.status(403).send({ error: "Not a member" });
-      return app.prisma.groupMessage.findMany({
+      const messages = await app.prisma.groupMessage.findMany({
         where: {
           groupId: req.params.id,
           ...(req.query.before ? { createdAt: { lt: new Date(req.query.before) } } : {}),
         },
         orderBy: { createdAt: "desc" },
         take: 50,
-        include: {
-          sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-        },
+        include: GROUP_MESSAGE_INCLUDE,
       });
+      return messages.map(serializeGroupMessage);
     }
   );
 
   // POST /groups/:id/messages
-  app.post<{ Params: { id: string }; Body: { body?: string; mediaUrl?: string; mediaType?: string } }>(
+  app.post<{ Params: { id: string }; Body: { body?: string; mediaUrl?: string; mediaType?: string; replyToId?: string } }>(
     "/:id/messages",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { body, mediaUrl, mediaType } = req.body;
+      const { body, mediaUrl, mediaType, replyToId } = req.body;
       if (!body?.trim() && !mediaUrl) return reply.status(400).send({ error: "Message body or media required" });
       const member = await app.prisma.groupChatMember.findFirst({
         where: { groupId: req.params.id, userId: req.user.id },
       });
       if (!member) return reply.status(403).send({ error: "Not a member" });
+
+      if (replyToId) {
+        const parent = await app.prisma.groupMessage.findUnique({ where: { id: replyToId } });
+        if (!parent || parent.groupId !== req.params.id) {
+          return reply.status(400).send({ error: "replyToId not found in this group" });
+        }
+      }
+
       const msg = await app.prisma.groupMessage.create({
         data: {
           groupId: req.params.id,
@@ -113,19 +166,19 @@ export async function groupRoutes(app: FastifyInstance) {
           body,
           mediaUrl,
           mediaType,
+          ...(replyToId ? { replyToId } : {}),
         },
-        include: {
-          sender: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-        },
+        include: GROUP_MESSAGE_INCLUDE,
       });
+      const serialized = serializeGroupMessage(msg);
       // Broadcast to all members
       const members = await app.prisma.groupChatMember.findMany({ where: { groupId: req.params.id } });
       members.forEach((m) => {
         if (m.userId !== req.user.id) {
-          wsHub.send(m.userId, { type: "group:message", groupId: req.params.id, message: msg });
+          wsHub.send(m.userId, { type: "group:message", groupId: req.params.id, message: serialized });
         }
       });
-      return msg;
+      return serialized;
     }
   );
 
