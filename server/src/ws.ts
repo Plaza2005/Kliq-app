@@ -79,7 +79,34 @@ export function broadcastToStream(streamId: string, data: unknown, excludeWs?: C
 export function clearStreamSubscribers(streamId: string) {
   streamSubscribers.delete(streamId);
   lastChunks.delete(streamId);
+  telemetryStore.streamStats.delete(streamId);
 }
+
+// ── Live Telemetry Aggregator ─────────────────────────────────────────────
+export interface TelemetryData {
+  streamStats: Map<string, { bitrateKbps: number; fps: number; packetLossPct: number; updatedAt: number }>;
+  admob: { impressions: number; clicks: number; ctr: number; estimatedRevenueUsd: number };
+}
+
+export const telemetryStore = {
+  streamStats: new Map<string, { bitrateKbps: number; fps: number; packetLossPct: number; updatedAt: number }>(),
+  admob: { impressions: 0, clicks: 0, ctr: 0, estimatedRevenueUsd: 0 },
+  recordStreamTelemetry(streamId: string, stats: { bitrateKbps?: number; fps?: number; packetLossPct?: number }) {
+    const existing = this.streamStats.get(streamId) ?? { bitrateKbps: 0, fps: 0, packetLossPct: 0, updatedAt: Date.now() };
+    this.streamStats.set(streamId, {
+      bitrateKbps: stats.bitrateKbps ?? existing.bitrateKbps,
+      fps: stats.fps ?? existing.fps,
+      packetLossPct: stats.packetLossPct ?? existing.packetLossPct,
+      updatedAt: Date.now(),
+    });
+  },
+  recordAdMobTelemetry(data: { impressions?: number; clicks?: number; revenue?: number }) {
+    if (data.impressions) this.admob.impressions += data.impressions;
+    if (data.clicks) this.admob.clicks += data.clicks;
+    if (data.revenue) this.admob.estimatedRevenueUsd += data.revenue;
+    this.admob.ctr = this.admob.impressions > 0 ? (this.admob.clicks / this.admob.impressions) * 100 : 0;
+  },
+};
 
 // ── Live stream last-frame cache ──────────────────────────────────────────
 // Lets a newly-subscribed viewer see the current frame instantly instead of

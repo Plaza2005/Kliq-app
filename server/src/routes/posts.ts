@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { wsHub } from "../ws";
 import { sendPushNotification } from "../firebase";
+import { getCached, setCache, clearCache } from "../cache";
 
 export async function postRoutes(app: FastifyInstance) {
   // GET /posts/feed
@@ -12,6 +13,10 @@ export async function postRoutes(app: FastifyInstance) {
       const tab  = req.query.tab || "for_you";
       const take = 10;
       const skip = (page - 1) * take;
+
+      const cacheKey = `posts:feed:${req.user.id}:${tab}:${page}`;
+      const cached = getCached<unknown[]>(cacheKey);
+      if (cached) return cached;
 
       let posts;
       // Map of postId -> who reposted it (for followed-user reposts interleaved into the feed)

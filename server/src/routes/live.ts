@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import * as crypto from "crypto";
 import { clearStreamSubscribers } from "../ws";
+import { getCached, setCache, clearCache } from "../cache";
 
 export async function liveRoutes(app: FastifyInstance) {
   // POST /live/start
@@ -39,6 +40,8 @@ export async function liveRoutes(app: FastifyInstance) {
         },
       });
 
+      clearCache("live:streams");
+
       // Generate a stream key (not stored; client uses streamId + JWT in WS)
       const streamKey = crypto.randomBytes(24).toString("hex");
       return reply.status(201).send({ streamId: stream.id, streamKey });
@@ -61,6 +64,7 @@ export async function liveRoutes(app: FastifyInstance) {
       });
 
       clearStreamSubscribers(stream.id);
+      clearCache("live:streams");
       return { ended: true, streamId: stream.id };
     }
   );
@@ -70,6 +74,10 @@ export async function liveRoutes(app: FastifyInstance) {
     "/streams",
     { preHandler: [app.authenticate] },
     async () => {
+      const cacheKey = "live:streams";
+      const cached = getCached<unknown[]>(cacheKey);
+      if (cached) return cached;
+
       const streams = await app.prisma.liveStream.findMany({
         where: { isLive: true },
         orderBy: { viewerCount: "desc" },
@@ -83,7 +91,7 @@ export async function liveRoutes(app: FastifyInstance) {
         },
       });
 
-      return streams.map(s => ({
+      const formatted = streams.map(s => ({
         id:           s.id,
         title:        s.title,
         category:     s.category,
@@ -98,6 +106,9 @@ export async function liveRoutes(app: FastifyInstance) {
           isVerified:  s.user.isVerified,
         },
       }));
+
+      setCache(cacheKey, formatted, 10);
+      return formatted;
     }
   );
 

@@ -38,12 +38,15 @@ export async function agoraRoutes(app: FastifyInstance) {
   // RTC channel. uid defaults to 0 ("any uid may join with this token"),
   // which is the simplest option since Agora client SDKs can auto-assign
   // a uid on join.
-  app.post<{ Body: { channel?: string; uid?: number; role?: "publisher" | "subscriber" } }>(
+  app.post<{ Body: { channel?: string; streamId?: string; uid?: number; role?: "publisher" | "subscriber" } }>(
     "/rtc-token",
     { preHandler: [app.authenticate] },
     async (req, reply) => {
-      const { channel, uid, role } = req.body ?? {};
-      if (!channel) return reply.status(400).send({ error: "channel required" });
+      let { channel, streamId, uid, role } = req.body ?? {};
+      if (!channel && streamId) {
+        channel = `live_${streamId}`;
+      }
+      if (!channel) return reply.status(400).send({ error: "channel or streamId required" });
 
       const result = buildAgoraRtcToken(channel, uid ?? 0, role ?? "publisher");
       if (!result) {

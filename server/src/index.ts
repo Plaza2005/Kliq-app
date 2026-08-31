@@ -36,6 +36,7 @@ import { marketplaceRoutes } from "./routes/marketplace";
 import { stickerRoutes } from "./routes/stickers";
 import { agoraRoutes } from "./routes/agora";
 import { callRoutes } from "./routes/calls";
+import { mediaRoutes } from "./routes/media";
 import { wsHub, subscribeToStream, unsubscribeFromStream, broadcastToStream, subscriberCount, setLastChunk, getLastChunk } from "./ws";
 import { uploadBufferToSupabase } from "./supabase-storage";
 import { startBackgroundJobs } from "./jobs";
@@ -63,7 +64,7 @@ const app = Fastify({ logger: { level: "warn" } });
 
 // ── Plugins ────────────────────────────────────────────────────────────────
 app.register(rateLimit, {
-  max: 120,           // 120 requests per minute globally
+  max: 100,           // 100 requests per minute globally
   timeWindow: "1 minute",
   errorResponseBuilder: () => ({ error: "Too many requests, slow down." }),
 });
@@ -316,6 +317,7 @@ app.register(marketplaceRoutes,  { prefix: "/marketplace" });
 app.register(stickerRoutes,      { prefix: "/stickers" });
 app.register(agoraRoutes,        { prefix: "/agora" });
 app.register(callRoutes,         { prefix: "/calls" });
+app.register(mediaRoutes,        { prefix: "/media" });
 
 app.get("/", () => ({ name: "KLIQ API", status: "ok", version: "1.0.0" }));
 app.get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }));

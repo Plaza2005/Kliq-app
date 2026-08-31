@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import * as fs from "fs";
 import * as path from "path";
-import { wsHub } from "../ws";
+import { wsHub, telemetryStore } from "../ws";
 
 const SETTINGS_FILE = path.join(process.cwd(), "settings.json");
 
@@ -834,6 +834,62 @@ export async function adminRoutes(app: FastifyInstance) {
     ]);
     return { totalThreads, totalMessages, activeToday };
   });
+
+  // POST /admin/telemetry — ingest real-time client performance metrics
+  app.post<{
+    Body: {
+      type: "admob" | "stream" | "reel";
+      streamId?: string;
+      bitrateKbps?: number;
+      fps?: number;
+      packetLossPct?: number;
+      impressions?: number;
+      clicks?: number;
+      revenue?: number;
+      watchDurationS?: number;
+    };
+  }>(
+    "/telemetry",
+    { preHandler: [app.authenticate] },
+    async (req) => {
+      const body = req.body ?? {};
+      if (body.type === "stream" && body.streamId) {
+        telemetryStore.recordStreamTelemetry(body.streamId, {
+          bitrateKbps: body.bitrateKbps,
+          fps: body.fps,
+          packetLossPct: body.packetLossPct,
+        });
+      } else if (body.type === "admob") {
+        telemetryStore.recordAdMobTelemetry({
+          impressions: body.impressions,
+          clicks: body.clicks,
+          revenue: body.revenue,
+        });
+      }
+      return { ok: true };
+    }
+  );
+
+  // GET /admin/telemetry/live — live aggregated stream telemetry & ad metrics
+  app.get(
+    "/telemetry/live",
+    { preHandler: [app.authenticateAdmin] },
+    async () => {
+      const activeStreams: Record<string, { bitrateKbps: number; fps: number; packetLossPct: number }> = {};
+      for (const [streamId, stats] of telemetryStore.streamStats.entries()) {
+        activeStreams[streamId] = {
+          bitrateKbps: stats.bitrateKbps,
+          fps: stats.fps,
+          packetLossPct: stats.packetLossPct,
+        };
+      }
+      return {
+        onlineUsers: wsHub.size,
+        streamTelemetry: activeStreams,
+        admob: telemetryStore.admob,
+      };
+    }
+  );
 
   // POST /admin/live/:streamId/terminate
   app.post<{ Params: { streamId: string } }>("/live/:streamId/terminate", { preHandler: [app.authenticateAdmin] }, async (req) => {
